@@ -175,6 +175,10 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=keyboard,
         )
 
+        tutorial_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎓 Mulai Tutorial Interaktif", callback_data="tutorial:2")],
+            [InlineKeyboardButton("🎯 Set Budget Sekarang", callback_data="tutorial:try_qb")],
+        ])
         await update.message.reply_text(
             "📌 *Panduan Cepat:*\n\n"
             "1️⃣ *Catat pengeluaran:*\n"
@@ -183,12 +187,13 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "   `/income 5000000 gaji bulan ini`\n\n"
             "3️⃣ *Cek ringkasan bulan ini:*\n"
             "   `/summary`\n\n"
-            "4️⃣ *Set budget kategori:*\n"
-            "   `/budget food 1000000`\n\n"
+            "4️⃣ *Set budget mudah:*\n"
+            "   `/quickbudget` → pilih kategori & nominal\n\n"
             "💡 *Tips:* Bisa juga ketik langsung tanpa command!\n"
             "   Contoh: `beli makan siang 25000`\n\n"
-            "Ketik /help kapan saja untuk panduan lengkap.",
+            "Mau dipandu lebih detail? 👇",
             parse_mode=ParseMode.MARKDOWN,
+            reply_markup=tutorial_keyboard,
         )
 
 
@@ -539,14 +544,73 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─────────────────────────────────────────
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎓 Tutorial Interaktif", callback_data="tutorial:2")],
         [InlineKeyboardButton("📝 Catat Transaksi", callback_data="help:transactions")],
         [InlineKeyboardButton("💰 Budget & Goals", callback_data="help:budget")],
         [InlineKeyboardButton("💡 Tips & Trik", callback_data="help:tips")],
+        [InlineKeyboardButton("🎯 Quick Budget Setup", callback_data="tutorial:try_qb")],
     ])
     await update.message.reply_text(
         "📖 *FinTrack — Pusat Bantuan*\n\n"
         "Halo! Saya FinTrack, asisten keuangan pribadimu 🤖\n\n"
         "Pilih topik yang ingin kamu pelajari 👇",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
+    )
+
+
+# ─────────────────────────────────────────
+# /tutorial — Step-by-step interactive guide
+# ─────────────────────────────────────────
+async def cmd_tutorial(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("Mulai Tutorial →", callback_data="tutorial:2"),
+    ]])
+    await update.message.reply_text(
+        "🎓 *Tutorial FinTrack* — Langkah 1/5\n\n"
+        "Selamat datang di tutorial interaktif!\n"
+        "Saya akan memandu kamu dalam 5 langkah sederhana.\n\n"
+        "*Yang akan kamu pelajari:*\n"
+        "1️⃣ Cara mencatat pengeluaran\n"
+        "2️⃣ Cara mencatat pemasukan\n"
+        "3️⃣ Cara set budget bulanan\n"
+        "4️⃣ Cara set savings goal\n"
+        "5️⃣ Tips & trik\n\n"
+        "Siap? Klik tombol di bawah untuk mulai! 👇",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
+    )
+
+
+# ─────────────────────────────────────────
+# /quickbudget — Easy budget setup wizard
+# ─────────────────────────────────────────
+@require_start
+async def cmd_quickbudget(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🍜 Makanan", callback_data="qb_cat:food"),
+            InlineKeyboardButton("🚗 Transport", callback_data="qb_cat:transport"),
+        ],
+        [
+            InlineKeyboardButton("🛍️ Shopping", callback_data="qb_cat:shopping"),
+            InlineKeyboardButton("💊 Kesehatan", callback_data="qb_cat:health"),
+        ],
+        [
+            InlineKeyboardButton("🎮 Hiburan", callback_data="qb_cat:entertainment"),
+            InlineKeyboardButton("📱 Tagihan", callback_data="qb_cat:bills"),
+        ],
+        [
+            InlineKeyboardButton("📚 Pendidikan", callback_data="qb_cat:education"),
+            InlineKeyboardButton("🛒 Groceries", callback_data="qb_cat:groceries"),
+        ],
+        [InlineKeyboardButton("❌ Selesai", callback_data="qb_done")],
+    ])
+    await update.message.reply_text(
+        "🎯 *Quick Budget Setup*\n\n"
+        "Pilih kategori yang ingin kamu set budgetnya.\n"
+        "Kamu bisa set beberapa kategori sekaligus!\n\n"
+        "👇 Pilih kategori:",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
     )

@@ -16,6 +16,7 @@ from telegram.ext import (
 from bot.handlers.commands import (
     cmd_start, cmd_add, cmd_income, cmd_summary, cmd_history,
     cmd_budget, cmd_goal, cmd_help, cmd_delete, cmd_stats, cmd_cancel,
+    cmd_tutorial, cmd_quickbudget,
 )
 from bot.handlers.callbacks import handle_callback
 from bot.handlers.messages import handle_message
@@ -53,6 +54,8 @@ def main():
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("delete", cmd_delete))
     app.add_handler(CommandHandler("stats", cmd_stats))
+    app.add_handler(CommandHandler("tutorial", cmd_tutorial))
+    app.add_handler(CommandHandler("quickbudget", cmd_quickbudget))
     app.add_handler(CommandHandler("cancel", cmd_cancel))
 
     # Inline keyboard callbacks
