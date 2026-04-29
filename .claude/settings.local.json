@@ -3,7 +3,10 @@
     "allow": [
       "PowerShell(Invoke-WebRequest -Uri \"https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe\" -OutFile \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\" -UseBasicParsing)",
       "PowerShell(Get-Item \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\" | Select-Object Name, Length, LastWriteTime)",
-      "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\"\\) { $f = Get-Item \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\"; Write-Output \"File: $\\($f.Name\\)\"; Write-Output \"Size: $\\([math]::Round\\($f.Length/1MB, 2\\)\\) MB\"; Write-Output \"Path: $\\($f.FullName\\)\" } else { Write-Output \"File not found\" })"
+      "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\"\\) { $f = Get-Item \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\"; Write-Output \"File: $\\($f.Name\\)\"; Write-Output \"Size: $\\([math]::Round\\($f.Length/1MB, 2\\)\\) MB\"; Write-Output \"Path: $\\($f.FullName\\)\" } else { Write-Output \"File not found\" })",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
     ]
   }
 }
