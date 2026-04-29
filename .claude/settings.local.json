@@ -6,7 +6,11 @@
       "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\"\\) { $f = Get-Item \"$env:USERPROFILE\\\\Downloads\\\\python-3.11.9-amd64.exe\"; Write-Output \"File: $\\($f.Name\\)\"; Write-Output \"Size: $\\([math]::Round\\($f.Length/1MB, 2\\)\\) MB\"; Write-Output \"Path: $\\($f.FullName\\)\" } else { Write-Output \"File not found\" })",
       "Bash(git init *)",
       "Bash(git remote *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Gilang Dwi\\\\OneDrive\\\\Documents\\\\00. Claude AI\\\\Claude Project\\\\4. Fintrack\\\\fintrack\\\\bot\" -Recurse -Force | Where-Object {$_.Extension -eq \".py\"} | Select-Object FullName)",
+      "PowerShell(head -30)"
     ]
   }
 }
