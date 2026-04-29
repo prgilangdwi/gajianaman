@@ -1,0 +1,32 @@
+DESIGN_TOKENS = {
+    "colors": {
+        "income": "#1D9E75",
+        "expense": "#E24B4A",
+        "warning": "#EF9F27",
+        "info": "#378ADD",
+        "neutral": "#888780",
+    },
+    "category_colors": {
+        "Food & Dining": "#E24B4A",
+        "Transport": "#378ADD",
+        "Groceries": "#1D9E75",
+        "Bills & Utilities": "#7F77DD",
+        "Shopping": "#EF9F27",
+        "Health": "#D85A30",
+        "Entertainment": "#533AB7",
+        "Education": "#0F6E56",
+        "Other": "#888780",
+    },
+    "fonts": {
+        "display": "Plus Jakarta Sans",
+        "mono": "DM Mono",
+    }
+}
+
+def fmt_idr(amount: float, compact: bool = False) -> str:
+    """Format number as IDR. compact=True gives '5,8jt' format."""
+    if compact and abs(amount) >= 1_000_000:
+        return f"Rp {abs(amount)/1_000_000:.1f}jt"
+    if compact and abs(amount) >= 1_000:
+        return f"Rp {int(abs(amount)/1_000)}K"
+    return f"Rp {int(abs(amount)):,}".replace(",", ".")

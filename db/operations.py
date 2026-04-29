@@ -17,6 +17,14 @@ async def ensure_user(session: AsyncSession, user_id: int, name: str, username: 
     await session.commit()
 
 
+async def get_user(session: AsyncSession, user_id: int):
+    result = await session.execute(
+        text("SELECT user_id, name FROM users WHERE user_id = :user_id"),
+        {"user_id": user_id}
+    )
+    return result.fetchone()
+
+
 async def insert_transaction(
     session: AsyncSession,
     user_id: int,
@@ -47,6 +55,71 @@ async def insert_transaction(
     )
     await session.commit()
     return result.scalar()
+
+
+async def get_last_transaction(session: AsyncSession, user_id: int):
+    result = await session.execute(
+        text("""
+            SELECT id, amount, type, category, note
+            FROM transactions
+            WHERE user_id = :user_id
+            ORDER BY created_at DESC
+            LIMIT 1
+        """),
+        {"user_id": user_id}
+    )
+    return result.fetchone()
+
+
+async def delete_transaction(session: AsyncSession, tx_id: int, user_id: int):
+    await session.execute(
+        text("DELETE FROM transactions WHERE id = :id AND user_id = :user_id"),
+        {"id": tx_id, "user_id": user_id}
+    )
+    await session.commit()
+
+
+async def update_transaction_category(session: AsyncSession, tx_id: int, category: str):
+    await session.execute(
+        text("UPDATE transactions SET category = :category WHERE id = :id"),
+        {"category": category, "id": tx_id}
+    )
+    await session.commit()
+
+
+async def get_today_stats(session: AsyncSession, user_id: int):
+    result = await session.execute(
+        text("""
+            SELECT
+                COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0) as expense,
+                COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 0) as income,
+                COUNT(*) as tx_count
+            FROM transactions
+            WHERE user_id = :user_id AND date = :today
+        """),
+        {"user_id": user_id, "today": date.today()}
+    )
+    return result.fetchone()
+
+
+async def check_budget_alert(session: AsyncSession, user_id: int, category: str, month: int, year: int):
+    result = await session.execute(
+        text("""
+            SELECT b.amount as budget, COALESCE(SUM(t.amount), 0) as actual
+            FROM budgets b
+            LEFT JOIN transactions t
+                ON t.user_id = b.user_id
+                AND t.category = b.category
+                AND t.type = 'expense'
+                AND EXTRACT(MONTH FROM t.date) = b.month
+                AND EXTRACT(YEAR FROM t.date) = b.year
+            WHERE b.user_id = :user_id AND b.category = :category
+              AND b.month = :month AND b.year = :year
+            GROUP BY b.amount
+        """),
+        {"user_id": user_id, "category": category, "month": month, "year": year}
+    )
+    return result.fetchone()
 
 
 async def get_monthly_summary(session: AsyncSession, user_id: int, month: int, year: int):
