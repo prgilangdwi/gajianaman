@@ -103,6 +103,11 @@ st.markdown("""
     line-height: 1.7;
     margin-top: 8px;
   }
+
+  /* Center text inside number input */
+  input[type="number"] {
+    text-align: center !important;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -253,9 +258,9 @@ def load_summary(user_id: int, month: int, year: int):
           ON t.category = b.category AND t.type = 'expense'
           AND EXTRACT(MONTH FROM t.date) = b.month
           AND EXTRACT(YEAR FROM t.date) = b.year
-          {uid_clause.replace(':uid', 'b.user_id') if user_id else ''}
+          {'AND t.user_id = b.user_id' if user_id else ''}
         WHERE b.month = :m AND b.year = :y
-          {uid_clause.replace('user_id', 'b.user_id') if user_id else ''}
+          {'AND b.user_id = :uid' if user_id else ''}
         GROUP BY b.category, b.amount
     """, p)
 
