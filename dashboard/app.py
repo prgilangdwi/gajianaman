@@ -14,6 +14,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DB_URL = os.getenv("DATABASE_URL_SYNC")
+if not DB_URL:
+    st.error(
+        "DATABASE_URL_SYNC is not set. "
+        "Add it in Streamlit Cloud → Settings → Secrets:\n\n"
+        "```\nDATABASE_URL_SYNC = \"postgresql://user:pass@host:5432/dbname\"\n```"
+    )
+    st.stop()
 engine = create_engine(DB_URL)
 
 # ─── Page Config ────────────────────────
