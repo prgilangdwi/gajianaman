@@ -247,25 +247,30 @@ def get_engine():
 @st.cache_data(ttl=120)
 def fetch_transactions(user_id: int, month: int, year: int) -> pd.DataFrame:
     with get_engine().connect() as conn:
-        return pd.read_sql(text("""
-            SELECT id, amount, type, category, subcategory, note, date
+        df = pd.read_sql(text("""
+            SELECT id, amount::float, type, category, subcategory, note,
+                   date::date AS date
             FROM transactions
             WHERE user_id = :uid
               AND EXTRACT(MONTH FROM date) = :month
               AND EXTRACT(YEAR FROM date) = :year
             ORDER BY date DESC, id DESC
         """), conn, params={"uid": user_id, "month": month, "year": year})
+    df["date"] = pd.to_datetime(df["date"])
+    return df
 
 
 @st.cache_data(ttl=120)
 def fetch_all_transactions(user_id: int) -> pd.DataFrame:
     with get_engine().connect() as conn:
-        return pd.read_sql(text("""
-            SELECT amount, type, category, date
+        df = pd.read_sql(text("""
+            SELECT amount::float, type, category, date::date AS date
             FROM transactions
             WHERE user_id = :uid
             ORDER BY date
         """), conn, params={"uid": user_id})
+    df["date"] = pd.to_datetime(df["date"])
+    return df
 
 
 @st.cache_data(ttl=120)
@@ -465,8 +470,12 @@ def donut_chart(by_cat: pd.DataFrame) -> go.Figure:
 def bar_chart_monthly(df_all: pd.DataFrame) -> go.Figure:
     df_all = df_all.copy()
     df_all["date"] = pd.to_datetime(df_all["date"])
-    df_all["month_year"] = df_all["date"].dt.strftime("%b %Y")
-    monthly = df_all.groupby(["month_year", "type"])["amount"].sum().reset_index()
+    df_all["period"] = df_all["date"].dt.to_period("M")
+    monthly = df_all.groupby(["period", "type"])["amount"].sum().reset_index()
+    monthly = monthly.sort_values("period")
+    monthly["month_year"] = monthly["period"].dt.strftime("%b %Y")
+    months_ordered = list(monthly["month_year"].unique())
+
     inc = monthly[monthly["type"] == "income"]
     exp = monthly[monthly["type"] == "expense"]
     fig = go.Figure([
@@ -480,7 +489,8 @@ def bar_chart_monthly(df_all: pd.DataFrame) -> go.Figure:
         barmode="group", height=300,
         margin=dict(l=0, r=0, t=32, b=0),
         title=dict(text="Pemasukan vs Pengeluaran per Bulan", font=dict(size=12), x=0),
-        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11)),
+        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11),
+                   categoryorder="array", categoryarray=months_ordered),
         yaxis=dict(**GRID, tickfont=dict(size=10)),
         legend=dict(font=dict(size=11), bgcolor="rgba(0,0,0,0)"),
     )
@@ -490,8 +500,12 @@ def bar_chart_monthly(df_all: pd.DataFrame) -> go.Figure:
 def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
     df_exp_all = df_exp_all.copy()
     df_exp_all["date"] = pd.to_datetime(df_exp_all["date"])
-    df_exp_all["month_year"] = df_exp_all["date"].dt.strftime("%b %Y")
-    cat_monthly = df_exp_all.groupby(["month_year", "category"])["amount"].sum().reset_index()
+    df_exp_all["period"] = df_exp_all["date"].dt.to_period("M")
+    cat_monthly = df_exp_all.groupby(["period", "category"])["amount"].sum().reset_index()
+    cat_monthly = cat_monthly.sort_values("period")
+    cat_monthly["month_year"] = cat_monthly["period"].dt.strftime("%b %Y")
+    months_ordered = list(cat_monthly["month_year"].unique())
+
     fig = px.line(
         cat_monthly, x="month_year", y="amount", color="category",
         markers=True, color_discrete_map=CATEGORY_COLORS,
@@ -500,7 +514,8 @@ def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
         **PLOTLY_BASE, height=300,
         margin=dict(l=0, r=0, t=32, b=0),
         title=dict(text="Tren Pengeluaran per Kategori", font=dict(size=12), x=0),
-        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11)),
+        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11),
+                   categoryorder="array", categoryarray=months_ordered),
         yaxis=dict(**GRID, tickfont=dict(size=10)),
         legend=dict(font=dict(size=10), bgcolor="rgba(0,0,0,0)"),
     )
@@ -508,20 +523,28 @@ def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
 
 
 def area_chart_daily(df: pd.DataFrame) -> go.Figure:
-    daily = (df[df["type"] == "expense"]
-             .groupby("date")["amount"].sum().reset_index()
-             .sort_values("date"))
+    tmp = df[df["type"] == "expense"].copy()
+    tmp["day"] = pd.to_datetime(tmp["date"]).dt.normalize()
+    daily = tmp.groupby("day")["amount"].sum().reset_index().sort_values("day")
+
+    n_days = len(daily)
+    mode = "lines+markers" if n_days <= 7 else "lines"
+
     fig = go.Figure(go.Scatter(
-        x=daily["date"], y=daily["amount"],
-        mode="lines", fill="tozeroy",
+        x=daily["day"], y=daily["amount"],
+        mode=mode, fill="tozeroy",
         line=dict(color="#0d9b76", width=2),
+        marker=dict(color="#0d9b76", size=5),
         fillcolor="rgba(13,155,118,0.10)",
         hovertemplate="%{x|%d %b}: <b>Rp %{y:,.0f}</b><extra></extra>",
     ))
     fig.update_layout(
         **PLOTLY_BASE, height=200,
         margin=dict(l=0, r=0, t=0, b=0),
-        xaxis=dict(**GRID, tickformat="%d %b", tickfont=dict(size=10)),
+        xaxis=dict(
+            **GRID, tickformat="%d %b", tickfont=dict(size=10),
+            dtick="D1", ticklabelmode="instant",
+        ),
         yaxis=dict(**GRID, tickfont=dict(size=10), tickformat=",.0f"),
         showlegend=False,
     )
@@ -594,7 +617,8 @@ def render_sidebar(user_name: str):
         today = date.today()
         month = st.selectbox("📅 Bulan", range(1, 13), index=today.month - 1,
                              format_func=lambda m: calendar.month_name[m])
-        year  = st.selectbox("📆 Tahun", range(2024, today.year + 2), index=0)
+        year_options = list(range(2024, today.year + 2))
+        year  = st.selectbox("📆 Tahun", year_options, index=year_options.index(today.year))
 
         st.markdown("---")
 
@@ -897,17 +921,19 @@ def page_tren(user_id: int):
                         config={"displayModeBar": False})
 
     # Summary insight
-    df_all["date"] = pd.to_datetime(df_all["date"])
-    df_all["month_year"] = df_all["date"].dt.strftime("%b %Y")
-    monthly_net = df_all.groupby(["month_year", "type"])["amount"].sum().unstack(fill_value=0)
-    if "income" in monthly_net and "expense" in monthly_net:
+    tmp = df_all.copy()
+    tmp["period"] = tmp["date"].dt.to_period("M")
+    monthly_net = tmp.groupby(["period", "type"])["amount"].sum().unstack(fill_value=0)
+    if "income" in monthly_net.columns and "expense" in monthly_net.columns:
         monthly_net["net"] = monthly_net["income"] - monthly_net["expense"]
-        best_month = monthly_net["net"].idxmax()
+        best_period = monthly_net["net"].idxmax()
+        best_label  = pd.Period(best_period, "M").strftime("%b %Y")
+        best_val    = float(monthly_net.loc[best_period, "net"])
         st.markdown(
             f"<div class='ga-card'><div class='ga-card-title'>Insight</div>"
             f"<span style='color:#94a3b8; font-size:13px;'>Bulan terbaik kamu: "
-            f"<b style='color:#34d399;'>{best_month}</b> dengan saldo bersih "
-            f"<b style='color:#34d399;'>{fmt_idr(float(monthly_net['net'][best_month]))}</b></span></div>",
+            f"<b style='color:#34d399;'>{best_label}</b> dengan saldo bersih "
+            f"<b style='color:#34d399;'>{fmt_idr(best_val)}</b></span></div>",
             unsafe_allow_html=True,
         )
 
