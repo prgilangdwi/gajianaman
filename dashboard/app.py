@@ -55,7 +55,7 @@ st.markdown("""
   }
 
   /* Column gap */
-  [data-testid="column"] { padding: 5px !important; }
+  [data-testid="column"] { padding: 6px !important; }
 
   /* Buttons */
   .stButton > button {
@@ -65,12 +65,25 @@ st.markdown("""
   }
   .stButton > button:hover { background: #5cb530 !important; }
 
-  /* Inputs */
+  /* Inputs — main content only (not sidebar) */
   input[type="number"] { text-align: center !important; }
-  .stSelectbox [data-baseweb="select"] > div,
-  .stMultiSelect [data-baseweb="select"] > div {
+  .main .stSelectbox [data-baseweb="select"] > div,
+  .main .stMultiSelect [data-baseweb="select"] > div {
     border-radius: 10px !important; border-color: #D1FAE5 !important;
     background: #fff !important;
+  }
+
+  /* Sidebar selectbox — dark bg so white text is readable */
+  section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div,
+  section[data-testid="stSidebar"] .stMultiSelect [data-baseweb="select"] > div {
+    background: rgba(255,255,255,0.14) !important;
+    border-color: rgba(255,255,255,0.22) !important;
+    border-radius: 10px !important;
+  }
+  section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] span,
+  section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] div,
+  section[data-testid="stSidebar"] .stSelectbox svg {
+    color: #fff !important; fill: rgba(255,255,255,0.6) !important;
   }
 
   /* Dataframe */
@@ -85,11 +98,18 @@ st.markdown("""
   /* Radio / selectbox label */
   .stRadio label, .stSelectbox label { color: rgba(255,255,255,0.6) !important; }
 
-  /* Mobile wrap */
+  /* Mobile */
   @media (max-width: 768px) {
-    .block-container { padding: 1rem !important; }
-    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
-    [data-testid="column"] { min-width: min(100%, 160px) !important; }
+    .block-container { padding: 0.75rem !important; }
+    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 4px !important; }
+    [data-testid="column"] {
+      min-width: min(100%, 160px) !important;
+      padding: 4px !important;
+    }
+    /* Single-column KPI stack on very small screens */
+    @media (max-width: 480px) {
+      [data-testid="column"] { min-width: 100% !important; }
+    }
   }
 </style>
 """, unsafe_allow_html=True)
@@ -156,13 +176,13 @@ CATEGORY_ICONS = {
 _CARD_CYCLE = ["orange", "teal", "green", "yellow", "dark", "primary", "gray"]
 
 PLOTLY_BASE = dict(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
     font_family="Plus Jakarta Sans",
     font_color="#6B7280",
     title_font_color="#1A1A1A",
     colorway=["#6DC641","#F07A3A","#4DC9C2","#F5C842","#1B4332","#A8D96C","#9CA3AF"],
 )
+_TRANSPARENT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+_WHITE_BG    = dict(paper_bgcolor="#FFFFFF",        plot_bgcolor="#FFFFFF")
 GRID = dict(gridcolor="#E8E8E8", zerolinecolor="#E8E8E8", linecolor="#E8E8E8")
 
 
@@ -495,8 +515,7 @@ def donut_chart(by_cat: pd.DataFrame) -> go.Figure:
         hovertemplate="%{label}: <b>Rp %{value:,.0f}</b> (%{percent})<extra></extra>",
     ))
     fig.update_layout(
-        **PLOTLY_BASE,
-        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        **PLOTLY_BASE, **_WHITE_BG,
         height=260,
         margin=dict(l=0, r=0, t=0, b=0),
         showlegend=True,
@@ -526,7 +545,7 @@ def area_chart_daily(df: pd.DataFrame) -> go.Figure:
         hovertemplate="%{x|%d %b}: <b>Rp %{y:,.0f}</b><extra></extra>",
     ))
     fig.update_layout(
-        **PLOTLY_BASE, height=180,
+        **PLOTLY_BASE, **_TRANSPARENT, height=180,
         margin=dict(l=0, r=0, t=0, b=0),
         xaxis=dict(**GRID, tickformat="%d %b", tickfont=dict(size=10, color="#6B7280"),
                    dtick="D1", ticklabelmode="instant", showgrid=False),
@@ -553,8 +572,7 @@ def bar_chart_monthly(df_all: pd.DataFrame) -> go.Figure:
                marker=dict(color="#F07A3A", line=dict(width=0))),
     ])
     fig.update_layout(
-        **PLOTLY_BASE,
-        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        **PLOTLY_BASE, **_WHITE_BG,
         barmode="group", height=300,
         margin=dict(l=0, r=0, t=32, b=0),
         title=dict(text="Pemasukan vs Pengeluaran per Bulan", font=dict(size=12, color="#1A1A1A"), x=0),
@@ -580,8 +598,7 @@ def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
     )
     fig.update_traces(line=dict(width=2.5), marker=dict(size=5))
     fig.update_layout(
-        **PLOTLY_BASE,
-        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        **PLOTLY_BASE, **_WHITE_BG,
         height=300,
         margin=dict(l=0, r=0, t=32, b=0),
         title=dict(text="Tren Pengeluaran per Kategori", font=dict(size=12, color="#1A1A1A"), x=0),
