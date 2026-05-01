@@ -110,14 +110,14 @@ def build_history_message(transactions: list, currency: str = "IDR") -> str:
     if not transactions:
         return "📭 Belum ada transaksi."
 
-    lines = ["📋 *10 Transaksi Terakhir:*\n"]
-    for tx in transactions:
+    lines = ["📋 *Riwayat Transaksi Terakhir:*\n"]
+    for i, tx in enumerate(transactions, 1):
         icon = "🔴" if tx.type == "expense" else "💚"
         cat_icon = category_icon(tx.category)
         lines.append(
-            f"{icon} {fmt_currency(tx.amount, currency)} — "
-            f"{cat_icon} {tx.category}\n"
-            f"   📝 {tx.note or '-'} | 📅 {fmt_date(tx.date)}"
+            f"*{i}.* {icon} {fmt_currency(float(tx.amount), currency)}\n"
+            f"   {cat_icon} {tx.category}  •  📅 {fmt_date(tx.date)}\n"
+            f"   📝 {tx.note or '-'}"
         )
     return "\n".join(lines)
 

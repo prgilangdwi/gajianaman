@@ -67,7 +67,7 @@ def main():
     # Global error handler
     app.add_error_handler(error_handler)
 
-    logger.info("🤖 FinTrack Bot is running...")
+    logger.info("🤖 Gajian Aman Bot is running...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

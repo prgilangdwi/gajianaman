@@ -48,6 +48,26 @@ RECAT_KEYBOARD = InlineKeyboardMarkup([
         InlineKeyboardButton("📱 Bills", callback_data="recat:Bills & Utilities"),
         InlineKeyboardButton("📁 Other", callback_data="recat:Other"),
     ],
+    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+])
+
+MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
+    [
+        InlineKeyboardButton("➕ Catat Pengeluaran", callback_data="quick:add"),
+        InlineKeyboardButton("💚 Catat Pemasukan", callback_data="quick:income"),
+    ],
+    [
+        InlineKeyboardButton("📊 Summary Bulan Ini", callback_data="quick:summary"),
+        InlineKeyboardButton("📋 Riwayat", callback_data="quick:history"),
+    ],
+    [
+        InlineKeyboardButton("🌐 Live Dashboard", callback_data="menu:dashboard"),
+        InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
+    ],
+    [
+        InlineKeyboardButton("💬 Helpdesk", callback_data="menu:helpdesk"),
+        InlineKeyboardButton("❓ Bantuan", callback_data="help:main"),
+    ],
 ])
 
 
@@ -75,7 +95,7 @@ def require_start(func):
             user = await db.get_user(session, update.effective_user.id)
         if not user:
             await update.message.reply_text(
-                "👋 Halo! Kamu belum terdaftar di FinTrack.\n\n"
+                "👋 Halo! Kamu belum terdaftar di Gajian Aman.\n\n"
                 "Ketik /start untuk mendaftar dan mulai mencatat keuanganmu! 💰"
             )
             return
@@ -129,18 +149,6 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         income = float(stats.income) if stats else 0
         tx_count = stats.tx_count if stats else 0
 
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("➕ Catat Pengeluaran", callback_data="quick:add"),
-                InlineKeyboardButton("💚 Catat Pemasukan", callback_data="quick:income"),
-            ],
-            [
-                InlineKeyboardButton("📊 Summary Bulan Ini", callback_data="quick:summary"),
-                InlineKeyboardButton("📋 Riwayat", callback_data="quick:history"),
-            ],
-            [InlineKeyboardButton("❓ Bantuan", callback_data="help:main")],
-        ])
-
         await update.message.reply_text(
             f"👋 *Halo kembali, {user.first_name}!*\n\n"
             f"📅 *{date.today().strftime('%d %B %Y')}*\n"
@@ -151,7 +159,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"━━━━━━━━━━━━━━━━━━━━\n\n"
             f"Mau ngapain hari ini? 👇",
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=keyboard,
+            reply_markup=MAIN_MENU_KEYBOARD,
         )
     else:
         keyboard = InlineKeyboardMarkup([
@@ -163,7 +171,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
 
         await update.message.reply_text(
-            f"🎉 *Selamat datang di FinTrack, {user.first_name}!*\n\n"
+            f"🎉 *Selamat datang di Gajian Aman, {user.first_name}!*\n\n"
             "Saya adalah asisten keuangan pribadi yang didukung *AI Claude* 🤖\n\n"
             "✅ Catat pengeluaran & pemasukan\n"
             "🧠 AI otomatis kategorikan transaksi\n"
@@ -269,9 +277,10 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=RECAT_KEYBOARD,
         )
     else:
-        keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton("🗑️ Hapus Transaksi Ini", callback_data="delete:last"),
-        ]])
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🗑️ Hapus Transaksi Ini", callback_data="delete:last")],
+            [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+        ])
         await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
 
     if result["type"] == "expense":
@@ -323,9 +332,10 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["last_tx_id"] = tx_id
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🗑️ Hapus Transaksi Ini", callback_data="delete:last"),
-    ]])
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🗑️ Hapus Transaksi Ini", callback_data="delete:last")],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    ])
     await update.message.reply_text(
         build_transaction_confirm(amount, note, result),
         parse_mode=ParseMode.MARKDOWN,
@@ -357,7 +367,10 @@ async def cmd_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
         by_category=by_cat,
         budget_rows=budget_rows if budget_rows else None,
     )
-    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+    ]])
+    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
 
 
 # ─────────────────────────────────────────
@@ -368,7 +381,15 @@ async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     async with AsyncSessionLocal() as session:
         txs = await db.get_last_transactions(session, user.id, 10)
-    await update.message.reply_text(build_history_message(txs), parse_mode=ParseMode.MARKDOWN)
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
+            InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+        ]
+    ])
+    await update.message.reply_text(
+        build_history_message(txs), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard
+    )
 
 
 # ─────────────────────────────────────────
@@ -387,6 +408,12 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tx_count = stats.tx_count if stats else 0
     net = income - expense
 
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📊 Summary Bulan Ini", callback_data="quick:summary"),
+            InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+        ]
+    ])
     await update.message.reply_text(
         f"📊 *Statistik Hari Ini*\n"
         f"📅 {today.strftime('%d %B %Y')}\n"
@@ -398,6 +425,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📝 Transaksi   : {tx_count} transaksi\n\n"
         f"Lihat ringkasan bulanan: /summary",
         parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
     )
 
 
@@ -418,10 +446,13 @@ async def cmd_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     icon = "🔴" if tx.type == "expense" else "💚"
     tx_type = "Pengeluaran" if tx.type == "expense" else "Pemasukan"
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅ Ya, Hapus", callback_data=f"confirm_delete:{tx.id}"),
-        InlineKeyboardButton("❌ Batal", callback_data="cancel_delete"),
-    ]])
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Ya, Hapus", callback_data=f"confirm_delete:{tx.id}"),
+            InlineKeyboardButton("❌ Batal", callback_data="cancel_delete"),
+        ],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    ])
 
     await update.message.reply_text(
         f"🗑️ *Hapus Transaksi Terakhir?*\n\n"
@@ -469,6 +500,9 @@ async def cmd_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with AsyncSessionLocal() as session:
         await db.upsert_budget(session, user.id, category, amount, today.month, today.year)
 
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+    ]])
     await update.message.reply_text(
         f"✅ *Budget berhasil diset!*\n\n"
         f"📁 Kategori : *{category}*\n"
@@ -476,6 +510,7 @@ async def cmd_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📅 Periode  : {today.strftime('%B %Y')}\n\n"
         f"Cek progress budget di /summary",
         parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
     )
 
 
@@ -503,16 +538,24 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
 
             await db.upsert_goal(session, user.id, name, target)
+            keyboard = InlineKeyboardMarkup([[
+                InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+            ]])
             await update.message.reply_text(
                 f"🎯 *Goal berhasil ditambahkan!*\n\n"
                 f"📌 Nama   : *{name}*\n"
                 f"💰 Target : {fmt_currency(target)}\n\n"
                 f"Pantau progress di /goal",
                 parse_mode=ParseMode.MARKDOWN,
+                reply_markup=keyboard,
             )
             return
 
         goals = await db.get_goals(session, user.id)
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+    ]])
 
     if not goals:
         await update.message.reply_text(
@@ -523,6 +566,7 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "`/goal add Liburan Bali 5000000`\n"
             "`/goal add Beli Motor 15000000`",
             parse_mode=ParseMode.MARKDOWN,
+            reply_markup=keyboard,
         )
         return
 
@@ -536,7 +580,7 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"   {bar} {pct:.0f}%\n"
             f"   {fmt_currency(float(g.saved_amount))} / {fmt_currency(float(g.target_amount))}\n"
         )
-    await update.message.reply_text("\n".join(lines), parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text("\n".join(lines), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
 
 
 # ─────────────────────────────────────────
@@ -548,11 +592,13 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📝 Catat Transaksi", callback_data="help:transactions")],
         [InlineKeyboardButton("💰 Budget & Goals", callback_data="help:budget")],
         [InlineKeyboardButton("💡 Tips & Trik", callback_data="help:tips")],
+        [InlineKeyboardButton("🌐 Live Dashboard", callback_data="menu:dashboard")],
         [InlineKeyboardButton("🎯 Quick Budget Setup", callback_data="tutorial:try_qb")],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
     ])
     await update.message.reply_text(
-        "📖 *FinTrack — Pusat Bantuan*\n\n"
-        "Halo! Saya FinTrack, asisten keuangan pribadimu 🤖\n\n"
+        "📖 *Gajian Aman — Pusat Bantuan*\n\n"
+        "Halo! Saya Gajian Aman, asisten keuangan pribadimu 🤖\n\n"
         "Pilih topik yang ingin kamu pelajari 👇",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
@@ -563,11 +609,12 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # /tutorial — Step-by-step interactive guide
 # ─────────────────────────────────────────
 async def cmd_tutorial(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("Mulai Tutorial →", callback_data="tutorial:2"),
-    ]])
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Mulai Tutorial →", callback_data="tutorial:2")],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    ])
     await update.message.reply_text(
-        "🎓 *Tutorial FinTrack* — Langkah 1/5\n\n"
+        "🎓 *Tutorial Gajian Aman* — Langkah 1/5\n\n"
         "Selamat datang di tutorial interaktif!\n"
         "Saya akan memandu kamu dalam 5 langkah sederhana.\n\n"
         "*Yang akan kamu pelajari:*\n"
@@ -604,7 +651,8 @@ async def cmd_quickbudget(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("📚 Pendidikan", callback_data="qb_cat:education"),
             InlineKeyboardButton("🛒 Groceries", callback_data="qb_cat:groceries"),
         ],
-        [InlineKeyboardButton("❌ Selesai", callback_data="qb_done")],
+        [InlineKeyboardButton("✅ Selesai", callback_data="qb_done")],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
     ])
     await update.message.reply_text(
         "🎯 *Quick Budget Setup*\n\n"

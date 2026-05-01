@@ -1,333 +1,528 @@
 # dashboard/app.py
-# Streamlit personal finance dashboard
+# Gajian Aman — Streamlit Dashboard
+# Visual reference: Nomad Agency dark-theme finance dashboard
+# Design: dark bg, glassmorphism cards, teal-green accent, DM Mono numerics
 
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from sqlalchemy import create_engine, text
+import pandas as pd
 from datetime import date
 import calendar
 import os
+from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_URL = os.getenv("DATABASE_URL_SYNC")
-if not DB_URL:
-    st.error(
-        "DATABASE_URL_SYNC is not set. "
-        "Add it in Streamlit Cloud → Settings → Secrets:\n\n"
-        "```\nDATABASE_URL_SYNC = \"postgresql://user:pass@host:5432/dbname\"\n```"
-    )
-    st.stop()
-engine = create_engine(DB_URL)
-
-# ─── Page Config ────────────────────────
+# ─────────────────────────────────────────
+# PAGE CONFIG — must be first Streamlit call
+# ─────────────────────────────────────────
 st.set_page_config(
-    page_title="FinTrack Dashboard",
+    page_title="Gajian Aman",
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# ─────────────────────────────────────────
+# GLOBAL CSS — Nomad Agency dark theme
+# ─────────────────────────────────────────
 st.markdown("""
 <style>
-    .metric-card {
-        background: #1e1e2e;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-    }
-    .stMetric { background: #f8f9fa; border-radius: 8px; padding: 12px; }
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .stApp { background-color: #0f1117; }
+
+  section[data-testid="stSidebar"] {
+    background-color: #161b27;
+    border-right: 1px solid #1e2535;
+  }
+  section[data-testid="stSidebar"] * { color: #94a3b8 !important; }
+
+  div[data-testid="metric-container"] {
+    background: #161b27;
+    border: 1px solid #1e2535;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+  div[data-testid="metric-container"] label {
+    font-size: 11px !important;
+    color: #64748b !important;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 22px !important;
+    font-weight: 500 !important;
+    color: #f1f5f9 !important;
+  }
+  div[data-testid="metric-container"] [data-testid="stMetricDelta"] {
+    font-size: 12px !important;
+  }
+
+  h1, h2, h3 { color: #f1f5f9 !important; }
+  hr { border-color: #1e2535 !important; }
+
+  .ft-card {
+    background: #161b27;
+    border: 1px solid #1e2535;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .ft-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ft-amount-pos { color: #34d399; font-family: 'DM Mono', monospace; font-weight: 500; }
+  .ft-amount-neg { color: #f87171; font-family: 'DM Mono', monospace; font-weight: 500; }
+  .ft-amount-neu { color: #f1f5f9; font-family: 'DM Mono', monospace; font-weight: 500; }
+  .ft-badge-up   { background: rgba(52,211,153,0.12); color: #34d399; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .ft-badge-down { background: rgba(248,113,113,0.12); color: #f87171; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .ft-badge-warn { background: rgba(251,191,36,0.12);  color: #fbbf24; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .ft-tx-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid #1e2535; font-size: 13px; color: #e2e8f0;
+  }
+  .ft-tx-row:last-child { border-bottom: none; }
+  .ft-tx-cat { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  .ft-login-box {
+    background: rgba(13,155,118,0.08);
+    border: 1px solid rgba(13,155,118,0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.7;
+    margin-top: 8px;
+  }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ─── Auth (simple user_id login) ────────
-def login():
-    st.title("💰 FinTrack Dashboard")
-    st.subheader("Login dengan Telegram User ID")
-    user_id = st.number_input("Telegram User ID", min_value=1, step=1)
-    if st.button("Masuk"):
-        with engine.connect() as conn:
-            user = conn.execute(
-                text("SELECT user_id, name FROM users WHERE user_id = :uid"),
-                {"uid": user_id}
-            ).fetchone()
-        if user:
-            st.session_state["user_id"] = user.user_id
-            st.session_state["user_name"] = user.name
-            st.rerun()
-        else:
-            st.error("User ID tidak ditemukan. Pastikan kamu sudah /start bot dulu.")
+# ─────────────────────────────────────────
+# PLOTLY THEME — dark, transparent bg
+# ─────────────────────────────────────────
+PLOTLY_THEME = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font_family="Plus Jakarta Sans",
+    font_color="#94a3b8",
+    title_font_color="#f1f5f9",
+    colorway=["#0d9b76", "#3b82f6", "#8b5cf6", "#fbbf24", "#f87171", "#34d399", "#ec4899"],
+    xaxis=dict(gridcolor="#1e2535", zerolinecolor="#1e2535", linecolor="#1e2535"),
+    yaxis=dict(gridcolor="#1e2535", zerolinecolor="#1e2535", linecolor="#1e2535"),
+)
 
 
-# ─── Data Fetchers ───────────────────────
-@st.cache_data(ttl=300)
-def fetch_transactions(user_id: int, month: int, year: int):
-    with engine.connect() as conn:
-        df = pd.read_sql(text("""
-            SELECT amount, type, category, subcategory, note, date
-            FROM transactions
-            WHERE user_id = :uid
-              AND EXTRACT(MONTH FROM date) = :month
-              AND EXTRACT(YEAR FROM date) = :year
-            ORDER BY date
-        """), conn, params={"uid": user_id, "month": month, "year": year})
-    return df
+# ─────────────────────────────────────────
+# DB CONNECTION
+# ─────────────────────────────────────────
+@st.cache_resource
+def get_engine():
+    url = os.getenv("DATABASE_URL_SYNC")
+    return create_engine(url, pool_pre_ping=True)
 
 
-@st.cache_data(ttl=300)
-def fetch_all_transactions(user_id: int):
-    with engine.connect() as conn:
-        df = pd.read_sql(text("""
-            SELECT amount, type, category, date,
-                   EXTRACT(MONTH FROM date) as month,
-                   EXTRACT(YEAR FROM date) as year
-            FROM transactions
-            WHERE user_id = :uid
-            ORDER BY date
-        """), conn, params={"uid": user_id})
-    return df
+def query_df(sql: str, params: dict = None) -> pd.DataFrame:
+    with get_engine().connect() as conn:
+        return pd.read_sql(text(sql), conn, params=params)
 
 
-@st.cache_data(ttl=300)
-def fetch_budgets(user_id: int, month: int, year: int):
-    with engine.connect() as conn:
-        df = pd.read_sql(text("""
-            SELECT b.category, b.amount as budget,
-                   COALESCE(SUM(t.amount), 0) as actual
-            FROM budgets b
-            LEFT JOIN transactions t
-                ON t.user_id = b.user_id
-                AND t.category = b.category
-                AND t.type = 'expense'
-                AND EXTRACT(MONTH FROM t.date) = b.month
-                AND EXTRACT(YEAR FROM t.date) = b.year
-            WHERE b.user_id = :uid AND b.month = :month AND b.year = :year
-            GROUP BY b.category, b.amount
-        """), conn, params={"uid": user_id, "month": month, "year": year})
-    return df
+# ─────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────
+CATEGORY_ICON = {
+    "Food & Dining": "🍜", "Groceries": "🛒", "Transport": "🚗",
+    "Shopping": "🛍️", "Health": "💊", "Entertainment": "🎮",
+    "Bills & Utilities": "📱", "Education": "📚", "Personal Care": "💆",
+    "Dining Out": "🍽️", "Salary": "💼", "Freelance": "💻",
+    "Investment Return": "📈", "Other Income": "💰", "Savings": "🏦",
+    "Investment": "📊", "Other": "📁",
+}
+
+def fmt_rp(amount: float) -> str:
+    return f"Rp {int(amount):,}".replace(",", ".")
 
 
-@st.cache_data(ttl=300)
-def fetch_goals(user_id: int):
-    with engine.connect() as conn:
-        df = pd.read_sql(text("""
-            SELECT name, target_amount, saved_amount, deadline
-            FROM goals WHERE user_id = :uid
-        """), conn, params={"uid": user_id})
-    return df
+# ─────────────────────────────────────────
+# SIDEBAR
+# ─────────────────────────────────────────
+with st.sidebar:
+    st.markdown("""
+    <div style='text-align:center; padding: 12px 0 20px;'>
+      <div style='display:inline-flex; align-items:center; justify-content:center;
+                  width:42px; height:42px; background:#0d9b76; border-radius:10px;
+                  font-size:20px; font-weight:700; color:#fff; margin-bottom:8px;'>G</div>
+      <div style='font-size:16px; font-weight:600; color:#f1f5f9;'>Gajian Aman</div>
+      <div style='font-size:11px; color:#64748b;'>Personal Finance</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    today = date.today()
+    months = [calendar.month_name[m] for m in range(1, 13)]
+
+    sel_month = st.selectbox("📅 Bulan", months, index=today.month - 1)
+    sel_year  = st.selectbox("📆 Tahun", list(range(2023, today.year + 1)), index=today.year - 2023)
+
+    st.markdown("---")
+
+    st.markdown("**🔐 Login**")
+    sel_user = st.number_input(
+        "Telegram ID",
+        value=0,
+        step=1,
+        help="Masukkan Telegram ID kamu untuk melihat data keuanganmu.",
+    )
+
+    st.markdown("""
+    <div class='ft-login-box'>
+      <b>📱 Cara dapat Telegram ID:</b><br>
+      1. Buka Telegram<br>
+      2. Cari bot <b>@SimpleID_Bot</b><br>
+      3. Kirim <code>/start</code> ke bot tersebut<br>
+      4. Copy angka ID yang muncul<br>
+      5. Paste di kolom Telegram ID di atas
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("""
+    <div style='font-size:11px; color:#64748b; text-align:center; padding-top:8px;'>
+      📡 Connected to Supabase<br>
+      🤖 Powered by Claude Haiku
+    </div>
+    """, unsafe_allow_html=True)
+
+month_num = months.index(sel_month) + 1
 
 
-# ─── Main Dashboard ──────────────────────
-def main():
-    if "user_id" not in st.session_state:
-        login()
-        return
+# ─────────────────────────────────────────
+# DATA LOAD
+# ─────────────────────────────────────────
+@st.cache_data(ttl=60)
+def load_summary(user_id: int, month: int, year: int):
+    uid_clause = "AND user_id = :uid" if user_id else ""
+    params     = {"uid": user_id or None, "m": month, "y": year}
+    params_no  = {"m": month, "y": year}
+    p          = params if user_id else params_no
 
-    user_id = st.session_state["user_id"]
-    user_name = st.session_state["user_name"]
+    by_cat = query_df(f"""
+        SELECT category, SUM(amount) as total, COUNT(*) as cnt
+        FROM transactions
+        WHERE type = 'expense'
+          AND EXTRACT(MONTH FROM date) = :m
+          AND EXTRACT(YEAR FROM date) = :y
+          {uid_clause}
+        GROUP BY category ORDER BY total DESC
+    """, p)
 
-    # Sidebar
-    with st.sidebar:
-        st.title(f"👋 {user_name}")
-        st.divider()
+    income = query_df(f"""
+        SELECT COALESCE(SUM(amount), 0) as total
+        FROM transactions
+        WHERE type = 'income'
+          AND EXTRACT(MONTH FROM date) = :m
+          AND EXTRACT(YEAR FROM date) = :y
+          {uid_clause}
+    """, p)
 
-        today = date.today()
-        month = st.selectbox("Bulan", range(1, 13), index=today.month - 1,
-                             format_func=lambda m: calendar.month_name[m])
-        year = st.selectbox("Tahun", range(2024, today.year + 1), index=0)
-        st.divider()
+    txs = query_df(f"""
+        SELECT amount, type, category, note, date, ai_confidence
+        FROM transactions
+        WHERE EXTRACT(MONTH FROM date) = :m
+          AND EXTRACT(YEAR FROM date) = :y
+          {uid_clause}
+        ORDER BY date DESC, id DESC
+        LIMIT 50
+    """, p)
 
-        page = st.radio("📊 Halaman", [
-            "🏠 Overview",
-            "💸 Pengeluaran",
-            "🎯 Budget",
-            "🏆 Goals",
-            "📋 Riwayat",
-            "📈 Tren"
-        ])
+    budgets = query_df(f"""
+        SELECT b.category, b.amount as budget,
+               COALESCE(SUM(t.amount), 0) as actual
+        FROM budgets b
+        LEFT JOIN transactions t
+          ON t.category = b.category AND t.type = 'expense'
+          AND EXTRACT(MONTH FROM t.date) = b.month
+          AND EXTRACT(YEAR FROM t.date) = b.year
+          {uid_clause.replace(':uid', 'b.user_id') if user_id else ''}
+        WHERE b.month = :m AND b.year = :y
+          {uid_clause.replace('user_id', 'b.user_id') if user_id else ''}
+        GROUP BY b.category, b.amount
+    """, p)
 
-        if st.button("🔓 Logout"):
-            del st.session_state["user_id"]
-            del st.session_state["user_name"]
-            st.rerun()
+    daily = query_df(f"""
+        SELECT date, SUM(amount) as total
+        FROM transactions
+        WHERE type = 'expense'
+          AND EXTRACT(MONTH FROM date) = :m
+          AND EXTRACT(YEAR FROM date) = :y
+          {uid_clause}
+        GROUP BY date ORDER BY date
+    """, p)
 
-    # Load data
-    df = fetch_transactions(user_id, month, year)
-    df_expense = df[df["type"] == "expense"]
-    df_income = df[df["type"] == "income"]
+    return by_cat, income, txs, budgets, daily
 
-    total_expense = df_expense["amount"].sum()
-    total_income = df_income["amount"].sum()
-    net = total_income - total_expense
-    month_name = calendar.month_name[month]
 
-    # ── Page: Overview ────────────────────
-    if page == "🏠 Overview":
-        st.title(f"💰 Overview — {month_name} {year}")
+# ─────────────────────────────────────────
+# MAIN CONTENT
+# ─────────────────────────────────────────
+month_label = calendar.month_name[month_num]
 
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("💚 Pemasukan", f"Rp {total_income:,.0f}".replace(",", "."))
-        col2.metric("🔴 Pengeluaran", f"Rp {total_expense:,.0f}".replace(",", "."))
-        col3.metric("💰 Saldo Bersih", f"Rp {net:,.0f}".replace(",", "."),
-                    delta=f"{'Surplus' if net >= 0 else 'Defisit'}",
-                    delta_color="normal" if net >= 0 else "inverse")
-        col4.metric("📝 Transaksi", len(df))
+st.markdown(f"""
+<div style='padding: 0 0 16px;'>
+  <div style='font-size:22px; font-weight:700; color:#f1f5f9;'>
+    Overview — {month_label} {sel_year}
+  </div>
+  <div style='font-size:13px; color:#64748b; margin-top:4px;'>
+    Ringkasan keuangan bulanan · Gajian Aman
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
-        st.divider()
-        col_a, col_b = st.columns(2)
+# Show login prompt if no Telegram ID entered
+if not int(sel_user):
+    st.markdown("""
+    <div style='background:#161b27; border:1px solid #1e2535; border-radius:12px;
+                padding:40px; text-align:center; margin-top:32px;'>
+      <div style='font-size:44px; margin-bottom:12px;'>🔐</div>
+      <div style='font-size:18px; font-weight:600; color:#f1f5f9; margin-bottom:8px;'>
+        Masukkan Telegram ID untuk melihat data keuanganmu
+      </div>
+      <div style='font-size:13px; color:#64748b; line-height:1.8;'>
+        Dapatkan ID kamu dengan mengirim <code>/start</code> ke <b>@SimpleID_Bot</b> di Telegram,<br>
+        lalu masukkan angka ID tersebut di kolom <em>Telegram ID</em> pada sidebar.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
 
-        with col_a:
-            if not df_expense.empty:
-                fig = px.pie(
-                    df_expense.groupby("category")["amount"].sum().reset_index(),
-                    values="amount", names="category",
-                    title="Pengeluaran per Kategori",
-                    color_discrete_sequence=px.colors.qualitative.Set3
-                )
-                fig.update_traces(textposition="inside", textinfo="percent+label")
-                st.plotly_chart(fig, use_container_width=True)
+try:
+    by_cat, income_df, txs, budgets, daily = load_summary(int(sel_user), month_num, sel_year)
+except Exception as e:
+    st.error(f"❌ Gagal mengambil data: {e}")
+    st.stop()
 
-        with col_b:
-            if not df.empty:
-                daily = df_expense.groupby("date")["amount"].sum().reset_index()
-                fig2 = px.bar(daily, x="date", y="amount",
-                              title="Pengeluaran Harian",
-                              color_discrete_sequence=["#ef4444"])
-                fig2.update_layout(xaxis_title="Tanggal", yaxis_title="Amount (IDR)")
-                st.plotly_chart(fig2, use_container_width=True)
+total_income  = float(income_df["total"].iloc[0]) if not income_df.empty else 0
+total_expense = float(by_cat["total"].sum()) if not by_cat.empty else 0
+net_balance   = total_income - total_expense
+tx_count      = int(txs.shape[0])
+savings_pct   = (net_balance / total_income * 100) if total_income > 0 else 0
 
-    # ── Page: Pengeluaran ─────────────────
-    elif page == "💸 Pengeluaran":
-        st.title(f"💸 Pengeluaran — {month_name} {year}")
 
-        if df_expense.empty:
-            st.info("Belum ada pengeluaran bulan ini.")
-            return
+# ─── KPI METRICS ──────────────────────────────────────────────
+k1, k2, k3, k4 = st.columns(4)
 
-        by_cat = df_expense.groupby("category")["amount"].sum().sort_values(ascending=False).reset_index()
+with k1:
+    st.metric("💚 Pemasukan", fmt_rp(total_income))
+with k2:
+    st.metric("🔴 Pengeluaran", fmt_rp(total_expense))
+with k3:
+    balance_label = "✅ Surplus" if net_balance >= 0 else "⚠️ Defisit"
+    st.metric("💰 Saldo Bersih", fmt_rp(abs(net_balance)), delta=f"{balance_label} {savings_pct:.1f}%")
+with k4:
+    st.metric("📋 Transaksi", f"{tx_count} tx")
 
-        fig = px.bar(by_cat, x="category", y="amount",
-                     title="Total Pengeluaran per Kategori",
-                     color="amount",
-                     color_continuous_scale="Reds")
-        fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="IDR")
-        st.plotly_chart(fig, use_container_width=True)
+st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-        st.subheader("Detail per Kategori")
-        for _, row in by_cat.iterrows():
-            with st.expander(f"📁 {row['category']} — Rp {row['amount']:,.0f}".replace(",", ".")):
-                sub = df_expense[df_expense["category"] == row["category"]][["date", "subcategory", "note", "amount"]]
-                sub = sub.sort_values("date", ascending=False)
-                sub["amount"] = sub["amount"].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
-                st.dataframe(sub, use_container_width=True, hide_index=True)
 
-    # ── Page: Budget ──────────────────────
-    elif page == "🎯 Budget":
-        st.title(f"🎯 Budget vs Aktual — {month_name} {year}")
+# ─── OVERVIEW TABLE ───────────────────────────────────────────
+st.markdown("<div class='ft-card-title'>Tabel Semua Transaksi Bulan Ini</div>", unsafe_allow_html=True)
 
-        df_budget = fetch_budgets(user_id, month, year)
+if not txs.empty:
+    df_table = txs.copy()
+    df_table["Tanggal"]  = pd.to_datetime(df_table["date"]).dt.strftime("%d %b %Y")
+    df_table["Jenis"]    = df_table["type"].map({"income": "💚 Pemasukan", "expense": "🔴 Pengeluaran"})
+    df_table["Nominal"]  = df_table.apply(
+        lambda r: f"+{fmt_rp(float(r['amount']))}" if r["type"] == "income"
+                  else f"-{fmt_rp(float(r['amount']))}",
+        axis=1,
+    )
+    df_table["Kategori"] = df_table["category"]
+    df_table["Catatan"]  = df_table["note"].fillna("-")
+    st.dataframe(
+        df_table[["Tanggal", "Jenis", "Kategori", "Catatan", "Nominal"]],
+        use_container_width=True,
+        hide_index=True,
+    )
+else:
+    st.markdown(
+        "<div style='color:#64748b;font-size:13px;padding:16px 0;'>Belum ada transaksi bulan ini.</div>",
+        unsafe_allow_html=True,
+    )
 
-        if df_budget.empty:
-            st.info("Belum ada budget. Set budget via bot: `/budget food 500000`")
-            return
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-        df_budget["pct"] = (df_budget["actual"] / df_budget["budget"] * 100).clip(upper=150)
-        df_budget["remaining"] = df_budget["budget"] - df_budget["actual"]
-        df_budget["status"] = df_budget["pct"].apply(
-            lambda p: "🔴 Over" if p > 100 else ("🟡 Warning" if p > 80 else "🟢 OK")
+
+# ─── ROW 1: Kategori + Donut ──────────────────────────────────
+col_left, col_right = st.columns([1.7, 1])
+
+with col_left:
+    st.markdown("<div class='ft-card-title'>Pengeluaran per Kategori</div>", unsafe_allow_html=True)
+
+    if not by_cat.empty:
+        colors = ["#0d9b76", "#3b82f6", "#8b5cf6", "#fbbf24", "#f87171",
+                  "#34d399", "#ec4899", "#94a3b8", "#fb923c"]
+        fig_bar = go.Figure(go.Bar(
+            x=by_cat["total"],
+            y=by_cat["category"],
+            orientation="h",
+            marker_color=colors[:len(by_cat)],
+            text=[fmt_rp(v) for v in by_cat["total"]],
+            textposition="outside",
+            textfont=dict(family="DM Mono", size=11, color="#94a3b8"),
+            hovertemplate="%{y}: <b>%{x:,.0f}</b><extra></extra>",
+        ))
+        fig_bar.update_layout(
+            **PLOTLY_THEME,
+            height=260,
+            margin=dict(l=0, r=80, t=0, b=0),
+            bargap=0.3,
+            xaxis=dict(visible=False),
+            yaxis=dict(autorange="reversed", tickfont=dict(size=12)),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
+    else:
+        st.markdown(
+            "<div style='color:#64748b;font-size:13px;padding:24px 0;'>Belum ada data pengeluaran.</div>",
+            unsafe_allow_html=True,
         )
 
-        for _, row in df_budget.iterrows():
-            pct = min(row["pct"], 100)
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.markdown(f"**{row['status']} {row['category']}**")
-                st.progress(pct / 100)
-                st.caption(
-                    f"Rp {row['actual']:,.0f} / Rp {row['budget']:,.0f} ({row['pct']:.0f}%)".replace(",", ".")
-                )
-            with col2:
-                remaining = row["remaining"]
-                label = "Sisa" if remaining >= 0 else "Lebih"
-                color = "green" if remaining >= 0 else "red"
-                st.markdown(f"<p style='color:{color};font-weight:bold'>{label}: Rp {abs(remaining):,.0f}</p>".replace(",", "."),
-                            unsafe_allow_html=True)
-            st.divider()
+with col_right:
+    st.markdown("<div class='ft-card-title'>Distribusi Pengeluaran</div>", unsafe_allow_html=True)
 
-    # ── Page: Goals ───────────────────────
-    elif page == "🏆 Goals":
-        st.title("🏆 Savings Goals")
+    if not by_cat.empty:
+        colors_donut = ["#0d9b76", "#3b82f6", "#8b5cf6", "#fbbf24", "#f87171",
+                        "#34d399", "#ec4899", "#94a3b8"]
+        fig_donut = go.Figure(go.Pie(
+            labels=by_cat["category"],
+            values=by_cat["total"],
+            hole=0.65,
+            marker_colors=colors_donut[:len(by_cat)],
+            textinfo="none",
+            hovertemplate="%{label}: <b>Rp %{value:,.0f}</b><br>%{percent}<extra></extra>",
+        ))
+        fig_donut.update_layout(
+            **PLOTLY_THEME,
+            height=240,
+            margin=dict(l=0, r=0, t=0, b=0),
+            showlegend=False,
+            annotations=[dict(
+                text=f"<b>{fmt_rp(total_expense)}</b>",
+                x=0.5, y=0.5, font=dict(size=13, family="DM Mono", color="#f1f5f9"),
+                showarrow=False,
+            )],
+        )
+        st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
 
-        df_goals = fetch_goals(user_id)
-
-        if df_goals.empty:
-            st.info("Belum ada savings goal. Tambahkan via bot: `/goal add Liburan 5000000`")
-            return
-
-        for _, g in df_goals.iterrows():
-            pct = min(float(g["saved_amount"]) / float(g["target_amount"]) * 100, 100) if g["target_amount"] > 0 else 0
-            st.subheader(f"🎯 {g['name']}")
-            st.progress(pct / 100)
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Terkumpul", f"Rp {g['saved_amount']:,.0f}".replace(",", "."))
-            col2.metric("Target", f"Rp {g['target_amount']:,.0f}".replace(",", "."))
-            col3.metric("Progress", f"{pct:.1f}%")
-            if g["deadline"]:
-                st.caption(f"📅 Deadline: {g['deadline']}")
-            st.divider()
-
-    # ── Page: Riwayat ─────────────────────
-    elif page == "📋 Riwayat":
-        st.title(f"📋 Riwayat Transaksi — {month_name} {year}")
-
-        if df.empty:
-            st.info("Belum ada transaksi bulan ini.")
-            return
-
-        display = df[["date", "type", "category", "subcategory", "note", "amount"]].copy()
-        display["amount"] = display["amount"].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
-        display["type"] = display["type"].map({"expense": "🔴 Pengeluaran", "income": "💚 Pemasukan"})
-        display = display.sort_values("date", ascending=False)
-
-        cat_filter = st.multiselect("Filter Kategori", options=df["category"].unique())
-        if cat_filter:
-            display = display[display["category"].isin(cat_filter)]
-
-        st.dataframe(display, use_container_width=True, hide_index=True)
-
-    # ── Page: Tren ────────────────────────
-    elif page == "📈 Tren":
-        st.title("📈 Tren Keuangan (3 Bulan Terakhir)")
-
-        df_all = fetch_all_transactions(user_id)
-        if df_all.empty:
-            st.info("Belum cukup data untuk analisis tren.")
-            return
-
-        df_all["date"] = pd.to_datetime(df_all["date"])
-        df_all["month_year"] = df_all["date"].dt.strftime("%b %Y")
-
-        monthly = df_all.groupby(["month_year", "type"])["amount"].sum().reset_index()
-
-        fig = px.bar(monthly, x="month_year", y="amount", color="type",
-                     barmode="group",
-                     title="Pemasukan vs Pengeluaran per Bulan",
-                     color_discrete_map={"expense": "#ef4444", "income": "#22c55e"})
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Category trend
-        df_exp_all = df_all[df_all["type"] == "expense"]
-        cat_monthly = df_exp_all.groupby(["month_year", "category"])["amount"].sum().reset_index()
-
-        fig2 = px.line(cat_monthly, x="month_year", y="amount", color="category",
-                       title="Tren Pengeluaran per Kategori",
-                       markers=True)
-        st.plotly_chart(fig2, use_container_width=True)
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
 
-if __name__ == "__main__":
-    main()
+# ─── ROW 2: Daily Trend + Budget ──────────────────────────────
+col_trend, col_budget = st.columns([1.7, 1])
+
+with col_trend:
+    st.markdown("<div class='ft-card-title'>Tren Pengeluaran Harian</div>", unsafe_allow_html=True)
+
+    if not daily.empty:
+        fig_area = go.Figure()
+        fig_area.add_trace(go.Scatter(
+            x=daily["date"], y=daily["total"],
+            mode="lines",
+            fill="tozeroy",
+            line=dict(color="#0d9b76", width=2),
+            fillcolor="rgba(13,155,118,0.10)",
+            hovertemplate="%{x|%d %b}: <b>Rp %{y:,.0f}</b><extra></extra>",
+        ))
+        fig_area.update_layout(
+            **PLOTLY_THEME,
+            height=200,
+            margin=dict(l=0, r=0, t=0, b=0),
+            xaxis=dict(tickformat="%d %b", tickfont=dict(size=10)),
+            yaxis=dict(tickfont=dict(size=10), tickformat=",.0f"),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_area, use_container_width=True, config={"displayModeBar": False})
+    else:
+        st.markdown(
+            "<div style='color:#64748b;font-size:13px;padding:24px 0;'>Belum ada data harian.</div>",
+            unsafe_allow_html=True,
+        )
+
+with col_budget:
+    st.markdown("<div class='ft-card-title'>Budget vs Aktual</div>", unsafe_allow_html=True)
+
+    if not budgets.empty:
+        for _, row in budgets.iterrows():
+            pct = min((row["actual"] / row["budget"] * 100), 110) if row["budget"] > 0 else 0
+            color = "#f87171" if pct > 100 else ("#fbbf24" if pct > 80 else "#0d9b76")
+            status = "🔴" if pct > 100 else ("🟡" if pct > 80 else "🟢")
+            icon = CATEGORY_ICON.get(row["category"], "📁")
+            st.markdown(f"""
+            <div style='margin-bottom:12px;'>
+              <div style='display:flex; justify-content:space-between; font-size:12px; color:#94a3b8; margin-bottom:4px;'>
+                <span>{status} {icon} {row["category"]}</span>
+                <span style='font-family:DM Mono,monospace;'>{pct:.0f}%</span>
+              </div>
+              <div style='background:#1e2535; border-radius:4px; height:5px;'>
+                <div style='width:{min(pct,100):.0f}%; background:{color}; height:5px; border-radius:4px;'></div>
+              </div>
+              <div style='font-size:10px; color:#475569; margin-top:3px; font-family:DM Mono,monospace;'>
+                {fmt_rp(row["actual"])} / {fmt_rp(row["budget"])}
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown(
+            "<div style='color:#64748b;font-size:13px;'>Belum ada budget. Gunakan /budget di bot.</div>",
+            unsafe_allow_html=True,
+        )
+
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+
+# ─── RECENT TRANSACTIONS ──────────────────────────────────────
+st.markdown("<div class='ft-card-title'>Transaksi Terbaru</div>", unsafe_allow_html=True)
+
+if not txs.empty:
+    html_rows = ""
+    for _, tx in txs.head(20).iterrows():
+        icon = CATEGORY_ICON.get(tx["category"], "📁")
+        is_income = tx["type"] == "income"
+        amt_class = "ft-amount-pos" if is_income else "ft-amount-neg"
+        sign = "+" if is_income else "−"
+        conf_badge = {"high": "✅", "medium": "⚠️", "low": "❓"}.get(tx.get("ai_confidence", "high"), "✅")
+        date_str = pd.to_datetime(tx["date"]).strftime("%d %b")
+        html_rows += f"""
+        <div class='ft-tx-row'>
+          <div>
+            <div>{icon} {tx["note"] or tx["category"]} <span style='font-size:10px;color:#475569;'>{conf_badge}</span></div>
+            <div class='ft-tx-cat'>{tx["category"]} · {date_str}</div>
+          </div>
+          <div class='{amt_class}'>{sign}{fmt_rp(float(tx["amount"]))}</div>
+        </div>
+        """
+    st.markdown(f"<div class='ft-card'>{html_rows}</div>", unsafe_allow_html=True)
+else:
+    st.markdown(
+        "<div style='color:#64748b;font-size:13px;padding:16px 0;'>Belum ada transaksi bulan ini.</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# ─── FOOTER ───────────────────────────────────────────────────
+st.markdown("---")
+st.markdown("""
+<div style='text-align:center; font-size:11px; color:#334155; padding:8px 0;'>
+  Gajian Aman &nbsp;·&nbsp; Powered by Claude Haiku + Supabase
+</div>
+""", unsafe_allow_html=True)

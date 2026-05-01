@@ -68,7 +68,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not user:
         await update.message.reply_text(
-            "👋 Halo! Ketik /start untuk mendaftar dan mulai menggunakan FinTrack."
+            "👋 Halo! Ketik /start untuk mendaftar dan mulai menggunakan Gajian Aman."
         )
         return
 

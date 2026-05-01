@@ -157,7 +157,7 @@ async def get_monthly_income(session: AsyncSession, user_id: int, month: int, ye
 async def get_last_transactions(session: AsyncSession, user_id: int, limit: int = 10):
     result = await session.execute(
         text("""
-            SELECT amount, type, category, note, date
+            SELECT id, amount, type, category, note, date
             FROM transactions
             WHERE user_id = :user_id
             ORDER BY created_at DESC
@@ -166,6 +166,18 @@ async def get_last_transactions(session: AsyncSession, user_id: int, limit: int 
         {"user_id": user_id, "limit": limit}
     )
     return result.fetchall()
+
+
+async def get_transaction_by_id(session: AsyncSession, tx_id: int, user_id: int):
+    result = await session.execute(
+        text("""
+            SELECT id, amount, type, category, note, date
+            FROM transactions
+            WHERE id = :id AND user_id = :user_id
+        """),
+        {"id": tx_id, "user_id": user_id}
+    )
+    return result.fetchone()
 
 
 async def upsert_budget(session: AsyncSession, user_id: int, category: str, amount: float, month: int, year: int):
