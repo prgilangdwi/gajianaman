@@ -238,7 +238,11 @@ QUICK_GUIDES = {
         "• `/add 75k makan siang`\n"
         "• `/add 1.5jt bayar listrik`\n\n"
         "Atau ketik langsung:\n"
-        "`beli makan 25000`"
+        "`beli makan 25000`\n\n"
+        "📅 *Transaksi lama (backdated)?*\n"
+        "Tambahkan `@DD/MM` di akhir keterangan:\n"
+        "• `/add 50000 makan siang @15/04`\n"
+        "• `/add 200k bensin @01/04/2026`"
     ),
     "income": (
         "💚 *Catat Pemasukan*\n\n"
