@@ -62,7 +62,7 @@ def build_summary_message(
         f"🔴 Pengeluaran : {fmt_currency(total_expense, currency)}",
         f"{'💰' if net >= 0 else '⚠️'} Saldo Bersih  : {fmt_currency(net, currency)}\n",
         "─" * 28,
-        "*📁 Pengeluaran per Kategori:*"
+        "*📁 Pengeluaran per Kategori:*",
     ]
 
     for row in by_category:
@@ -70,17 +70,46 @@ def build_summary_message(
         lines.append(f"  {icon} {row.category}: {fmt_currency(row.total, currency)}")
 
     if budget_rows:
-        lines.append("\n─" * 28)
+        lines.append("─" * 28)
         lines.append("*🎯 Budget vs Aktual:*")
         for b in budget_rows:
             pct = (b.actual / b.budget * 100) if b.budget > 0 else 0
             bar = progress_bar(pct)
             status = "🔴" if pct > 100 else ("🟡" if pct > 80 else "🟢")
-            lines.append(
-                f"  {status} {b.category}\n"
-                f"     {bar} {pct:.0f}%\n"
-                f"     {fmt_currency(b.actual)} / {fmt_currency(b.budget)}"
-            )
+            lines.append(f"  {status} *{b.category}*")
+            lines.append(f"     {bar} {pct:.0f}%")
+            lines.append(f"     {fmt_currency(b.actual)} / {fmt_currency(b.budget)}")
+
+    return "\n".join(lines)
+
+
+def build_daily_summary_message(
+    user_name: str,
+    target_date: date,
+    total_income: float,
+    total_expense: float,
+    by_category: list,
+    currency: str = "IDR"
+) -> str:
+    net = total_income - total_expense
+    date_label = target_date.strftime("%d %B %Y")
+
+    lines = [
+        f"📊 *Ringkasan Harian — {date_label}*",
+        f"Halo, {user_name}!\n",
+        f"💚 Pemasukan   : {fmt_currency(total_income, currency)}",
+        f"🔴 Pengeluaran : {fmt_currency(total_expense, currency)}",
+        f"{'💰' if net >= 0 else '⚠️'} Saldo Bersih  : {fmt_currency(net, currency)}\n",
+    ]
+
+    if by_category:
+        lines.append("─" * 28)
+        lines.append("*📁 Pengeluaran per Kategori:*")
+        for row in by_category:
+            icon = category_icon(row.category)
+            lines.append(f"  {icon} {row.category}: {fmt_currency(row.total, currency)}")
+    else:
+        lines.append("_Tidak ada transaksi pada tanggal ini._")
 
     return "\n".join(lines)
 
@@ -110,7 +139,7 @@ def build_history_message(transactions: list, currency: str = "IDR") -> str:
     if not transactions:
         return "📭 Belum ada transaksi."
 
-    lines = ["📋 *Riwayat Transaksi Terakhir:*\n"]
+    lines = ["📋 *Riwayat Transaksi:*\n"]
     for i, tx in enumerate(transactions, 1):
         icon = "🔴" if tx.type == "expense" else "💚"
         cat_icon = category_icon(tx.category)

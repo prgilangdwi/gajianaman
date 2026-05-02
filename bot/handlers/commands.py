@@ -1,8 +1,9 @@
 # bot/handlers/commands.py
 
 import re
+import calendar
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
@@ -13,8 +14,6 @@ from db import operations as db
 from services.categorizer import categorize_transaction
 from services.formatter import (
     build_transaction_confirm,
-    build_summary_message,
-    build_history_message,
     fmt_currency,
 )
 
@@ -29,6 +28,7 @@ CATEGORY_MAP = {
     "education": "Education",
     "personal": "Personal Care",
     "dining": "Dining Out",
+    "savings": "Savings",
     "other": "Other",
 }
 
@@ -47,9 +47,12 @@ RECAT_KEYBOARD = InlineKeyboardMarkup([
     ],
     [
         InlineKeyboardButton("📱 Bills", callback_data="recat:Bills & Utilities"),
-        InlineKeyboardButton("📁 Other", callback_data="recat:Other"),
+        InlineKeyboardButton("🏦 Savings", callback_data="recat:Savings"),
     ],
-    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    [
+        InlineKeyboardButton("📁 Other", callback_data="recat:Other"),
+        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+    ],
 ])
 
 MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
@@ -58,22 +61,29 @@ MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
         InlineKeyboardButton("💚 Catat Pemasukan", callback_data="quick:income"),
     ],
     [
-        InlineKeyboardButton("📊 Summary Bulan Ini", callback_data="quick:summary"),
-        InlineKeyboardButton("📋 Riwayat", callback_data="quick:history"),
+        InlineKeyboardButton("📊 Summary", callback_data="summary:picker"),
+        InlineKeyboardButton("📋 Riwayat Transaksi", callback_data="history:picker"),
+    ],
+    [
+        InlineKeyboardButton("💰 Budget", callback_data="tutorial:try_qb"),
+        InlineKeyboardButton("🎯 Goals & Tabungan", callback_data="quick:goals"),
     ],
     [
         InlineKeyboardButton("🌐 Live Dashboard", callback_data="menu:dashboard"),
+        InlineKeyboardButton("📜 List Commands", callback_data="menu:commands"),
+    ],
+    [
+        InlineKeyboardButton("🔄 Ubah Kategori", callback_data="recat_flow:start"),
         InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
     ],
     [
         InlineKeyboardButton("💬 Helpdesk", callback_data="menu:helpdesk"),
-        InlineKeyboardButton("❓ Bantuan", callback_data="help:main"),
     ],
 ])
 
 
 def parse_amount(raw: str) -> float:
-    """Parse Indonesian amount strings: 15000, 15k, 15rb, 1.5jt, 2juta."""
+    """Parse Indonesian amount strings: 15000, 15k, 15rb, 15ribu, 1.5jt, 2juta."""
     raw = raw.strip().lower().replace(" ", "")
     if raw.endswith("juta") or raw.endswith("jt"):
         num = re.sub(r"(juta|jt)$", "", raw).replace(",", ".")
@@ -157,6 +167,27 @@ async def maybe_send_budget_alert(update: Update, user_id: int, category: str):
 
 
 # ─────────────────────────────────────────
+# Gamification: streak check
+# ─────────────────────────────────────────
+async def maybe_send_streak(update: Update, user_id: int):
+    async with AsyncSessionLocal() as session:
+        count = await db.get_hourly_transaction_count(session, user_id)
+
+    streaks = {
+        2: "🎯 *Double Kill!* Dua transaksi dalam sejam — rajin banget! 💪",
+        3: "⚡ *Triple Kill!* Tiga transaksi dalam sejam — lo serius nih! 🔥",
+        4: "💥 *Ultra Kill!* Empat transaksi dalam sejam — gila produktif! 😤",
+        5: "🏆 *RAMPAGE!!!* Lima transaksi dalam sejam — PENCATAT KEUANGAN SEJATI! 🎮🔥",
+    }
+    msg = streaks.get(count) or (
+        "🏆 *BEYOND GODLIKE!* Lebih dari 5 transaksi dalam sejam — lo sudah transcend! 🌌"
+        if count > 5 else None
+    )
+    if msg:
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+
+
+# ─────────────────────────────────────────
 # /start
 # ─────────────────────────────────────────
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -213,11 +244,12 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "📌 *Panduan Cepat:*\n\n"
             "1️⃣ *Catat pengeluaran:*\n"
-            "   `/add 15000 beli kopi`\n\n"
+            "   `/add 15000 beli kopi`\n"
+            "   Format nominal: `15k` · `15rb` · `15ribu` · `1.5jt` · `2juta`\n\n"
             "2️⃣ *Catat pemasukan:*\n"
-            "   `/income 5000000 gaji bulan ini`\n\n"
-            "3️⃣ *Cek ringkasan bulan ini:*\n"
-            "   `/summary`\n\n"
+            "   `/income 5jt gaji bulan ini`\n\n"
+            "3️⃣ *Cek ringkasan:*\n"
+            "   `/summary` → pilih bulanan atau harian\n\n"
             "4️⃣ *Set budget mudah:*\n"
             "   `/quickbudget` → pilih kategori & nominal\n\n"
             "💡 *Tips:* Bisa juga ketik langsung tanpa command!\n"
@@ -243,8 +275,8 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Contoh: `/add 7500 beli jajan di warung`\n\n"
             "*Format nominal:*\n"
             "• `15000` → Rp 15.000\n"
-            "• `15k` atau `15rb` → Rp 15.000\n"
-            "• `1.5jt` atau `1juta` → Rp 1.500.000\n\n"
+            "• `15k` atau `15rb` atau `15ribu` → Rp 15.000\n"
+            "• `1.5jt` atau `1juta` atau `1jt` → Rp 1.500.000\n\n"
             "*Backdated (opsional):*\n"
             "• `/add 50000 makan siang @15/04` → tanggal 15 April",
             parse_mode=ParseMode.MARKDOWN,
@@ -257,7 +289,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             raise ValueError
     except (ValueError, AttributeError):
         await update.message.reply_text(
-            "❌ Nominal tidak valid.\nContoh: `15000`, `15k`, `1.5jt`",
+            "❌ Nominal tidak valid.\nContoh: `15000`, `15k`, `15ribu`, `1.5jt`",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -273,7 +305,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             session=session,
             user_id=user.id,
             amount=amount,
-            tx_type=result["type"],
+            tx_type="expense",
             category=result["category"],
             subcategory=result["subcategory"],
             note=note,
@@ -286,7 +318,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "amount": amount,
         "category": result["category"],
         "note": note,
-        "type": result["type"],
+        "type": "expense",
     }
 
     msg = build_transaction_confirm(amount, note, result)
@@ -314,6 +346,24 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if result["type"] == "expense":
         await maybe_send_budget_alert(update, user.id, result["category"])
 
+    # Savings goal allocation prompt
+    if result["category"] == "Savings":
+        async with AsyncSessionLocal() as session:
+            goals = await db.get_goals(session, user.id)
+        if goals:
+            buttons = [
+                [InlineKeyboardButton(f"🎯 {g.name}", callback_data=f"savings_alloc:{g.id}:{tx_id}:{amount}")]
+                for g in goals
+            ]
+            buttons.append([InlineKeyboardButton("⏭️ Lewati", callback_data="menu:main")])
+            await update.message.reply_text(
+                "🏦 *Tabungan ini mau dialokasikan ke goal mana?*",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup(buttons),
+            )
+
+    await maybe_send_streak(update, user.id)
+
 
 # ─────────────────────────────────────────
 # /income — Log income
@@ -327,7 +377,10 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "❌ *Format salah.*\n\n"
             "Gunakan: `/income <nominal> <keterangan>`\n"
-            "Contoh: `/income 5000000 gaji bulan ini`",
+            "Contoh: `/income 5jt gaji bulan ini`\n\n"
+            "*Format nominal:*\n"
+            "• `5000000` · `5jt` · `5juta` → Rp 5.000.000\n"
+            "• `500k` · `500rb` · `500ribu` → Rp 500.000",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -369,54 +422,69 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
     )
+    await maybe_send_streak(update, user.id)
 
 
 # ─────────────────────────────────────────
-# /summary — Monthly summary
+# /summary — Show period picker first
 # ─────────────────────────────────────────
 @require_start
 async def cmd_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
     today = date.today()
-    await context.bot.send_chat_action(update.effective_chat.id, "typing")
+    last_month = (today.replace(day=1) - timedelta(days=1))
 
-    async with AsyncSessionLocal() as session:
-        by_cat = await db.get_monthly_summary(session, user.id, today.month, today.year)
-        total_income = await db.get_monthly_income(session, user.id, today.month, today.year)
-        budget_rows = await db.get_budget_vs_actual(session, user.id, today.month, today.year)
-
-    total_expense = sum(row.total for row in by_cat)
-    msg = build_summary_message(
-        user_name=user.first_name,
-        month=today.month,
-        year=today.year,
-        total_income=float(total_income),
-        total_expense=float(total_expense),
-        by_category=by_cat,
-        budget_rows=budget_rows if budget_rows else None,
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                f"📅 Bulan Ini ({calendar.month_abbr[today.month]} {today.year})",
+                callback_data=f"summary:monthly:{today.month}:{today.year}"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                f"📅 Bulan Lalu ({calendar.month_abbr[last_month.month]} {last_month.year})",
+                callback_data=f"summary:monthly:{last_month.month}:{last_month.year}"
+            ),
+        ],
+        [
+            InlineKeyboardButton("📆 Hari Ini", callback_data="summary:daily:today"),
+            InlineKeyboardButton("📆 Kemarin", callback_data="summary:daily:yesterday"),
+        ],
+        [InlineKeyboardButton("📆 Tanggal Tertentu", callback_data="summary:daily:pick")],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    ])
+    await update.message.reply_text(
+        "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
     )
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
-    ]])
-    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
 
 
 # ─────────────────────────────────────────
-# /history — Last 10 transactions
+# /history — Show period picker first
 # ─────────────────────────────────────────
 @require_start
 async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    async with AsyncSessionLocal() as session:
-        txs = await db.get_last_transactions(session, user.id, 10)
+    today = date.today()
+    last_month = (today.replace(day=1) - timedelta(days=1))
+
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
-            InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
-        ]
+            InlineKeyboardButton(
+                f"📅 {calendar.month_name[today.month]} {today.year}",
+                callback_data=f"history:month:{today.month}:{today.year}"
+            ),
+            InlineKeyboardButton(
+                f"📅 {calendar.month_name[last_month.month]} {last_month.year}",
+                callback_data=f"history:month:{last_month.month}:{last_month.year}"
+            ),
+        ],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
     ])
     await update.message.reply_text(
-        build_history_message(txs), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard
+        "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
     )
 
 
@@ -438,7 +506,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("📊 Summary Bulan Ini", callback_data="quick:summary"),
+            InlineKeyboardButton("📊 Summary", callback_data="summary:picker"),
             InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
         ]
     ])
@@ -451,7 +519,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{'💰' if net >= 0 else '⚠️'} Saldo Bersih  : {fmt_currency(net)}\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"📝 Transaksi   : {tx_count} transaksi\n\n"
-        f"Lihat ringkasan bulanan: /summary",
+        f"Lihat ringkasan: /summary",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
     )
@@ -560,7 +628,7 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except (ValueError, IndexError):
                 await update.message.reply_text(
                     "❌ Format: `/goal add <nama> <target>`\n"
-                    "Contoh: `/goal add Liburan Bali 5000000`",
+                    "Contoh: `/goal add Liburan Bali 5jt`",
                     parse_mode=ParseMode.MARKDOWN,
                 )
                 return
@@ -591,8 +659,8 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Tambahkan dengan:\n"
             "`/goal add <nama> <target>`\n\n"
             "Contoh:\n"
-            "`/goal add Liburan Bali 5000000`\n"
-            "`/goal add Beli Motor 15000000`",
+            "`/goal add Liburan Bali 5jt`\n"
+            "`/goal add Beli Motor 15jt`",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=keyboard,
         )
@@ -609,6 +677,52 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"   {fmt_currency(float(g.saved_amount))} / {fmt_currency(float(g.target_amount))}\n"
         )
     await update.message.reply_text("\n".join(lines), parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+
+
+# ─────────────────────────────────────────
+# /commands — List all available commands
+# ─────────────────────────────────────────
+async def cmd_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+    ]])
+    await update.message.reply_text(
+        "📜 *Daftar Semua Command — Gajian Aman*\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "💸 *Transaksi*\n"
+        "➕ `/add <nominal> <ket>` — Catat pengeluaran\n"
+        "   _Contoh: `/add 15k beli kopi`_\n"
+        "💚 `/income <nominal> <ket>` — Catat pemasukan\n"
+        "   _Contoh: `/income 5jt gaji april`_\n"
+        "🗑️ `/delete` — Hapus transaksi terakhir\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "📊 *Laporan*\n"
+        "📊 `/summary` — Ringkasan bulanan / harian\n"
+        "📋 `/history` — 20 transaksi terbaru per periode\n"
+        "📈 `/stats` — Statistik hari ini\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🎯 *Budget & Goals*\n"
+        "💰 `/budget <kat> <nominal>` — Set budget bulanan\n"
+        "   _Contoh: `/budget food 1jt`_\n"
+        "⚡ `/quickbudget` — Wizard set budget cepat\n"
+        "🏆 `/goal` — Lihat semua savings goals\n"
+        "🏆 `/goal add <nama> <target>` — Tambah goal\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "ℹ️ *Lainnya*\n"
+        "🏠 `/start` — Menu utama & dashboard hari ini\n"
+        "📜 `/commands` — Tampilkan daftar ini\n"
+        "🎓 `/tutorial` — Tutorial interaktif 5 langkah\n"
+        "❓ `/help` — Pusat bantuan\n"
+        "❌ `/cancel` — Batalkan operasi yang sedang berjalan\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "💡 *Format Nominal:*\n"
+        "`15000` · `15k` · `15rb` · `15ribu` → Rp 15.000\n"
+        "`1.5jt` · `1juta` · `1jt` → Rp 1.500.000\n\n"
+        "📅 *Backdated:* tambahkan `@DD/MM` di akhir keterangan\n"
+        "_Contoh: `/add 50k makan @15/04`_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
+    )
 
 
 # ─────────────────────────────────────────

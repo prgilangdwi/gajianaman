@@ -1,11 +1,13 @@
 # dashboard/app.py
 # Gajian Aman — Streamlit Dashboard (multi-page, light green theme)
 
+import base64
 import html as _html
 import calendar
 import math
 import os
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -16,9 +18,31 @@ from sqlalchemy import create_engine, text
 
 load_dotenv()
 
+# ─────────────────────────────────────────
+# Logo helper
+# ─────────────────────────────────────────
+def _logo_b64() -> str:
+    logo_path = Path(__file__).parent.parent / "logo" / "final-logo-gajian-aman.png"
+    if logo_path.exists():
+        return base64.b64encode(logo_path.read_bytes()).decode()
+    return ""
+
+_LOGO_B64 = _logo_b64()
+
+def logo_img(size: int = 40, radius: int = 12) -> str:
+    if _LOGO_B64:
+        return (f'<img src="data:image/png;base64,{_LOGO_B64}" '
+                f'style="width:{size}px;height:{size}px;border-radius:{radius}px;object-fit:cover;">')
+    return (f'<div style="width:{size}px;height:{size}px;background:#6DC641;border-radius:{radius}px;'
+            f'display:flex;align-items:center;justify-content:center;font-size:{size//2}px;'
+            f'font-weight:800;color:#fff;">G</div>')
+
+
 st.set_page_config(
     page_title="Gajian Aman",
-    page_icon="💰",
+    page_icon=str(Path(__file__).parent.parent / "logo" / "final-logo-gajian-aman.png")
+             if (Path(__file__).parent.parent / "logo" / "final-logo-gajian-aman.png").exists()
+             else "💰",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -98,15 +122,20 @@ st.markdown("""
   /* Radio / selectbox label */
   .stRadio label, .stSelectbox label { color: rgba(255,255,255,0.6) !important; }
 
-  /* Mobile */
+  /* Mobile top bar — hidden on desktop */
+  .mobile-topbar {
+    display: none !important;
+  }
   @media (max-width: 768px) {
-    .block-container { padding: 0.75rem !important; }
+    .mobile-topbar {
+      display: block !important;
+    }
+    .block-container { padding: 0.5rem !important; }
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 4px !important; }
     [data-testid="column"] {
       min-width: min(100%, 160px) !important;
       padding: 4px !important;
     }
-    /* Single-column KPI stack on very small screens */
     @media (max-width: 480px) {
       [data-testid="column"] { min-width: 100% !important; }
     }
@@ -119,14 +148,15 @@ st.markdown("""
 # CONSTANTS
 # ─────────────────────────────────────────
 CARD = {
-    "dark":    {"bg": "#1B4332", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.6)"},
-    "yellow":  {"bg": "#F5C842", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.55)"},
-    "orange":  {"bg": "#F07A3A", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.65)"},
-    "teal":    {"bg": "#4DC9C2", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.55)"},
-    "green":   {"bg": "#A8D96C", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.55)"},
-    "gray":    {"bg": "#E8E8E8", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.5)"},
-    "white":   {"bg": "#FFFFFF", "text": "#1A1A1A", "muted": "#6B7280"},
-    "primary": {"bg": "#6DC641", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.65)"},
+    "dark":       {"bg": "#1B4332", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.6)"},
+    "black":      {"bg": "#1A1A1A", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.55)"},
+    "yellow":     {"bg": "#F5C842", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.55)"},
+    "orange":     {"bg": "#F07A3A", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.65)"},
+    "teal":       {"bg": "#4DC9C2", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.55)"},
+    "green":      {"bg": "#A8D96C", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.55)"},
+    "gray":       {"bg": "#E8E8E8", "text": "#1A1A1A", "muted": "rgba(26,26,26,0.5)"},
+    "white":      {"bg": "#FFFFFF", "text": "#1A1A1A", "muted": "#6B7280"},
+    "primary":    {"bg": "#6DC641", "text": "#FFFFFF", "muted": "rgba(255,255,255,0.65)"},
 }
 
 CATEGORY_COLORS = {
@@ -136,7 +166,7 @@ CATEGORY_COLORS = {
     "Bills & Utilities":"#1B4332",
     "Shopping":         "#F5C842",
     "Health":           "#A8D96C",
-    "Entertainment":    "#F07A3A",
+    "Entertainment":    "#F5C842",  # matches yellow card
     "Education":        "#4DC9C2",
     "Other":            "#9CA3AF",
     "Salary":           "#6DC641",
@@ -177,13 +207,14 @@ _CARD_CYCLE = ["orange", "teal", "green", "yellow", "dark", "primary", "gray"]
 
 PLOTLY_BASE = dict(
     font_family="Plus Jakarta Sans",
-    font_color="#6B7280",
+    font_color="#1A1A1A",
     title_font_color="#1A1A1A",
     colorway=["#6DC641","#F07A3A","#4DC9C2","#F5C842","#1B4332","#A8D96C","#9CA3AF"],
 )
 _TRANSPARENT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-_WHITE_BG    = dict(paper_bgcolor="#FFFFFF",        plot_bgcolor="#FFFFFF")
 GRID = dict(gridcolor="#E8E8E8", zerolinecolor="#E8E8E8", linecolor="#E8E8E8")
+
+PAGES = ["🏠 Overview", "💸 Pengeluaran", "🎯 Budget", "🏆 Goals", "📋 Riwayat", "📈 Tren"]
 
 
 def cat_color(name: str) -> str:
@@ -277,8 +308,10 @@ def fetch_goals(user_id: int) -> pd.DataFrame:
 # ─────────────────────────────────────────
 # HTML BUILDERS
 # ─────────────────────────────────────────
-def metric_card(label: str, value: str, sub: str, style: str = "white", icon: str = "") -> str:
+def metric_card(label: str, value: str, sub: str, style: str = "white", icon: str = "",
+                sub_html: str = "") -> str:
     c = CARD[style]
+    sub_content = sub_html if sub_html else _html.escape(sub)
     return f"""
     <div style="background:{c['bg']};border-radius:20px;padding:22px 20px;
                 box-shadow:0 2px 12px rgba(0,0,0,0.07);color:{c['text']};
@@ -288,7 +321,7 @@ def metric_card(label: str, value: str, sub: str, style: str = "white", icon: st
       <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;margin-top:6px;">
         {_html.escape(value)}
       </div>
-      <div style="font-size:11px;color:{c['muted']};margin-top:6px;">{_html.escape(sub)}</div>
+      <div style="font-size:11px;color:{c['muted']};margin-top:6px;">{sub_content}</div>
     </div>"""
 
 
@@ -501,7 +534,7 @@ def income_alloc_html(expense: float, income: float) -> str:
 
 
 # ─────────────────────────────────────────
-# PLOTLY CHARTS
+# PLOTLY CHARTS — all transparent bg, black font
 # ─────────────────────────────────────────
 def donut_chart(by_cat: pd.DataFrame) -> go.Figure:
     cats   = by_cat["category"].tolist()
@@ -515,7 +548,7 @@ def donut_chart(by_cat: pd.DataFrame) -> go.Figure:
         hovertemplate="%{label}: <b>Rp %{value:,.0f}</b> (%{percent})<extra></extra>",
     ))
     fig.update_layout(
-        **PLOTLY_BASE, **_WHITE_BG,
+        **PLOTLY_BASE, **_TRANSPARENT,
         height=260,
         margin=dict(l=0, r=0, t=0, b=0),
         showlegend=True,
@@ -547,9 +580,9 @@ def area_chart_daily(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         **PLOTLY_BASE, **_TRANSPARENT, height=180,
         margin=dict(l=0, r=0, t=0, b=0),
-        xaxis=dict(**GRID, tickformat="%d %b", tickfont=dict(size=10, color="#6B7280"),
+        xaxis=dict(**GRID, tickformat="%d %b", tickfont=dict(size=10, color="#1A1A1A"),
                    dtick="D1", ticklabelmode="instant", showgrid=False),
-        yaxis=dict(**GRID, tickfont=dict(size=10, color="#6B7280"), tickformat=",.0f"),
+        yaxis=dict(**GRID, tickfont=dict(size=10, color="#1A1A1A"), tickformat=",.0f"),
         showlegend=False,
     )
     return fig
@@ -572,14 +605,15 @@ def bar_chart_monthly(df_all: pd.DataFrame) -> go.Figure:
                marker=dict(color="#F07A3A", line=dict(width=0))),
     ])
     fig.update_layout(
-        **PLOTLY_BASE, **_WHITE_BG,
+        **PLOTLY_BASE, **_TRANSPARENT,
         barmode="group", height=300,
         margin=dict(l=0, r=0, t=32, b=0),
-        title=dict(text="Pemasukan vs Pengeluaran per Bulan", font=dict(size=12, color="#1A1A1A"), x=0),
-        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11),
+        title=dict(text="Pemasukan vs Pengeluaran per Bulan",
+                   font=dict(size=12, color="#1A1A1A"), x=0),
+        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11, color="#1A1A1A"),
                    categoryorder="array", categoryarray=months_ordered),
-        yaxis=dict(**GRID, tickfont=dict(size=10)),
-        legend=dict(font=dict(size=11), bgcolor="rgba(0,0,0,0)"),
+        yaxis=dict(**GRID, tickfont=dict(size=10, color="#1A1A1A")),
+        legend=dict(font=dict(size=11, color="#1A1A1A"), bgcolor="rgba(0,0,0,0)"),
     )
     return fig
 
@@ -598,14 +632,15 @@ def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
     )
     fig.update_traces(line=dict(width=2.5), marker=dict(size=5))
     fig.update_layout(
-        **PLOTLY_BASE, **_WHITE_BG,
+        **PLOTLY_BASE, **_TRANSPARENT,
         height=300,
         margin=dict(l=0, r=0, t=32, b=0),
-        title=dict(text="Tren Pengeluaran per Kategori", font=dict(size=12, color="#1A1A1A"), x=0),
-        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11),
+        title=dict(text="Tren Pengeluaran per Kategori",
+                   font=dict(size=12, color="#1A1A1A"), x=0),
+        xaxis=dict(**GRID, showgrid=False, tickfont=dict(size=11, color="#1A1A1A"),
                    categoryorder="array", categoryarray=months_ordered),
-        yaxis=dict(**GRID, tickfont=dict(size=10)),
-        legend=dict(font=dict(size=10), bgcolor="rgba(0,0,0,0)"),
+        yaxis=dict(**GRID, tickfont=dict(size=10, color="#1A1A1A")),
+        legend=dict(font=dict(size=10, color="#1A1A1A"), bgcolor="rgba(0,0,0,0)"),
     )
     return fig
 
@@ -614,12 +649,14 @@ def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
 # LOGIN
 # ─────────────────────────────────────────
 def render_login():
-    st.markdown("""
+    st.markdown(f"""
     <div style='max-width:400px;margin:60px auto;text-align:center;'>
       <div style='display:inline-flex;align-items:center;justify-content:center;
-                  width:64px;height:64px;background:#6DC641;border-radius:20px;
-                  font-size:30px;font-weight:800;color:#fff;margin-bottom:16px;
-                  box-shadow:0 6px 24px rgba(109,198,65,0.4);'>G</div>
+                  width:72px;height:72px;background:#6DC641;border-radius:20px;
+                  overflow:hidden;margin-bottom:16px;
+                  box-shadow:0 6px 24px rgba(109,198,65,0.4);'>
+        {logo_img(72, 20)}
+      </div>
       <div style='font-size:28px;font-weight:800;color:#1A1A1A;margin-bottom:4px;'>Gajian Aman</div>
       <div style='font-size:13px;color:#6B7280;margin-bottom:36px;'>Keuangan digital Indonesia</div>
     </div>
@@ -660,9 +697,9 @@ def render_sidebar(user_name: str):
         st.markdown(f"""
         <div style='padding:12px 0 16px;'>
           <div style='display:flex;align-items:center;gap:10px;'>
-            <div style='width:38px;height:38px;background:#6DC641;border-radius:12px;
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:18px;font-weight:800;color:#fff;flex-shrink:0;'>G</div>
+            <div style='width:38px;height:38px;border-radius:12px;overflow:hidden;flex-shrink:0;'>
+              {logo_img(38, 12)}
+            </div>
             <div>
               <div style='font-size:15px;font-weight:700;color:#fff;'>Gajian Aman</div>
               <div style='font-size:10px;color:rgba(255,255,255,0.45);'>
@@ -683,14 +720,7 @@ def render_sidebar(user_name: str):
 
         st.markdown('<hr style="border-color:rgba(255,255,255,0.12);margin:12px 0;">', unsafe_allow_html=True)
 
-        page = st.radio("Navigasi", [
-            "🏠 Overview",
-            "💸 Pengeluaran",
-            "🎯 Budget",
-            "🏆 Goals",
-            "📋 Riwayat",
-            "📈 Tren",
-        ], label_visibility="collapsed")
+        page = st.radio("Navigasi", PAGES, label_visibility="collapsed")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
@@ -704,6 +734,41 @@ def render_sidebar(user_name: str):
             st.rerun()
 
     return int(month), int(year), page
+
+
+# ─────────────────────────────────────────
+# MOBILE TOP BAR
+# ─────────────────────────────────────────
+def render_mobile_controls(user_name: str) -> tuple[int, int, str]:
+    """Visible on mobile, hidden on desktop via CSS."""
+    today = date.today()
+
+    st.markdown('<div class="mobile-topbar">', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="background:#1B4332;border-radius:16px;padding:12px 16px;
+                display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="flex-shrink:0;">{logo_img(32, 10)}</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#fff;">Gajian Aman</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);">Halo, {_html.escape(user_name)} 👋</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        mb_month = st.selectbox("Bulan ", range(1, 13), index=today.month - 1,
+                                format_func=lambda m: calendar.month_abbr[m],
+                                key="mb_month")
+    with col2:
+        year_opts = list(range(2024, today.year + 2))
+        mb_year = st.selectbox("Tahun ", year_opts,
+                               index=year_opts.index(today.year), key="mb_year")
+
+    mb_page = st.selectbox("Halaman", PAGES, key="mb_page")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    return int(mb_month), int(mb_year), mb_page
 
 
 # ─────────────────────────────────────────
@@ -726,15 +791,23 @@ def page_overview(df: pd.DataFrame, month: int, year: int, user_id: int):
 
     # KPI cards
     k1, k2, k3, k4 = st.columns(4)
-    k1.markdown(metric_card("Pemasukan",    fmt_idr(total_income, compact=True),
-                            f"{len(df_inc)} transaksi", "teal", "💚"),    unsafe_allow_html=True)
-    k2.markdown(metric_card("Pengeluaran",  fmt_idr(total_expense, compact=True),
+    k1.markdown(metric_card("Pemasukan", fmt_idr(total_income, compact=True),
+                            f"{len(df_inc)} transaksi", "teal", "💚"), unsafe_allow_html=True)
+    k2.markdown(metric_card("Pengeluaran", fmt_idr(total_expense, compact=True),
                             f"{expense_pct}% dari income", "orange", "🔴"), unsafe_allow_html=True)
+
+    # Saldo bersih: subtle black with colored ball indicator
+    net_ball = (
+        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+        'background:#4ADE80;margin-right:4px;vertical-align:middle;"></span>Surplus'
+        if healthy else
+        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+        'background:#F87171;margin-right:4px;vertical-align:middle;"></span>Defisit'
+    )
     k3.markdown(metric_card("Saldo Bersih", fmt_idr(abs(net), compact=True),
-                            "Surplus" if healthy else "Defisit",
-                            "dark" if healthy else "orange", "💰"),        unsafe_allow_html=True)
-    k4.markdown(metric_card("Transaksi",    f"{len(df)} tx",
-                            "bulan ini", "yellow", "📋"),                  unsafe_allow_html=True)
+                            "", "black", "💰", sub_html=net_ball), unsafe_allow_html=True)
+    k4.markdown(metric_card("Transaksi", f"{len(df)} tx",
+                            "bulan ini", "yellow", "📋"), unsafe_allow_html=True)
 
     # Overview table
     st.markdown(section_label("Semua Transaksi Bulan Ini"), unsafe_allow_html=True)
@@ -874,13 +947,13 @@ def page_budget(user_id: int, month: int, year: int):
     remaining    = total_budget - total_actual
 
     c1, c2, c3 = st.columns(3)
-    c1.markdown(metric_card("Total Budget",   fmt_idr(total_budget, compact=True),
+    c1.markdown(metric_card("Total Budget", fmt_idr(total_budget, compact=True),
                             "bulan ini", "teal", "📊"), unsafe_allow_html=True)
-    c2.markdown(metric_card("Terpakai",       fmt_idr(total_actual, compact=True),
+    c2.markdown(metric_card("Terpakai", fmt_idr(total_actual, compact=True),
                             f"{pct_used}% dari budget",
                             "orange" if pct_used > 100 else "yellow" if pct_used > 80 else "green",
                             "📉"), unsafe_allow_html=True)
-    c3.markdown(metric_card("Sisa Budget",    fmt_idr(abs(remaining), compact=True),
+    c3.markdown(metric_card("Sisa Budget", fmt_idr(abs(remaining), compact=True),
                             "aman" if remaining >= 0 else "defisit",
                             "dark" if remaining >= 0 else "orange",
                             "✅" if remaining >= 0 else "⚠️"), unsafe_allow_html=True)
@@ -968,25 +1041,13 @@ def page_tren(user_id: int):
         st.info("Belum cukup data untuk analisis tren.")
         return
 
-    st.markdown(
-        '<div style="background:#FFFFFF;border-radius:20px;padding:20px;'
-        'box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:12px;">',
-        unsafe_allow_html=True,
-    )
     st.plotly_chart(bar_chart_monthly(df_all), use_container_width=True,
                     config={"displayModeBar": False})
-    st.markdown('</div>', unsafe_allow_html=True)
 
     df_exp_all = df_all[df_all["type"] == "expense"].copy()
     if not df_exp_all.empty:
-        st.markdown(
-            '<div style="background:#FFFFFF;border-radius:20px;padding:20px;'
-            'box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:12px;">',
-            unsafe_allow_html=True,
-        )
         st.plotly_chart(line_chart_category(df_exp_all), use_container_width=True,
                         config={"displayModeBar": False})
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # Best month insight
     tmp = df_all.copy()
@@ -998,7 +1059,7 @@ def page_tren(user_id: int):
         best_label  = pd.Period(best_period, "M").strftime("%b %Y")
         best_val    = float(monthly_net.loc[best_period, "net"])
         st.markdown(f"""
-        <div style="background:#1B4332;border-radius:20px;padding:20px;color:#fff;">
+        <div style="background:#1B4332;border-radius:20px;padding:20px;color:#fff;margin-top:12px;">
           <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);
                       text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">
             ✦ Best Month
@@ -1021,7 +1082,19 @@ def main():
 
     user_id   = st.session_state["user_id"]
     user_name = st.session_state["user_name"]
+
+    # Desktop sidebar (hidden on mobile via default Streamlit behavior)
     month, year, page = render_sidebar(user_name)
+
+    # Mobile top bar (hidden on desktop via CSS)
+    mb_month, mb_year, mb_page = render_mobile_controls(user_name)
+
+    # Merge: mobile controls take precedence when sidebar is collapsed
+    # (Streamlit renders both; CSS hides one per viewport)
+    if st.session_state.get("mb_month"):
+        month = mb_month
+        year  = mb_year
+        page  = mb_page
 
     df         = fetch_transactions(user_id, month, year)
     df_expense = df[df["type"] == "expense"]

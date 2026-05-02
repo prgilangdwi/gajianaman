@@ -103,7 +103,7 @@ def run_weekly():
 
 if __name__ == "__main__":
     scheduler = BlockingScheduler(timezone="Asia/Jakarta")
-    # Every Monday at 08:00 WIB
-    scheduler.add_job(run_weekly, "cron", day_of_week="mon", hour=8, minute=0)
-    print("⏰ Scheduler started — weekly reports every Monday 08:00 WIB")
+    # Every Sunday at 09:00 WIB
+    scheduler.add_job(run_weekly, "cron", day_of_week="sun", hour=9, minute=0)
+    print("⏰ Scheduler started — weekly reports every Sunday 09:00 WIB")
     scheduler.start()

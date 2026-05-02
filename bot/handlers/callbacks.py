@@ -1,14 +1,21 @@
 # bot/handlers/callbacks.py
 
+import calendar
+from datetime import date, timedelta, datetime
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
-from datetime import date
 
 from db.database import AsyncSessionLocal
 from db import operations as db
-from services.formatter import fmt_currency, build_history_message, build_summary_message
+from services.formatter import (
+    fmt_currency,
+    build_history_message,
+    build_summary_message,
+    build_daily_summary_message,
+)
 
 # ─────────────────────────────────────────
 # Tutorial steps (1-indexed, step 1 is sent by cmd_tutorial)
@@ -33,6 +40,9 @@ TUTORIAL_STEPS = {
         "• `/add 1.5jt bayar listrik`\n\n"
         "💡 *Cara lebih cepat:* Ketik langsung tanpa command!\n"
         "   `beli makan 25000` → langsung tercatat\n\n"
+        "*Format nominal lengkap:*\n"
+        "`15k` · `15rb` · `15ribu` → Rp 15.000\n"
+        "`1jt` · `1.5jt` · `1juta` → Rp 1.000.000\n\n"
         "📅 *Transaksi lama (backdated)?* Tambahkan `@DD/MM` di akhir:\n"
         "• `/add 50000 makan siang @15/04`\n"
         "• `/add 200k bensin @01/04/2026`\n\n"
@@ -44,7 +54,7 @@ TUTORIAL_STEPS = {
         "Gunakan `/income` untuk mencatat pemasukan:\n\n"
         "`/income <nominal> <keterangan>`\n\n"
         "*Contoh:*\n"
-        "• `/income 5000000 gaji bulan ini`\n"
+        "• `/income 5jt gaji bulan ini`\n"
         "• `/income 500k freelance desain`\n"
         "• `/income 2jt project web`\n\n"
         "💡 Kamu bisa cek ringkasan pemasukan vs pengeluaran\n"
@@ -59,7 +69,7 @@ TUTORIAL_STEPS = {
         "Selesai dalam hitungan detik! ⚡\n\n"
         "*Cara manual:*\n"
         "`/budget <kategori> <nominal>`\n"
-        "Contoh: `/budget food 1000000`\n\n"
+        "Contoh: `/budget food 1jt`\n\n"
         "*Kategori tersedia:*\n"
         "`food` `transport` `shopping` `health`\n"
         "`entertainment` `bills` `education` `groceries`\n\n"
@@ -79,13 +89,13 @@ TUTORIAL_STEPS = {
         "*Tambah goal baru:*\n"
         "`/goal add <nama> <target>`\n\n"
         "*Contoh:*\n"
-        "• `/goal add Liburan Bali 5000000`\n"
-        "• `/goal add Emergency Fund 10000000`\n"
-        "• `/goal add Beli Motor 15000000`\n\n"
+        "• `/goal add Liburan Bali 5jt`\n"
+        "• `/goal add Emergency Fund 10jt`\n"
+        "• `/goal add Beli Motor 15jt`\n\n"
         "*Lihat semua goals:*\n"
         "`/goal` → tampil progress bar tiap goal\n\n"
-        "💡 Progress bar otomatis update setiap kamu\n"
-        "   mencatat pemasukan.",
+        "💡 Setiap kali mencatat transaksi *Tabungan*,\n"
+        "   kamu bisa langsung alokasikan ke goal pilihanmu.",
         InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("← Kembali", callback_data="tutorial:4"),
@@ -101,15 +111,18 @@ TUTORIAL_DONE = (
     "━━━━━━━━━━━━━━━━━━━━\n"
     "➕ `/add` — Catat pengeluaran\n"
     "💚 `/income` — Catat pemasukan\n"
-    "📊 `/summary` — Ringkasan bulan ini\n"
-    "📋 `/history` — 10 transaksi terakhir\n"
+    "📊 `/summary` — Ringkasan bulanan / harian\n"
+    "📋 `/history` — 20 transaksi per periode\n"
     "📈 `/stats` — Statistik hari ini\n"
     "━━━━━━━━━━━━━━━━━━━━\n"
-    "🎯 `/quickbudget` — Set budget mudah\n"
+    "⚡ `/quickbudget` — Set budget mudah\n"
     "📝 `/budget` — Set budget manual\n"
     "🏆 `/goal` — Savings goals\n"
     "🗑️ `/delete` — Hapus transaksi terakhir\n"
+    "📜 `/commands` — Semua daftar command\n"
     "━━━━━━━━━━━━━━━━━━━━\n\n"
+    "💡 *Format nominal:* `15k` · `15ribu` · `1.5jt` · `2juta`\n"
+    "📅 *Backdated:* tambahkan `@DD/MM` di akhir keterangan\n\n"
     "Selamat mencatat keuanganmu! 💪",
     InlineKeyboardMarkup([
         [InlineKeyboardButton("🎯 Set Budget Sekarang", callback_data="tutorial:try_qb")],
@@ -171,20 +184,23 @@ HELP_PAGES = {
         "📝 *Mencatat Transaksi*\n\n"
         "*Catat Pengeluaran:*\n"
         "`/add <nominal> <keterangan>`\n"
-        "Contoh: `/add 15000 beli kopi`\n\n"
+        "Contoh: `/add 15k beli kopi`\n\n"
         "*Catat Pemasukan:*\n"
         "`/income <nominal> <keterangan>`\n"
-        "Contoh: `/income 5000000 gaji april`\n\n"
+        "Contoh: `/income 5jt gaji april`\n\n"
         "*Mode Natural (tanpa command):*\n"
         "Ketik langsung: `beli makan 25000`\n\n"
         "*Format Nominal:*\n"
         "• `15000` → Rp 15.000\n"
-        "• `15k` atau `15rb` → Rp 15.000\n"
-        "• `1.5jt` atau `1juta` → Rp 1.500.000\n\n"
+        "• `15k` · `15rb` · `15ribu` → Rp 15.000\n"
+        "• `1.5jt` · `1juta` · `1jt` → Rp 1.500.000\n\n"
+        "*Backdated:* tambahkan `@DD/MM` di akhir\n"
+        "Contoh: `/add 50k makan @15/04`\n\n"
         "*Perintah lainnya:*\n"
-        "/history — 10 transaksi terakhir\n"
+        "/history — 20 transaksi per periode\n"
         "/stats — Statistik hari ini\n"
-        "/delete — Hapus transaksi terakhir",
+        "/delete — Hapus transaksi terakhir\n"
+        "/commands — Semua daftar command",
         InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 Kembali", callback_data="help:main")],
         ]),
@@ -193,17 +209,17 @@ HELP_PAGES = {
         "💰 *Budget & Savings Goals*\n\n"
         "*Set Budget Bulanan:*\n"
         "`/budget <kategori> <nominal>`\n"
-        "Contoh: `/budget food 1000000`\n\n"
+        "Contoh: `/budget food 1jt`\n\n"
         "*Kategori Budget:*\n"
         "food, groceries, transport, shopping,\n"
         "health, entertainment, bills, education\n\n"
         "*Lihat Progress Budget:*\n"
-        "/summary — Termasuk grafik budget vs aktual\n\n"
+        "/summary → Termasuk grafik budget vs aktual\n\n"
         "*Savings Goals:*\n"
         "`/goal` — Lihat semua goals\n"
         "`/goal add <nama> <target>` — Tambah goal\n\n"
         "Contoh:\n"
-        "`/goal add Liburan Bali 5000000`",
+        "`/goal add Liburan Bali 5jt`",
         InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 Kembali", callback_data="help:main")],
         ]),
@@ -221,7 +237,7 @@ HELP_PAGES = {
         "5️⃣ *Tambah savings goal*\n"
         "   Motivasi lebih tinggi dengan target jelas\n\n"
         "6️⃣ *Hapus salah catat*\n"
-        "   Tap 🗑️ Hapus Transaksi di menu utama",
+        "   Gunakan 🗑️ Hapus di menu utama",
         InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 Kembali", callback_data="help:main")],
         ]),
@@ -239,8 +255,10 @@ QUICK_GUIDES = {
         "• `/add 1.5jt bayar listrik`\n\n"
         "Atau ketik langsung:\n"
         "`beli makan 25000`\n\n"
-        "📅 *Transaksi lama (backdated)?*\n"
-        "Tambahkan `@DD/MM` di akhir keterangan:\n"
+        "*Format nominal:*\n"
+        "`15k` · `15rb` · `15ribu` → Rp 15.000\n"
+        "`1jt` · `1.5jt` · `1juta` → Rp 1.000.000\n\n"
+        "📅 *Backdated?* Tambahkan `@DD/MM` di akhir:\n"
         "• `/add 50000 makan siang @15/04`\n"
         "• `/add 200k bensin @01/04/2026`"
     ),
@@ -249,11 +267,34 @@ QUICK_GUIDES = {
         "Gunakan format:\n"
         "`/income <nominal> <keterangan>`\n\n"
         "Contoh:\n"
-        "• `/income 5000000 gaji bulan ini`\n"
+        "• `/income 5jt gaji bulan ini`\n"
         "• `/income 500k freelance desain`\n"
         "• `/income 2jt project web`"
     ),
 }
+
+RECAT_KEYBOARD = InlineKeyboardMarkup([
+    [
+        InlineKeyboardButton("🍜 Food & Dining", callback_data="recat:Food & Dining"),
+        InlineKeyboardButton("🛒 Groceries", callback_data="recat:Groceries"),
+    ],
+    [
+        InlineKeyboardButton("🚗 Transport", callback_data="recat:Transport"),
+        InlineKeyboardButton("🛍️ Shopping", callback_data="recat:Shopping"),
+    ],
+    [
+        InlineKeyboardButton("💊 Health", callback_data="recat:Health"),
+        InlineKeyboardButton("🎮 Entertainment", callback_data="recat:Entertainment"),
+    ],
+    [
+        InlineKeyboardButton("📱 Bills", callback_data="recat:Bills & Utilities"),
+        InlineKeyboardButton("🏦 Savings", callback_data="recat:Savings"),
+    ],
+    [
+        InlineKeyboardButton("📁 Other", callback_data="recat:Other"),
+        InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+    ],
+])
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -261,7 +302,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await query.answer()
     except BadRequest:
-        pass  # query expired (e.g. after bot restart) — still process the action
+        pass
     data = query.data
 
     # ── Menu Utama ─────────────────────────────────────
@@ -292,6 +333,37 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except BadRequest as e:
             if "Message is not modified" not in str(e):
                 raise
+
+    # ── List Commands ──────────────────────────────────
+    elif data == "menu:commands":
+        await query.edit_message_text(
+            "📜 *Daftar Semua Command — Gajian Aman*\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "💸 *Transaksi*\n"
+            "➕ `/add <nominal> <ket>` — Catat pengeluaran\n"
+            "💚 `/income <nominal> <ket>` — Catat pemasukan\n"
+            "🗑️ `/delete` — Hapus transaksi terakhir\n\n"
+            "📊 *Laporan*\n"
+            "📊 `/summary` — Ringkasan bulanan / harian\n"
+            "📋 `/history` — 20 transaksi terbaru per periode\n"
+            "📈 `/stats` — Statistik hari ini\n\n"
+            "🎯 *Budget & Goals*\n"
+            "💰 `/budget <kat> <nominal>` — Set budget bulanan\n"
+            "⚡ `/quickbudget` — Wizard set budget cepat\n"
+            "🏆 `/goal` — Lihat savings goals\n"
+            "🏆 `/goal add <nama> <target>` — Tambah goal\n\n"
+            "ℹ️ *Lainnya*\n"
+            "🏠 `/start` — Menu utama\n"
+            "📜 `/commands` — Daftar ini\n"
+            "🎓 `/tutorial` — Tutorial interaktif\n"
+            "❓ `/help` — Pusat bantuan\n\n"
+            "💡 *Format:* `15k` · `15ribu` · `1.5jt` · `2juta`\n"
+            "📅 *Backdated:* `@DD/MM` di akhir keterangan",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
 
     # ── Live Dashboard ─────────────────────────────────
     elif data == "menu:dashboard":
@@ -332,6 +404,293 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Summary: picker (from callback) ───────────────
+    elif data == "summary:picker":
+        today = date.today()
+        last_month = (today.replace(day=1) - timedelta(days=1))
+        await query.edit_message_text(
+            "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(
+                    f"📅 Bulan Ini ({calendar.month_abbr[today.month]} {today.year})",
+                    callback_data=f"summary:monthly:{today.month}:{today.year}"
+                )],
+                [InlineKeyboardButton(
+                    f"📅 Bulan Lalu ({calendar.month_abbr[last_month.month]} {last_month.year})",
+                    callback_data=f"summary:monthly:{last_month.month}:{last_month.year}"
+                )],
+                [
+                    InlineKeyboardButton("📆 Hari Ini", callback_data="summary:daily:today"),
+                    InlineKeyboardButton("📆 Kemarin", callback_data="summary:daily:yesterday"),
+                ],
+                [InlineKeyboardButton("📆 Tanggal Tertentu", callback_data="summary:daily:pick")],
+                [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Summary: monthly ──────────────────────────────
+    elif data.startswith("summary:monthly:"):
+        _, _, month_s, year_s = data.split(":")
+        month, year = int(month_s), int(year_s)
+        user_id = update.effective_user.id
+        user_name = update.effective_user.first_name
+
+        async with AsyncSessionLocal() as session:
+            by_cat = await db.get_monthly_summary(session, user_id, month, year)
+            total_income = await db.get_monthly_income(session, user_id, month, year)
+            budget_rows = await db.get_budget_vs_actual(session, user_id, month, year)
+
+        total_expense = sum(row.total for row in by_cat)
+        text = build_summary_message(
+            user_name=user_name,
+            month=month,
+            year=year,
+            total_income=float(total_income),
+            total_expense=float(total_expense),
+            by_category=by_cat,
+            budget_rows=budget_rows if budget_rows else None,
+        )
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Pilih Periode Lain", callback_data="summary:picker")],
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Summary: daily picker ─────────────────────────
+    elif data == "summary:daily:pick":
+        context.user_data["awaiting"] = "summary_date"
+        await query.edit_message_text(
+            "📆 *Ketik tanggal dengan format:*\n\n"
+            "`@DD/MM` atau `@DD/MM/YYYY`\n\n"
+            "Contoh: `@15/04` atau `@15/04/2025`",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Kembali", callback_data="summary:picker")],
+            ]),
+        )
+
+    # ── Summary: daily today/yesterday ────────────────
+    elif data in ("summary:daily:today", "summary:daily:yesterday"):
+        target_date = date.today() if data.endswith("today") else date.today() - timedelta(days=1)
+        await _send_daily_summary(query, update.effective_user, target_date)
+
+    # ── History: picker (from callback) ───────────────
+    elif data == "history:picker":
+        today = date.today()
+        last_month = (today.replace(day=1) - timedelta(days=1))
+        await query.edit_message_text(
+            "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        f"📅 {calendar.month_name[today.month]} {today.year}",
+                        callback_data=f"history:month:{today.month}:{today.year}"
+                    ),
+                    InlineKeyboardButton(
+                        f"📅 {calendar.month_name[last_month.month]} {last_month.year}",
+                        callback_data=f"history:month:{last_month.month}:{last_month.year}"
+                    ),
+                ],
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── History: show 20 for selected month ───────────
+    elif data.startswith("history:month:"):
+        _, _, month_s, year_s = data.split(":")
+        month, year = int(month_s), int(year_s)
+        user_id = update.effective_user.id
+
+        async with AsyncSessionLocal() as session:
+            txs = await db.get_transactions_by_month(session, user_id, month, year, limit=20)
+
+        month_label = f"{calendar.month_name[month]} {year}"
+        if not txs:
+            await query.edit_message_text(
+                f"📭 Tidak ada transaksi di *{month_label}*.",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Pilih Bulan Lain", callback_data="history:picker")],
+                    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+                ]),
+            )
+            return
+
+        text = f"📋 *Riwayat Transaksi — {month_label}*\n_(20 terbaru)_\n\n"
+        text += build_history_message(txs).replace("📋 *Riwayat Transaksi:*\n\n", "")
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
+                    InlineKeyboardButton("🔙 Pilih Bulan Lain", callback_data="history:picker"),
+                ],
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Goals: quick view ──────────────────────────────
+    elif data == "quick:goals":
+        user_id = update.effective_user.id
+        async with AsyncSessionLocal() as session:
+            goals = await db.get_goals(session, user_id)
+
+        if not goals:
+            await query.edit_message_text(
+                "📭 *Belum ada savings goal.*\n\n"
+                "Tambahkan dengan:\n"
+                "`/goal add <nama> <target>`\n\n"
+                "Contoh: `/goal add Liburan Bali 5jt`",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+                ]),
+            )
+            return
+
+        lines = ["🏆 *Savings Goals:*\n"]
+        for g in goals:
+            pct = min(float(g.saved_amount) / float(g.target_amount) * 100, 100) if g.target_amount > 0 else 0
+            bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+            status = "✅" if pct >= 100 else ("🔥" if pct >= 50 else "💪")
+            lines.append(
+                f"{status} *{g.name}*\n"
+                f"   {bar} {pct:.0f}%\n"
+                f"   {fmt_currency(float(g.saved_amount))} / {fmt_currency(float(g.target_amount))}\n"
+            )
+        await query.edit_message_text(
+            "\n".join(lines),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Savings goal allocation ────────────────────────
+    elif data.startswith("savings_alloc:"):
+        parts = data.split(":")
+        goal_id, tx_id, amount = int(parts[1]), int(parts[2]), float(parts[3])
+        user_id = update.effective_user.id
+
+        async with AsyncSessionLocal() as session:
+            await db.add_to_savings_goal(session, goal_id, user_id, amount)
+            goals = await db.get_goals(session, user_id)
+            goal = next((g for g in goals if g.id == goal_id), None)
+
+        goal_name = goal.name if goal else "Goal"
+        await query.edit_message_text(
+            f"✅ *{fmt_currency(amount)} ditambahkan ke goal:*\n"
+            f"🎯 *{goal_name}*\n\n"
+            f"Progress goal terupdate! Pantau via /goal atau dashboard.",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Recat flow: date picker ────────────────────────
+    elif data == "recat_flow:start":
+        await query.edit_message_text(
+            "🔄 *Ubah Kategori Transaksi*\n\nPilih tanggal transaksi:",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("📅 Hari Ini", callback_data="recat_flow:today"),
+                    InlineKeyboardButton("📅 Kemarin", callback_data="recat_flow:yesterday"),
+                ],
+                [InlineKeyboardButton("📅 Tanggal Tertentu", callback_data="recat_flow:pick")],
+                [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    elif data == "recat_flow:pick":
+        context.user_data["awaiting"] = "recat_date"
+        await query.edit_message_text(
+            "📆 *Ketik tanggal dengan format:*\n\n"
+            "`@DD/MM` atau `@DD/MM/YYYY`\n\n"
+            "Contoh: `@15/04` atau `@15/04/2025`",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start")],
+            ]),
+        )
+
+    elif data in ("recat_flow:today", "recat_flow:yesterday"):
+        target_date = date.today() if data.endswith("today") else date.today() - timedelta(days=1)
+        await _show_recat_tx_list(query, update.effective_user.id, target_date)
+
+    elif data.startswith("recat_flow:date:"):
+        date_str = data.split(":", 3)[3]
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            await query.answer("Tanggal tidak valid.", show_alert=True)
+            return
+        await _show_recat_tx_list(query, update.effective_user.id, target_date)
+
+    elif data.startswith("recat_tx:"):
+        tx_id = int(data.split(":")[1])
+        context.user_data["recat_target_tx_id"] = tx_id
+
+        # Build category keyboard with tx_id embedded
+        kb = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🍜 Food & Dining", callback_data=f"recat_apply:{tx_id}:Food & Dining"),
+                InlineKeyboardButton("🛒 Groceries", callback_data=f"recat_apply:{tx_id}:Groceries"),
+            ],
+            [
+                InlineKeyboardButton("🚗 Transport", callback_data=f"recat_apply:{tx_id}:Transport"),
+                InlineKeyboardButton("🛍️ Shopping", callback_data=f"recat_apply:{tx_id}:Shopping"),
+            ],
+            [
+                InlineKeyboardButton("💊 Health", callback_data=f"recat_apply:{tx_id}:Health"),
+                InlineKeyboardButton("🎮 Entertainment", callback_data=f"recat_apply:{tx_id}:Entertainment"),
+            ],
+            [
+                InlineKeyboardButton("📱 Bills", callback_data=f"recat_apply:{tx_id}:Bills & Utilities"),
+                InlineKeyboardButton("🏦 Savings", callback_data=f"recat_apply:{tx_id}:Savings"),
+            ],
+            [
+                InlineKeyboardButton("📁 Other", callback_data=f"recat_apply:{tx_id}:Other"),
+                InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start"),
+            ],
+        ])
+        await query.edit_message_text(
+            "📁 *Pilih kategori baru untuk transaksi ini:*",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb,
+        )
+
+    elif data.startswith("recat_apply:"):
+        parts = data.split(":", 2)
+        tx_id = int(parts[1])
+        new_category = parts[2]
+        user_id = update.effective_user.id
+
+        async with AsyncSessionLocal() as session:
+            tx = await db.get_transaction_by_id(session, tx_id, user_id)
+            if not tx:
+                await query.answer("Transaksi tidak ditemukan.", show_alert=True)
+                return
+            await db.update_transaction_category(session, tx_id, new_category)
+
+        await query.edit_message_text(
+            f"✅ *Kategori diperbarui!*\n\n"
+            f"📝 {tx.note or '-'}\n"
+            f"📁 Kategori baru: *{new_category}*",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔄 Ubah Lagi", callback_data="recat_flow:start")],
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
             ]),
         )
 
@@ -426,7 +785,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]),
         )
 
-    # ── Recategorize (updates DB) ──────────────────────
+    # ── Recategorize: last tx (from /add low-confidence)
     elif data.startswith("recat:"):
         new_category = data.split(":", 1)[1]
         tx_id = context.user_data.get("last_tx_id")
@@ -456,11 +815,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Quick-delete from transaction confirm ──────────
     elif data == "delete:last":
         tx_id = context.user_data.get("last_tx_id")
-
         if not tx_id:
             await query.answer("Tidak ada transaksi tersimpan di sesi ini. Gunakan /delete.", show_alert=True)
             return
-
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("✅ Ya, Hapus", callback_data=f"confirm_delete:{tx_id}"),
@@ -516,41 +873,47 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ]),
             )
         elif action == "summary":
-            user_id = update.effective_user.id
+            # Redirect to picker
             today = date.today()
-            async with AsyncSessionLocal() as session:
-                by_cat = await db.get_monthly_summary(session, user_id, today.month, today.year)
-                total_income = await db.get_monthly_income(session, user_id, today.month, today.year)
-                budget_rows = await db.get_budget_vs_actual(session, user_id, today.month, today.year)
-            total_expense = sum(row.total for row in by_cat)
-            text = build_summary_message(
-                user_name=update.effective_user.first_name,
-                month=today.month,
-                year=today.year,
-                total_income=float(total_income),
-                total_expense=float(total_expense),
-                by_category=by_cat,
-                budget_rows=budget_rows if budget_rows else None,
-            )
+            last_month = (today.replace(day=1) - timedelta(days=1))
             await query.edit_message_text(
-                text,
+                "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(
+                        f"📅 Bulan Ini ({calendar.month_abbr[today.month]} {today.year})",
+                        callback_data=f"summary:monthly:{today.month}:{today.year}"
+                    )],
+                    [InlineKeyboardButton(
+                        f"📅 Bulan Lalu ({calendar.month_abbr[last_month.month]} {last_month.year})",
+                        callback_data=f"summary:monthly:{last_month.month}:{last_month.year}"
+                    )],
+                    [
+                        InlineKeyboardButton("📆 Hari Ini", callback_data="summary:daily:today"),
+                        InlineKeyboardButton("📆 Kemarin", callback_data="summary:daily:yesterday"),
+                    ],
+                    [InlineKeyboardButton("📆 Tanggal Tertentu", callback_data="summary:daily:pick")],
                     [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
                 ]),
             )
         elif action == "history":
-            user_id = update.effective_user.id
-            async with AsyncSessionLocal() as session:
-                txs = await db.get_last_transactions(session, user_id, 10)
+            today = date.today()
+            last_month = (today.replace(day=1) - timedelta(days=1))
             await query.edit_message_text(
-                build_history_message(txs),
+                "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
                     [
-                        InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
-                        InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main"),
+                        InlineKeyboardButton(
+                            f"📅 {calendar.month_name[today.month]} {today.year}",
+                            callback_data=f"history:month:{today.month}:{today.year}"
+                        ),
+                        InlineKeyboardButton(
+                            f"📅 {calendar.month_name[last_month.month]} {last_month.year}",
+                            callback_data=f"history:month:{last_month.month}:{last_month.year}"
+                        ),
                     ],
+                    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
                 ]),
             )
 
@@ -665,3 +1028,68 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
             ]),
         )
+
+
+# ─────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────
+async def _send_daily_summary(query, user, target_date: date):
+    from services.formatter import build_daily_summary_message
+    async with AsyncSessionLocal() as session:
+        by_cat = await db.get_daily_summary(session, user.id, target_date)
+        total_income = await db.get_daily_income(session, user.id, target_date)
+
+    total_expense = sum(row.total for row in by_cat)
+    text = build_daily_summary_message(
+        user_name=user.first_name,
+        target_date=target_date,
+        total_income=float(total_income),
+        total_expense=float(total_expense),
+        by_category=by_cat,
+    )
+    try:
+        await query.edit_message_text(
+            text,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Pilih Periode Lain", callback_data="summary:picker")],
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+    except BadRequest as e:
+        if "Message is not modified" not in str(e):
+            raise
+
+
+async def _show_recat_tx_list(query, user_id: int, target_date: date):
+    async with AsyncSessionLocal() as session:
+        txs = await db.get_transactions_by_date(session, user_id, target_date)
+
+    date_label = target_date.strftime("%d %b %Y")
+    if not txs:
+        await query.edit_message_text(
+            f"📭 Tidak ada transaksi pada *{date_label}*.",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start")],
+            ]),
+        )
+        return
+
+    lines = [f"🔄 *Transaksi pada {date_label}:*\n"]
+    buttons = []
+    for i, tx in enumerate(txs, 1):
+        icon = "🔴" if tx.type == "expense" else "💚"
+        note_short = (tx.note or tx.category)[:25]
+        lines.append(f"*{i}.* {icon} {fmt_currency(float(tx.amount))} — {note_short}")
+        buttons.append([InlineKeyboardButton(
+            f"{i}. {note_short[:20]}",
+            callback_data=f"recat_tx:{tx.id}"
+        )])
+
+    buttons.append([InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start")])
+    await query.edit_message_text(
+        "\n".join(lines) + "\n\n_Pilih transaksi yang ingin diubah kategorinya:_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )

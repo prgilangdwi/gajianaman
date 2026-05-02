@@ -139,6 +139,36 @@ async def get_monthly_summary(session: AsyncSession, user_id: int, month: int, y
     return result.fetchall()
 
 
+async def get_daily_summary(session: AsyncSession, user_id: int, target_date: date):
+    result = await session.execute(
+        text("""
+            SELECT category, SUM(amount) as total, COUNT(*) as count
+            FROM transactions
+            WHERE user_id = :user_id
+              AND type = 'expense'
+              AND date = :target_date
+            GROUP BY category
+            ORDER BY total DESC
+        """),
+        {"user_id": user_id, "target_date": target_date}
+    )
+    return result.fetchall()
+
+
+async def get_daily_income(session: AsyncSession, user_id: int, target_date: date):
+    result = await session.execute(
+        text("""
+            SELECT COALESCE(SUM(amount), 0) as total
+            FROM transactions
+            WHERE user_id = :user_id
+              AND type = 'income'
+              AND date = :target_date
+        """),
+        {"user_id": user_id, "target_date": target_date}
+    )
+    return result.scalar() or 0
+
+
 async def get_monthly_income(session: AsyncSession, user_id: int, month: int, year: int):
     result = await session.execute(
         text("""
@@ -154,7 +184,7 @@ async def get_monthly_income(session: AsyncSession, user_id: int, month: int, ye
     return result.scalar() or 0
 
 
-async def get_last_transactions(session: AsyncSession, user_id: int, limit: int = 10):
+async def get_last_transactions(session: AsyncSession, user_id: int, limit: int = 20):
     result = await session.execute(
         text("""
             SELECT id, amount, type, category, note, date
@@ -164,6 +194,35 @@ async def get_last_transactions(session: AsyncSession, user_id: int, limit: int 
             LIMIT :limit
         """),
         {"user_id": user_id, "limit": limit}
+    )
+    return result.fetchall()
+
+
+async def get_transactions_by_month(session: AsyncSession, user_id: int, month: int, year: int, limit: int = 20):
+    result = await session.execute(
+        text("""
+            SELECT id, amount, type, category, note, date
+            FROM transactions
+            WHERE user_id = :user_id
+              AND EXTRACT(MONTH FROM date) = :month
+              AND EXTRACT(YEAR FROM date) = :year
+            ORDER BY date DESC, id DESC
+            LIMIT :limit
+        """),
+        {"user_id": user_id, "month": month, "year": year, "limit": limit}
+    )
+    return result.fetchall()
+
+
+async def get_transactions_by_date(session: AsyncSession, user_id: int, target_date: date):
+    result = await session.execute(
+        text("""
+            SELECT id, amount, type, category, note, date
+            FROM transactions
+            WHERE user_id = :user_id AND date = :target_date
+            ORDER BY id DESC
+        """),
+        {"user_id": user_id, "target_date": target_date}
     )
     return result.fetchall()
 
@@ -219,7 +278,7 @@ async def get_budget_vs_actual(session: AsyncSession, user_id: int, month: int, 
 
 async def get_goals(session: AsyncSession, user_id: int):
     result = await session.execute(
-        text("SELECT name, target_amount, saved_amount, deadline FROM goals WHERE user_id = :user_id"),
+        text("SELECT id, name, target_amount, saved_amount, deadline FROM goals WHERE user_id = :user_id"),
         {"user_id": user_id}
     )
     return result.fetchall()
@@ -234,3 +293,29 @@ async def upsert_goal(session: AsyncSession, user_id: int, name: str, target: fl
         {"user_id": user_id, "name": name, "target": target, "deadline": deadline}
     )
     await session.commit()
+
+
+async def add_to_savings_goal(session: AsyncSession, goal_id: int, user_id: int, amount: float):
+    await session.execute(
+        text("""
+            UPDATE goals
+            SET saved_amount = saved_amount + :amount
+            WHERE id = :goal_id AND user_id = :user_id
+        """),
+        {"goal_id": goal_id, "user_id": user_id, "amount": amount}
+    )
+    await session.commit()
+
+
+async def get_hourly_transaction_count(session: AsyncSession, user_id: int) -> int:
+    result = await session.execute(
+        text("""
+            SELECT COUNT(*) as cnt
+            FROM transactions
+            WHERE user_id = :user_id
+              AND created_at >= NOW() - INTERVAL '1 hour'
+        """),
+        {"user_id": user_id}
+    )
+    row = result.fetchone()
+    return int(row.cnt) if row else 0
