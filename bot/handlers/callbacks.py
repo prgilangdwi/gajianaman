@@ -291,7 +291,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "2. Masukkan *Telegram ID* kamu di sidebar\n\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "📱 *Cara Dapatkan Telegram ID:*\n"
-            "1. Buka Telegram, cari *@SimpleID\\_Bot*\n"
+            "1. Buka Telegram, cari `@SimpleID_Bot`\n"
             "2. Kirim `/start` ke bot tersebut\n"
             "3. Bot langsung tampilkan *Telegram ID* kamu\n"
             "4. Copy ID tersebut dan paste di dashboard\n\n"
