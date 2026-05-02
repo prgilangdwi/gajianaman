@@ -3,6 +3,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 from datetime import date
 
 from db.database import AsyncSessionLocal
@@ -250,7 +251,10 @@ QUICK_GUIDES = {
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except BadRequest:
+        pass  # query expired (e.g. after bot restart) — still process the action
     data = query.data
 
     # ── Menu Utama ─────────────────────────────────────
@@ -265,18 +269,22 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tx_count = stats.tx_count if stats else 0
 
         from bot.handlers.commands import MAIN_MENU_KEYBOARD
-        await query.edit_message_text(
-            f"👋 *Halo, {user_name}!*\n\n"
-            f"📅 *{date.today().strftime('%d %B %Y')}*\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔴 Pengeluaran : {fmt_currency(expense)}\n"
-            f"💚 Pemasukan   : {fmt_currency(income)}\n"
-            f"📝 Transaksi   : {tx_count} hari ini\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"Mau ngapain hari ini? 👇",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=MAIN_MENU_KEYBOARD,
-        )
+        try:
+            await query.edit_message_text(
+                f"👋 *Halo, {user_name}!*\n\n"
+                f"📅 *{date.today().strftime('%d %B %Y')}*\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"🔴 Pengeluaran : {fmt_currency(expense)}\n"
+                f"💚 Pemasukan   : {fmt_currency(income)}\n"
+                f"📝 Transaksi   : {tx_count} hari ini\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"Mau ngapain hari ini? 👇",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=MAIN_MENU_KEYBOARD,
+            )
+        except BadRequest as e:
+            if "Message is not modified" not in str(e):
+                raise
 
     # ── Live Dashboard ─────────────────────────────────
     elif data == "menu:dashboard":
