@@ -2,6 +2,7 @@
 
 import re
 from functools import wraps
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
@@ -81,6 +82,28 @@ def parse_amount(raw: str) -> float:
         num = re.sub(r"(ribu|rb|k)$", "", raw).replace(",", ".")
         return float(num) * 1_000
     return float(raw.replace(",", "").replace(".", ""))
+
+
+def parse_backdate(note: str):
+    """Extract optional @DD/MM or @DD/MM/YYYY from end of note.
+
+    Returns (cleaned_note, date_or_None).
+    """
+    m = re.search(r'\s*@(\d{1,2})[/\-](\d{1,2})(?:[/\-](\d{2,4}))?\s*$', note)
+    if not m:
+        return note.strip(), None
+    day, month, year_raw = int(m.group(1)), int(m.group(2)), m.group(3)
+    year = date.today().year
+    if year_raw:
+        year = int(year_raw)
+        if year < 100:
+            year += 2000
+    try:
+        tx_date = datetime(year, month, day).date()
+    except ValueError:
+        return note.strip(), None
+    cleaned = note[:m.start()].strip()
+    return cleaned, tx_date
 
 
 # ─────────────────────────────────────────
@@ -221,7 +244,9 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "*Format nominal:*\n"
             "• `15000` → Rp 15.000\n"
             "• `15k` atau `15rb` → Rp 15.000\n"
-            "• `1.5jt` atau `1juta` → Rp 1.500.000",
+            "• `1.5jt` atau `1juta` → Rp 1.500.000\n\n"
+            "*Backdated (opsional):*\n"
+            "• `/add 50000 makan siang @15/04` → tanggal 15 April",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -237,7 +262,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    note = parts[2]
+    note, tx_date = parse_backdate(parts[2])
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
     status_msg = await update.message.reply_text("🔍 AI sedang menganalisis transaksi...")
 
@@ -253,6 +278,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             subcategory=result["subcategory"],
             note=note,
             confidence=result["confidence"],
+            tx_date=tx_date,
         )
 
     context.user_data["last_tx_id"] = tx_id
@@ -264,6 +290,8 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
 
     msg = build_transaction_confirm(amount, note, result)
+    if tx_date and tx_date != date.today():
+        msg += f"\n📅 _Dicatat untuk tanggal: {tx_date.strftime('%d %B %Y')}_"
 
     try:
         await status_msg.delete()

@@ -766,26 +766,14 @@ def page_overview(df: pd.DataFrame, month: int, year: int, user_id: int):
         with col_b:
             st.markdown(bento_categories_html(cat_rows, total_expense), unsafe_allow_html=True)
         with col_d:
-            st.markdown(
-                '<div style="background:#FFFFFF;border-radius:20px;padding:12px;'
-                'box-shadow:0 2px 12px rgba(0,0,0,0.06);">',
-                unsafe_allow_html=True,
-            )
             st.plotly_chart(donut_chart(by_cat), use_container_width=True,
                             config={"displayModeBar": False})
-            st.markdown('</div>', unsafe_allow_html=True)
 
     # Daily trend
     if not df_exp.empty:
         st.markdown(section_label("Tren Pengeluaran Harian"), unsafe_allow_html=True)
-        st.markdown(
-            '<div style="background:#FFFFFF;border-radius:20px;padding:16px;'
-            'box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:12px;">',
-            unsafe_allow_html=True,
-        )
         st.plotly_chart(area_chart_daily(df), use_container_width=True,
                         config={"displayModeBar": False})
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # Budget vs actual
     df_bgt = fetch_budgets(user_id, month, year)
@@ -847,14 +835,8 @@ def page_pengeluaran(df_exp: pd.DataFrame, month: int, year: int):
     with col_b:
         st.markdown(bento_categories_html(cat_rows, total), unsafe_allow_html=True)
     with col_d:
-        st.markdown(
-            '<div style="background:#FFFFFF;border-radius:20px;padding:12px;'
-            'box-shadow:0 2px 12px rgba(0,0,0,0.06);">',
-            unsafe_allow_html=True,
-        )
         st.plotly_chart(donut_chart(by_cat), use_container_width=True,
                         config={"displayModeBar": False})
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(section_label("Detail per Kategori"), unsafe_allow_html=True)
     for _, row in by_cat.iterrows():
