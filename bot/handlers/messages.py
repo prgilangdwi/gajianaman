@@ -9,8 +9,8 @@ from telegram.constants import ParseMode
 from db.database import AsyncSessionLocal
 from db import operations as db
 from services.categorizer import categorize_transaction
-from services.formatter import build_transaction_confirm, fmt_currency
-from bot.handlers.commands import RECAT_KEYBOARD, parse_amount, maybe_send_budget_alert
+from services.formatter import build_transaction_confirm, fmt_currency, build_daily_summary_message
+from bot.handlers.commands import RECAT_KEYBOARD, parse_amount, maybe_send_budget_alert, parse_backdate
 
 _AMOUNT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta)?\b", re.IGNORECASE)
 
@@ -70,6 +70,69 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "👋 Halo! Ketik /start untuk mendaftar dan mulai menggunakan Gajian Aman."
         )
+        return
+
+    # Handle awaiting date input (from summary/recat date pickers)
+    awaiting = context.user_data.get("awaiting")
+    if awaiting in ("summary_date", "recat_date"):
+        _, parsed_date = parse_backdate(text)
+        if parsed_date is None:
+            await update.message.reply_text(
+                "❌ Format tidak dikenali.\n\nGunakan: `@DD/MM` atau `@DD/MM/YYYY`\n"
+                "Contoh: `@15/04` atau `@15/04/2025`",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            return
+        context.user_data.pop("awaiting", None)
+        if awaiting == "summary_date":
+            async with AsyncSessionLocal() as session:
+                by_cat = await db.get_daily_summary(session, user_id, parsed_date)
+                total_income = await db.get_daily_income(session, user_id, parsed_date)
+            total_expense = sum(row.total for row in by_cat)
+            msg = build_daily_summary_message(
+                user_name=update.effective_user.first_name,
+                target_date=parsed_date,
+                total_income=float(total_income),
+                total_expense=float(total_expense),
+                by_category=by_cat,
+            )
+            await update.message.reply_text(
+                msg,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Pilih Periode Lain", callback_data="summary:picker")],
+                    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+                ]),
+            )
+        else:  # recat_date
+            async with AsyncSessionLocal() as session:
+                txs = await db.get_transactions_by_date(session, user_id, parsed_date)
+            date_label = parsed_date.strftime("%d %b %Y")
+            if not txs:
+                await update.message.reply_text(
+                    f"📭 Tidak ada transaksi pada *{date_label}*.",
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start")],
+                    ]),
+                )
+            else:
+                lines = [f"🔄 *Transaksi pada {date_label}:*\n"]
+                buttons = []
+                for i, tx in enumerate(txs, 1):
+                    icon = "🔴" if tx.type == "expense" else "💚"
+                    note_short = (tx.note or tx.category)[:25]
+                    lines.append(f"*{i}.* {icon} {fmt_currency(float(tx.amount))} — {note_short}")
+                    buttons.append([InlineKeyboardButton(
+                        f"{i}. {note_short[:20]}",
+                        callback_data=f"recat_tx:{tx.id}"
+                    )])
+                buttons.append([InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start")])
+                await update.message.reply_text(
+                    "\n".join(lines) + "\n\n_Pilih transaksi yang ingin diubah kategorinya:_",
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                )
         return
 
     amount, note = detect_natural_transaction(text)

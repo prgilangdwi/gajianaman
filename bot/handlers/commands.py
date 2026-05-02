@@ -140,51 +140,57 @@ def require_start(func):
 # Budget alert helper
 # ─────────────────────────────────────────
 async def maybe_send_budget_alert(update: Update, user_id: int, category: str):
-    today = date.today()
-    async with AsyncSessionLocal() as session:
-        budget = await db.check_budget_alert(session, user_id, category, today.month, today.year)
+    try:
+        today = date.today()
+        async with AsyncSessionLocal() as session:
+            budget = await db.check_budget_alert(session, user_id, category, today.month, today.year)
 
-    if not budget or float(budget.budget) <= 0:
-        return
+        if not budget or float(budget.budget) <= 0:
+            return
 
-    pct = (float(budget.actual) / float(budget.budget)) * 100
-    if pct < 80:
-        return
+        pct = (float(budget.actual) / float(budget.budget)) * 100
+        if pct < 80:
+            return
 
-    remaining = float(budget.budget) - float(budget.actual)
-    icon = "🔴" if pct > 100 else "🟡"
-    status = "Budget Terlampaui!" if pct > 100 else "Mendekati Batas Budget!"
-    label = "Melebihi" if pct > 100 else "Sisa"
+        remaining = float(budget.budget) - float(budget.actual)
+        icon = "🔴" if pct > 100 else "🟡"
+        status = "Budget Terlampaui!" if pct > 100 else "Mendekati Batas Budget!"
+        label = "Melebihi" if pct > 100 else "Sisa"
 
-    await update.message.reply_text(
-        f"{icon} *{status}*\n\n"
-        f"Kategori  : *{category}*\n"
-        f"Budget    : {fmt_currency(float(budget.budget))}\n"
-        f"Terpakai  : {fmt_currency(float(budget.actual))} ({pct:.0f}%)\n"
-        f"{label}    : {fmt_currency(abs(remaining))}",
-        parse_mode=ParseMode.MARKDOWN,
-    )
+        await update.message.reply_text(
+            f"{icon} *{status}*\n\n"
+            f"Kategori  : *{category}*\n"
+            f"Budget    : {fmt_currency(float(budget.budget))}\n"
+            f"Terpakai  : {fmt_currency(float(budget.actual))} ({pct:.0f}%)\n"
+            f"{label}    : {fmt_currency(abs(remaining))}",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────
 # Gamification: streak check
 # ─────────────────────────────────────────
 async def maybe_send_streak(update: Update, user_id: int):
-    async with AsyncSessionLocal() as session:
-        count = await db.get_hourly_transaction_count(session, user_id)
+    try:
+        async with AsyncSessionLocal() as session:
+            count = await db.get_hourly_transaction_count(session, user_id)
 
-    streaks = {
-        2: "🎯 *Double Kill!* Dua transaksi dalam sejam — rajin banget! 💪",
-        3: "⚡ *Triple Kill!* Tiga transaksi dalam sejam — lo serius nih! 🔥",
-        4: "💥 *Ultra Kill!* Empat transaksi dalam sejam — gila produktif! 😤",
-        5: "🏆 *RAMPAGE!!!* Lima transaksi dalam sejam — PENCATAT KEUANGAN SEJATI! 🎮🔥",
-    }
-    msg = streaks.get(count) or (
-        "🏆 *BEYOND GODLIKE!* Lebih dari 5 transaksi dalam sejam — lo sudah transcend! 🌌"
-        if count > 5 else None
-    )
-    if msg:
-        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+        streaks = {
+            2: "🎯 *Double Kill!* Dua transaksi dalam sejam — rajin banget! 💪",
+            3: "⚡ *Triple Kill!* Tiga transaksi dalam sejam — lo serius nih! 🔥",
+            4: "💥 *Ultra Kill!* Empat transaksi dalam sejam — gila produktif! 😤",
+            5: "🏆 *RAMPAGE!!!* Lima transaksi dalam sejam — PENCATAT KEUANGAN SEJATI! 🎮🔥",
+        }
+        msg = streaks.get(count) or (
+            "🏆 *BEYOND GODLIKE!* Lebih dari 5 transaksi dalam sejam — lo sudah transcend! 🌌"
+            if count > 5 else None
+        )
+        if msg:
+            await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────

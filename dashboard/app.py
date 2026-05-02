@@ -122,23 +122,16 @@ st.markdown("""
   /* Radio / selectbox label */
   .stRadio label, .stSelectbox label { color: rgba(255,255,255,0.6) !important; }
 
-  /* Mobile top bar — hidden on desktop */
-  .mobile-topbar {
-    display: none !important;
-  }
   @media (max-width: 768px) {
-    .mobile-topbar {
-      display: block !important;
-    }
     .block-container { padding: 0.5rem !important; }
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 4px !important; }
     [data-testid="column"] {
       min-width: min(100%, 160px) !important;
       padding: 4px !important;
     }
-    @media (max-width: 480px) {
-      [data-testid="column"] { min-width: 100% !important; }
-    }
+  }
+  @media (max-width: 480px) {
+    [data-testid="column"] { min-width: 100% !important; }
   }
 </style>
 """, unsafe_allow_html=True)
@@ -710,19 +703,8 @@ def render_sidebar(user_name: str):
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<hr style="border-color:rgba(255,255,255,0.12);margin:0 0 12px;">', unsafe_allow_html=True)
+        st.markdown('<hr style="border-color:rgba(255,255,255,0.12);margin:0 0 16px;">', unsafe_allow_html=True)
 
-        today = date.today()
-        month = st.selectbox("Bulan", range(1, 13), index=today.month - 1,
-                             format_func=lambda m: calendar.month_name[m])
-        year_opts = list(range(2024, today.year + 2))
-        year = st.selectbox("Tahun", year_opts, index=year_opts.index(today.year))
-
-        st.markdown('<hr style="border-color:rgba(255,255,255,0.12);margin:12px 0;">', unsafe_allow_html=True)
-
-        page = st.radio("Navigasi", PAGES, label_visibility="collapsed")
-
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
         <div style='font-size:10px;color:rgba(255,255,255,0.3);text-align:center;margin-bottom:8px;'>
           Powered by Claude · Supabase
@@ -733,17 +715,13 @@ def render_sidebar(user_name: str):
             del st.session_state["user_name"]
             st.rerun()
 
-    return int(month), int(year), page
-
 
 # ─────────────────────────────────────────
-# MOBILE TOP BAR
+# TOP CONTROLS (month / year / page — always visible)
 # ─────────────────────────────────────────
-def render_mobile_controls(user_name: str) -> tuple[int, int, str]:
-    """Visible on mobile, hidden on desktop via CSS."""
+def render_top_controls(user_name: str) -> tuple[int, int, str]:
     today = date.today()
 
-    st.markdown('<div class="mobile-topbar">', unsafe_allow_html=True)
     st.markdown(f"""
     <div style="background:#1B4332;border-radius:16px;padding:12px 16px;
                 display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -755,20 +733,19 @@ def render_mobile_controls(user_name: str) -> tuple[int, int, str]:
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        mb_month = st.selectbox("Bulan ", range(1, 13), index=today.month - 1,
-                                format_func=lambda m: calendar.month_abbr[m],
-                                key="mb_month")
+        month = st.selectbox("Bulan", range(1, 13), index=today.month - 1,
+                             format_func=lambda m: calendar.month_abbr[m],
+                             key="ctrl_month")
     with col2:
         year_opts = list(range(2024, today.year + 2))
-        mb_year = st.selectbox("Tahun ", year_opts,
-                               index=year_opts.index(today.year), key="mb_year")
+        year = st.selectbox("Tahun", year_opts,
+                            index=year_opts.index(today.year), key="ctrl_year")
+    with col3:
+        page = st.selectbox("Halaman", PAGES, key="ctrl_page")
 
-    mb_page = st.selectbox("Halaman", PAGES, key="mb_page")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    return int(mb_month), int(mb_year), mb_page
+    return int(month), int(year), page
 
 
 # ─────────────────────────────────────────
@@ -1083,18 +1060,8 @@ def main():
     user_id   = st.session_state["user_id"]
     user_name = st.session_state["user_name"]
 
-    # Desktop sidebar (hidden on mobile via default Streamlit behavior)
-    month, year, page = render_sidebar(user_name)
-
-    # Mobile top bar (hidden on desktop via CSS)
-    mb_month, mb_year, mb_page = render_mobile_controls(user_name)
-
-    # Merge: mobile controls take precedence when sidebar is collapsed
-    # (Streamlit renders both; CSS hides one per viewport)
-    if st.session_state.get("mb_month"):
-        month = mb_month
-        year  = mb_year
-        page  = mb_page
+    render_sidebar(user_name)
+    month, year, page = render_top_controls(user_name)
 
     df         = fetch_transactions(user_id, month, year)
     df_expense = df[df["type"] == "expense"]
