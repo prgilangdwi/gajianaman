@@ -33,6 +33,9 @@ TUTORIAL_STEPS = {
         "• `/add 1.5jt bayar listrik`\n\n"
         "💡 *Cara lebih cepat:* Ketik langsung tanpa command!\n"
         "   `beli makan 25000` → langsung tercatat\n\n"
+        "📅 *Transaksi lama (backdated)?* Tambahkan `@DD/MM` di akhir:\n"
+        "• `/add 50000 makan siang @15/04`\n"
+        "• `/add 200k bensin @01/04/2026`\n\n"
         "🤖 AI akan otomatis mendeteksi kategori transaksimu.",
         _nav(2),
     ),
