@@ -2,6 +2,7 @@
 # Handles natural language messages like "beli makan 15000" without a command.
 
 import re
+import calendar
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
@@ -9,8 +10,19 @@ from telegram.constants import ParseMode
 from db.database import AsyncSessionLocal
 from db import operations as db
 from services.categorizer import categorize_transaction
-from services.formatter import build_transaction_confirm, fmt_currency, build_daily_summary_message
+from services.formatter import build_transaction_confirm, fmt_currency, build_daily_summary_message, build_history_message, build_summary_message
 from bot.handlers.commands import RECAT_KEYBOARD, parse_amount, maybe_send_budget_alert, parse_backdate
+
+
+def _parse_month_year(text: str):
+    """Parse MM-YYYY format. Returns (month, year) or (None, None)."""
+    m = re.match(r'^(\d{1,2})-(\d{4})$', text.strip())
+    if not m:
+        return None, None
+    month, year = int(m.group(1)), int(m.group(2))
+    if not (1 <= month <= 12) or not (2000 <= year <= 2100):
+        return None, None
+    return month, year
 
 _AMOUNT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta)?\b", re.IGNORECASE)
 
@@ -74,6 +86,68 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Handle awaiting date input (from summary/recat date pickers)
     awaiting = context.user_data.get("awaiting")
+    if awaiting in ("history_month", "summary_month"):
+        month, year = _parse_month_year(text)
+        if month is None:
+            await update.message.reply_text(
+                "❌ Format tidak dikenali.\n\nGunakan: `MM-YYYY`\nContoh: `03-2025`",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            return
+        context.user_data.pop("awaiting", None)
+        month_label = f"{calendar.month_name[month]} {year}"
+        if awaiting == "history_month":
+            async with AsyncSessionLocal() as session:
+                txs = await db.get_transactions_by_month(session, user_id, month, year, limit=20)
+            if not txs:
+                await update.message.reply_text(
+                    f"📭 Tidak ada transaksi di *{month_label}*.",
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔙 Pilih Bulan Lain", callback_data="history:picker")],
+                        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+                    ]),
+                )
+            else:
+                text_out = f"📋 *Riwayat Transaksi — {month_label}*\n_(20 terbaru)_\n\n"
+                text_out += build_history_message(txs).replace("📋 *Riwayat Transaksi:*\n\n", "")
+                await update.message.reply_text(
+                    text_out,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=InlineKeyboardMarkup([
+                        [
+                            InlineKeyboardButton("🗑️ Hapus Transaksi", callback_data="hapus:list"),
+                            InlineKeyboardButton("🔙 Pilih Bulan Lain", callback_data="history:picker"),
+                        ],
+                        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+                    ]),
+                )
+        else:  # summary_month
+            user_name = update.effective_user.first_name
+            async with AsyncSessionLocal() as session:
+                by_cat = await db.get_monthly_summary(session, user_id, month, year)
+                total_income = await db.get_monthly_income(session, user_id, month, year)
+                budget_rows = await db.get_budget_vs_actual(session, user_id, month, year)
+            total_expense = sum(row.total for row in by_cat)
+            msg = build_summary_message(
+                user_name=user_name,
+                month=month,
+                year=year,
+                total_income=float(total_income),
+                total_expense=float(total_expense),
+                by_category=by_cat,
+                budget_rows=budget_rows if budget_rows else None,
+            )
+            await update.message.reply_text(
+                msg,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Pilih Periode Lain", callback_data="summary:picker")],
+                    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+                ]),
+            )
+        return
+
     if awaiting in ("summary_date", "recat_date"):
         _, parsed_date = parse_backdate(text)
         if parsed_date is None:

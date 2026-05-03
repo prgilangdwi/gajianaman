@@ -423,12 +423,27 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"📅 Bulan Lalu ({calendar.month_abbr[last_month.month]} {last_month.year})",
                     callback_data=f"summary:monthly:{last_month.month}:{last_month.year}"
                 )],
+                [InlineKeyboardButton("📅 Bulan Tertentu...", callback_data="summary:monthly:pick")],
                 [
                     InlineKeyboardButton("📆 Hari Ini", callback_data="summary:daily:today"),
                     InlineKeyboardButton("📆 Kemarin", callback_data="summary:daily:yesterday"),
                 ],
                 [InlineKeyboardButton("📆 Tanggal Tertentu", callback_data="summary:daily:pick")],
                 [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── Summary: specific month picker ────────────────
+    elif data == "summary:monthly:pick":
+        context.user_data["awaiting"] = "summary_month"
+        await query.edit_message_text(
+            "📊 *Summary — Bulan Tertentu*\n\n"
+            "Ketik bulan dengan format:\n\n"
+            "`MM-YYYY`\n\n"
+            "Contoh: `03-2025` atau `12-2024`",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Kembali", callback_data="summary:picker")],
             ]),
         )
 
@@ -499,7 +514,22 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         callback_data=f"history:month:{last_month.month}:{last_month.year}"
                     ),
                 ],
+                [InlineKeyboardButton("📅 Bulan Tertentu...", callback_data="history:month:pick")],
                 [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
+    # ── History: specific month picker ────────────────
+    elif data == "history:month:pick":
+        context.user_data["awaiting"] = "history_month"
+        await query.edit_message_text(
+            "📋 *Riwayat Transaksi — Bulan Tertentu*\n\n"
+            "Ketik bulan dengan format:\n\n"
+            "`MM-YYYY`\n\n"
+            "Contoh: `03-2025` atau `12-2024`",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Kembali", callback_data="history:picker")],
             ]),
         )
 
@@ -888,6 +918,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"📅 Bulan Lalu ({calendar.month_abbr[last_month.month]} {last_month.year})",
                         callback_data=f"summary:monthly:{last_month.month}:{last_month.year}"
                     )],
+                    [InlineKeyboardButton("📅 Bulan Tertentu...", callback_data="summary:monthly:pick")],
                     [
                         InlineKeyboardButton("📆 Hari Ini", callback_data="summary:daily:today"),
                         InlineKeyboardButton("📆 Kemarin", callback_data="summary:daily:yesterday"),
@@ -913,6 +944,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             callback_data=f"history:month:{last_month.month}:{last_month.year}"
                         ),
                     ],
+                    [InlineKeyboardButton("📅 Bulan Tertentu...", callback_data="history:month:pick")],
                     [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
                 ]),
             )

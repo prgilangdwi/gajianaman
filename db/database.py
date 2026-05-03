@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy import create_engine
 import os
+import uuid
 import logging
 from dotenv import load_dotenv
 
@@ -26,7 +27,12 @@ async_engine = create_async_engine(
     DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
-    connect_args={"statement_cache_size": 0},
+    connect_args={
+        "statement_cache_size": 0,
+        # Unique names prevent __asyncpg_stmt_N__ collisions after app restarts
+        # when PgBouncer (transaction mode) keeps backend connections alive.
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4().hex}__",
+    },
 )
 AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
