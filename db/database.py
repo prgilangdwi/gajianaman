@@ -21,7 +21,13 @@ if not DATABASE_URL:
     )
 
 # Async engine (for bot)
-async_engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+# statement_cache_size=0 is required for Supabase/PgBouncer in transaction pooling mode
+async_engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    connect_args={"statement_cache_size": 0},
+)
 AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 # Sync engine (for Streamlit dashboard)
