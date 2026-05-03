@@ -1,10 +1,10 @@
 # db/database.py
 
+from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import os
-import uuid
 import logging
 from dotenv import load_dotenv
 
@@ -21,20 +21,33 @@ if not DATABASE_URL:
         "Add it in Railway → Variables (postgresql+asyncpg://...)."
     )
 
-# Async engine (for bot)
-# statement_cache_size=0 is required for Supabase/PgBouncer in transaction pooling mode
+# statement_cache_size=0 disables asyncpg's own LRU cache.
+# SQLAlchemy still calls asyncpg.Connection.prepare() directly for every
+# parameterized query, which always creates NAMED prepared statements
+# (__asyncpg_stmt_N__). PgBouncer in transaction mode keeps backend
+# connections alive across app restarts, so old names persist and collide
+# when the per-process counter resets to 0. Running DEALLOCATE ALL at the
+# start of each session (see AsyncSessionLocal below) clears them.
 async_engine = create_async_engine(
     DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
-    connect_args={
-        "statement_cache_size": 0,
-        # Unique names prevent __asyncpg_stmt_N__ collisions after app restarts
-        # when PgBouncer (transaction mode) keeps backend connections alive.
-        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4().hex}__",
-    },
+    connect_args={"statement_cache_size": 0},
 )
-AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+
+_session_factory = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+@asynccontextmanager
+async def AsyncSessionLocal():
+    """Session context manager that clears stale PgBouncer prepared statements on entry."""
+    async with _session_factory() as session:
+        try:
+            await session.execute(text("DEALLOCATE ALL"))
+        except Exception:
+            pass
+        yield session
+
 
 # Sync engine (for Streamlit dashboard)
 if DATABASE_URL_SYNC:
