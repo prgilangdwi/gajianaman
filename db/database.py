@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 import os
 import logging
 from dotenv import load_dotenv
@@ -40,12 +40,26 @@ _session_factory = sessionmaker(async_engine, class_=AsyncSession, expire_on_com
 
 @asynccontextmanager
 async def AsyncSessionLocal():
-    """Session context manager that clears stale PgBouncer prepared statements on entry."""
+    """Session context manager that clears stale PgBouncer prepared statements on entry.
+
+    Uses the raw asyncpg connection to run DEALLOCATE ALL via the simple query
+    protocol (no PARSE step), which cannot abort the transaction even on failure.
+    session.execute(text(...)) would go through the extended protocol and a PARSE
+    failure on a utility statement like DEALLOCATE would abort the transaction.
+    """
     async with _session_factory() as session:
         try:
-            await session.execute(text("DEALLOCATE ALL"))
+            conn = await session.connection()
+            raw = await conn.get_raw_connection()
+            # raw.driver_connection  → AsyncAdapt_asyncpg_connection (SQLAlchemy wrapper)
+            # ._connection           → actual asyncpg.Connection
+            # .execute(sql)          → simple query protocol when called with no args
+            await raw.driver_connection._connection.execute("DEALLOCATE ALL")
         except Exception:
-            pass
+            try:
+                await session.rollback()
+            except Exception:
+                pass
         yield session
 
 
