@@ -205,8 +205,15 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async with AsyncSessionLocal() as session:
         existing = await db.get_user(session, user.id)
+
+    async with AsyncSessionLocal() as session:
         await db.ensure_user(session, user.id, user.full_name, user.username or "")
-        stats = await db.get_today_stats(session, user.id) if existing else None
+
+    if existing:
+        async with AsyncSessionLocal() as session:
+            stats = await db.get_today_stats(session, user.id)
+    else:
+        stats = None
 
     if existing:
         expense = float(stats.expense) if stats else 0
@@ -628,35 +635,34 @@ async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     parts = update.message.text.strip().split(" ", 3)
 
-    async with AsyncSessionLocal() as session:
-        await db.ensure_user(session, user.id, user.full_name, user.username or "")
-
-        if len(parts) >= 3 and parts[1].lower() == "add":
-            try:
-                name = parts[2]
-                target = parse_amount(parts[3]) if len(parts) > 3 else 0
-            except (ValueError, IndexError):
-                await update.message.reply_text(
-                    "❌ Format: `/goal add <nama> <target>`\n"
-                    "Contoh: `/goal add Liburan Bali 5jt`",
-                    parse_mode=ParseMode.MARKDOWN,
-                )
-                return
-
-            await db.upsert_goal(session, user.id, name, target)
-            keyboard = InlineKeyboardMarkup([[
-                InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
-            ]])
+    if len(parts) >= 3 and parts[1].lower() == "add":
+        try:
+            name = parts[2]
+            target = parse_amount(parts[3]) if len(parts) > 3 else 0
+        except (ValueError, IndexError):
             await update.message.reply_text(
-                f"🎯 *Goal berhasil ditambahkan!*\n\n"
-                f"📌 Nama   : *{name}*\n"
-                f"💰 Target : {fmt_currency(target)}\n\n"
-                f"Pantau progress di /goal",
+                "❌ Format: `/goal add <nama> <target>`\n"
+                "Contoh: `/goal add Liburan Bali 5jt`",
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=keyboard,
             )
             return
 
+        async with AsyncSessionLocal() as session:
+            await db.upsert_goal(session, user.id, name, target)
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main"),
+        ]])
+        await update.message.reply_text(
+            f"🎯 *Goal berhasil ditambahkan!*\n\n"
+            f"📌 Nama   : *{name}*\n"
+            f"💰 Target : {fmt_currency(target)}\n\n"
+            f"Pantau progress di /goal",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=keyboard,
+        )
+        return
+
+    async with AsyncSessionLocal() as session:
         goals = await db.get_goals(session, user.id)
 
     keyboard = InlineKeyboardMarkup([[

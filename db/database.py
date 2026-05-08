@@ -22,14 +22,22 @@ if not DATABASE_URL:
         "Add it in Railway → Variables (postgresql+asyncpg://...)."
     )
 
-# NullPool disables SQLAlchemy's own connection pool entirely.
-# Supabase routes through PgBouncer in transaction mode, which does not
-# support named prepared statements. With SQLAlchemy's default pool,
-# reused connections carry stale statement names and collide on the next
-# request. NullPool creates a fresh asyncpg connection per session and
-# delegates all pooling to PgBouncer, which is designed for this.
-# statement_cache_size=0 turns off asyncpg's own prepared-statement LRU
-# so no Parse messages with named statements are ever sent.
+# Supabase PgBouncer runs in transaction mode: each SQL transaction can be
+# routed to a different Postgres backend. asyncpg's extended query protocol
+# sends Parse (prepare) and Bind (execute) in separate Sync batches, so
+# PgBouncer can send them to different backends → InvalidSQLStatementNameError.
+#
+# Fix 1 — NullPool: SQLAlchemy creates a brand-new asyncpg connection for
+# every AsyncSessionLocal() context. No connection reuse means no stale
+# prepared-statement state leaking across sessions.
+#
+# Fix 2 — statement_cache_size=0: asyncpg uses unnamed prepared statements
+# and bundles Parse+Bind+Execute in one Sync batch, so PgBouncer routes
+# them atomically to the same backend.
+#
+# If the error persists after deploying, switch DATABASE_URL from the
+# PgBouncer port (6543) to the direct Postgres port (5432) so there is
+# no statement-routing issue at all.
 async_engine = create_async_engine(
     DATABASE_URL,
     echo=False,
