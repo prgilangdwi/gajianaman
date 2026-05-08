@@ -24,13 +24,14 @@ def _parse_month_year(text: str):
         return None, None
     return month, year
 
-_AMOUNT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta)?\b", re.IGNORECASE)
+_AMOUNT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta|mio)?\b", re.IGNORECASE)
 
 
 def detect_natural_transaction(text: str):
     """
     Try to parse a plain message as a transaction.
-    Supports: 'beli makan 15000', '15k kopi', 'ojek 7rb', '1.5jt bayar utang'.
+    Supports: 'beli makan 15000', '15k kopi', 'ojek 7rb', '1.5jt bayar utang',
+              '10mio transfer', '2 juta belanja', '500 rb bensin'.
     Returns (amount, note) or (None, None).
     """
     if text.startswith("/") or len(text) < 4:
@@ -42,11 +43,9 @@ def detect_natural_transaction(text: str):
 
         try:
             raw = float(num_str)
-            if suffix in ("k", "rb"):
+            if suffix in ("k", "rb", "ribu"):
                 amount = raw * 1_000
-            elif suffix == "ribu":
-                amount = raw * 1_000
-            elif suffix in ("jt", "juta"):
+            elif suffix in ("jt", "juta", "mio"):
                 amount = raw * 1_000_000
             else:
                 amount = raw

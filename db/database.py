@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy import create_engine
+from sqlalchemy.pool import NullPool
 import os
 import logging
 from dotenv import load_dotenv
@@ -21,17 +22,18 @@ if not DATABASE_URL:
         "Add it in Railway → Variables (postgresql+asyncpg://...)."
     )
 
-# statement_cache_size=0 disables asyncpg's own LRU cache.
-# SQLAlchemy still calls asyncpg.Connection.prepare() directly for every
-# parameterized query, which always creates NAMED prepared statements
-# (__asyncpg_stmt_N__). PgBouncer in transaction mode keeps backend
-# connections alive across app restarts, so old names persist and collide
-# when the per-process counter resets to 0. Running DEALLOCATE ALL at the
-# start of each session (see AsyncSessionLocal below) clears them.
+# NullPool disables SQLAlchemy's own connection pool entirely.
+# Supabase routes through PgBouncer in transaction mode, which does not
+# support named prepared statements. With SQLAlchemy's default pool,
+# reused connections carry stale statement names and collide on the next
+# request. NullPool creates a fresh asyncpg connection per session and
+# delegates all pooling to PgBouncer, which is designed for this.
+# statement_cache_size=0 turns off asyncpg's own prepared-statement LRU
+# so no Parse messages with named statements are ever sent.
 async_engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    pool_pre_ping=True,
+    poolclass=NullPool,
     connect_args={"statement_cache_size": 0},
 )
 
@@ -40,26 +42,7 @@ _session_factory = sessionmaker(async_engine, class_=AsyncSession, expire_on_com
 
 @asynccontextmanager
 async def AsyncSessionLocal():
-    """Session context manager that clears stale PgBouncer prepared statements on entry.
-
-    Uses the raw asyncpg connection to run DEALLOCATE ALL via the simple query
-    protocol (no PARSE step), which cannot abort the transaction even on failure.
-    session.execute(text(...)) would go through the extended protocol and a PARSE
-    failure on a utility statement like DEALLOCATE would abort the transaction.
-    """
     async with _session_factory() as session:
-        try:
-            conn = await session.connection()
-            raw = await conn.get_raw_connection()
-            # raw.driver_connection  → AsyncAdapt_asyncpg_connection (SQLAlchemy wrapper)
-            # ._connection           → actual asyncpg.Connection
-            # .execute(sql)          → simple query protocol when called with no args
-            await raw.driver_connection._connection.execute("DEALLOCATE ALL")
-        except Exception:
-            try:
-                await session.rollback()
-            except Exception:
-                pass
         yield session
 
 

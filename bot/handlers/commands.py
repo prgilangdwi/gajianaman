@@ -83,10 +83,14 @@ MAIN_MENU_KEYBOARD = InlineKeyboardMarkup([
 
 
 def parse_amount(raw: str) -> float:
-    """Parse Indonesian amount strings: 15000, 15k, 15rb, 15ribu, 1.5jt, 2juta."""
+    """Parse Indonesian amount strings: 15000, 15k, 15rb, 15ribu, 1.5jt, 2juta, 10mio.
+
+    Spaces between the number and suffix are stripped before matching,
+    so "10 ribu", "10 jt", "10 mio" all work identically to "10ribu" etc.
+    """
     raw = raw.strip().lower().replace(" ", "")
-    if raw.endswith("juta") or raw.endswith("jt"):
-        num = re.sub(r"(juta|jt)$", "", raw).replace(",", ".")
+    if raw.endswith("juta") or raw.endswith("jt") or raw.endswith("mio"):
+        num = re.sub(r"(juta|jt|mio)$", "", raw).replace(",", ".")
         return float(num) * 1_000_000
     if raw.endswith("ribu") or raw.endswith("rb") or raw.endswith("k"):
         num = re.sub(r"(ribu|rb|k)$", "", raw).replace(",", ".")
