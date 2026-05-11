@@ -17,6 +17,21 @@ from services.formatter import (
     fmt_currency,
 )
 
+MONTH_MAP = {
+    'jan': 1, 'january': 1, 'januari': 1,
+    'feb': 2, 'february': 2, 'februari': 2,
+    'mar': 3, 'march': 3, 'maret': 3,
+    'apr': 4, 'april': 4,
+    'may': 5, 'mei': 5,
+    'jun': 6, 'june': 6, 'juni': 6,
+    'jul': 7, 'july': 7, 'juli': 7,
+    'agu': 8, 'aug': 8, 'august': 8, 'agustus': 8,
+    'sep': 9, 'september': 9,
+    'okt': 10, 'oct': 10, 'october': 10, 'oktober': 10,
+    'nov': 11, 'november': 11,
+    'des': 12, 'dec': 12, 'december': 12, 'desember': 12,
+}
+
 CATEGORY_MAP = {
     "food": "Food & Dining",
     "groceries": "Groceries",
@@ -99,25 +114,74 @@ def parse_amount(raw: str) -> float:
 
 
 def parse_backdate(note: str):
-    """Extract optional @DD/MM or @DD/MM/YYYY from end of note.
+    """Extract optional date suffix from end of note.
+
+    Supported formats:
+    - @DD/MM or @DD/MM/YYYY      → @15/04 or @15/04/2025
+    - @DD-MM or @DD-MM-YYYY      → @15-04
+    - @5mei / @5 mei / @5may     → day then month name
+    - @mei5 / @mei 5 / @may5     → month name then day
+    - @5 mei 2025 / @may 5 2025  → with optional year
+    - @5-mei / @5-may-2025       → hyphen separators
 
     Returns (cleaned_note, date_or_None).
     """
+    # Try numeric: @DD/MM or @DD/MM/YYYY
     m = re.search(r'\s*@(\d{1,2})[/\-](\d{1,2})(?:[/\-](\d{2,4}))?\s*$', note)
-    if not m:
-        return note.strip(), None
-    day, month, year_raw = int(m.group(1)), int(m.group(2)), m.group(3)
-    year = date.today().year
-    if year_raw:
-        year = int(year_raw)
-        if year < 100:
-            year += 2000
-    try:
-        tx_date = datetime(year, month, day).date()
-    except ValueError:
-        return note.strip(), None
-    cleaned = note[:m.start()].strip()
-    return cleaned, tx_date
+    if m:
+        day, month, year_raw = int(m.group(1)), int(m.group(2)), m.group(3)
+        year = date.today().year
+        if year_raw:
+            year = int(year_raw)
+            if year < 100:
+                year += 2000
+        try:
+            tx_date = datetime(year, month, day).date()
+            return note[:m.start()].strip(), tx_date
+        except ValueError:
+            return note.strip(), None
+
+    # Try named month formats
+    month_keys = sorted(MONTH_MAP.keys(), key=len, reverse=True)
+    month_pat = '(' + '|'.join(month_keys) + ')'
+
+    # Pattern 1: @<day><sep?><monthname><sep?><year?>  e.g. @5mei / @5 mei / @5-mei 2025
+    p1 = re.search(
+        rf'\s*@(\d{{1,2}})\s*[/\-]?\s*{month_pat}(?:\s*[/\-]?\s*(\d{{2,4}}))?\s*$',
+        note, re.IGNORECASE
+    )
+    if p1:
+        day, month_name, year_raw = int(p1.group(1)), p1.group(2).lower(), p1.group(3)
+        month_num = MONTH_MAP.get(month_name)
+        if month_num:
+            year = date.today().year
+            if year_raw:
+                y = int(year_raw)
+                year = y + 2000 if y < 100 else y
+            try:
+                return note[:p1.start()].strip(), datetime(year, month_num, day).date()
+            except ValueError:
+                return note.strip(), None
+
+    # Pattern 2: @<monthname><sep?><day><sep?><year?>  e.g. @mei5 / @may 5 / @mei 5 2025
+    p2 = re.search(
+        rf'\s*@{month_pat}\s*[/\-]?\s*(\d{{1,2}})(?:\s*[/\-]?\s*(\d{{2,4}}))?\s*$',
+        note, re.IGNORECASE
+    )
+    if p2:
+        month_name, day, year_raw = p2.group(1).lower(), int(p2.group(2)), p2.group(3)
+        month_num = MONTH_MAP.get(month_name)
+        if month_num:
+            year = date.today().year
+            if year_raw:
+                y = int(year_raw)
+                year = y + 2000 if y < 100 else y
+            try:
+                return note[:p2.start()].strip(), datetime(year, month_num, day).date()
+            except ValueError:
+                return note.strip(), None
+
+    return note.strip(), None
 
 
 # ─────────────────────────────────────────
@@ -255,7 +319,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📌 *Panduan Cepat:*\n\n"
             "1️⃣ *Catat pengeluaran:*\n"
             "   `/add 15000 beli kopi`\n"
-            "   Format nominal: `15k` · `15rb` · `15ribu` · `1.5jt` · `2juta`\n\n"
+            "   Format nominal: `15k` · `15rb` · `15ribu` · `1.5jt` · `2juta`\n"
+            "   Tanggal: `@15/04` · `@5mei` · `@5 mei` · `@may 5`\n\n"
             "2️⃣ *Catat pemasukan:*\n"
             "   `/income 5jt gaji bulan ini`\n\n"
             "3️⃣ *Cek ringkasan:*\n"
@@ -288,7 +353,10 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• `15k` atau `15rb` atau `15ribu` → Rp 15.000\n"
             "• `1.5jt` atau `1juta` atau `1jt` → Rp 1.500.000\n\n"
             "*Backdated (opsional):*\n"
-            "• `/add 50000 makan siang @15/04` → tanggal 15 April",
+            "• `/add 50000 makan siang @15/04` → tanggal 15 April\n"
+            "• `/add 50000 makan siang @5mei` → 5 Mei\n"
+            "• `/add 50000 makan siang @may 5` → 5 Mei\n"
+            "• `/add 50000 makan siang @5 mei 2025` → 5 Mei 2025",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -728,8 +796,11 @@ async def cmd_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💡 *Format Nominal:*\n"
         "`15000` · `15k` · `15rb` · `15ribu` → Rp 15.000\n"
         "`1.5jt` · `1juta` · `1jt` → Rp 1.500.000\n\n"
-        "📅 *Backdated:* tambahkan `@DD/MM` di akhir keterangan\n"
-        "_Contoh: `/add 50k makan @15/04`_",
+        "📅 *Backdated:* tambahkan tanggal dengan `@` di akhir keterangan\n"
+        "_Format numerik:_  `@15/04` · `@15/04/2025` · `@15-04`\n"
+        "_Format nama bulan:_  `@5mei` · `@5 mei` · `@5may` · `@may5` · `@may 5`\n"
+        "_Dengan tahun:_  `@5 mei 2025` · `@may 5 2025`\n"
+        "_Contoh: `/add 50k makan @15/04` atau `/add 50k kopi @5mei`_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
     )

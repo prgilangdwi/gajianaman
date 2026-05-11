@@ -293,9 +293,122 @@ def fetch_budgets(user_id: int, month: int, year: int) -> pd.DataFrame:
 def fetch_goals(user_id: int) -> pd.DataFrame:
     with get_engine().connect() as conn:
         return pd.read_sql(text("""
-            SELECT name, target_amount, saved_amount, deadline
+            SELECT id, name, target_amount, saved_amount, deadline
             FROM goals WHERE user_id = :uid
         """), conn, params={"uid": user_id})
+
+
+# ─────────────────────────────────────────
+# SYNC DB MUTATIONS
+# ─────────────────────────────────────────
+ALL_CATEGORIES = [
+    "Food & Dining", "Transport", "Groceries", "Bills & Utilities",
+    "Shopping", "Health", "Entertainment", "Education", "Personal Care",
+    "Dining Out", "Savings", "Salary", "Freelance", "Other Income", "Other",
+]
+
+
+def db_insert_transaction(user_id, amount, tx_type, category, note, tx_date):
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            INSERT INTO transactions
+              (user_id, amount, type, category, subcategory, note, ai_confidence, date)
+            VALUES (:uid, :amount, :type, :cat, :cat, :note, 'high', :date)
+        """), {"uid": user_id, "amount": amount, "type": tx_type,
+               "cat": category, "note": note or category, "date": tx_date})
+
+
+def db_update_transaction(tx_id, user_id, amount, tx_type, category, note, tx_date):
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE transactions
+            SET amount=:amount, type=:type, category=:cat, subcategory=:cat,
+                note=:note, date=:date
+            WHERE id=:id AND user_id=:uid
+        """), {"id": tx_id, "uid": user_id, "amount": amount, "type": tx_type,
+               "cat": category, "note": note or category, "date": tx_date})
+
+
+def db_delete_transaction(tx_id, user_id):
+    with get_engine().begin() as conn:
+        conn.execute(text("DELETE FROM transactions WHERE id=:id AND user_id=:uid"),
+                     {"id": tx_id, "uid": user_id})
+
+
+def db_upsert_budget(user_id, category, amount, month, year):
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            INSERT INTO budgets (user_id, category, amount, month, year)
+            VALUES (:uid, :cat, :amount, :month, :year)
+            ON CONFLICT (user_id, category, month, year)
+            DO UPDATE SET amount = EXCLUDED.amount
+        """), {"uid": user_id, "cat": category, "amount": amount,
+               "month": month, "year": year})
+
+
+def db_delete_budget(user_id, category, month, year):
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            DELETE FROM budgets
+            WHERE user_id=:uid AND category=:cat AND month=:month AND year=:year
+        """), {"uid": user_id, "cat": category, "month": month, "year": year})
+
+
+def db_insert_goal(user_id, name, target, deadline=None):
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            INSERT INTO goals (user_id, name, target_amount, saved_amount, deadline)
+            VALUES (:uid, :name, :target, 0, :deadline)
+        """), {"uid": user_id, "name": name, "target": target, "deadline": deadline})
+
+
+def db_update_goal(user_id, goal_id, name, target, saved, deadline=None):
+    with get_engine().begin() as conn:
+        conn.execute(text("""
+            UPDATE goals
+            SET name=:name, target_amount=:target, saved_amount=:saved, deadline=:deadline
+            WHERE id=:id AND user_id=:uid
+        """), {"id": goal_id, "uid": user_id, "name": name,
+               "target": target, "saved": saved, "deadline": deadline})
+
+
+def db_delete_goal(user_id, goal_id):
+    with get_engine().begin() as conn:
+        conn.execute(text("DELETE FROM goals WHERE id=:id AND user_id=:uid"),
+                     {"id": goal_id, "uid": user_id})
+
+
+def ai_parse_transaction(user_input: str) -> dict | None:
+    """Use Claude Haiku to parse natural language into structured transaction data."""
+    try:
+        import anthropic, json
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        today = date.today().isoformat()
+        cats = ", ".join(ALL_CATEGORIES)
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=256,
+            messages=[{"role": "user", "content":
+                f"""Parse this finance note into JSON. Today: {today}.
+Input: "{user_input}"
+
+Return ONLY valid JSON, no markdown:
+{{"amount":<full IDR number>,"type":"expense" or "income","category":"<one of: {cats}>","note":"<clean short description>","date":"<YYYY-MM-DD>"}}
+
+Examples:
+- "beli makan siang 25rb" → {{"amount":25000,"type":"expense","category":"Food & Dining","note":"makan siang","date":"{today}"}}
+- "gaji 5jt" → {{"amount":5000000,"type":"income","category":"Salary","note":"gaji","date":"{today}"}}
+- "bayar listrik 200k" → {{"amount":200000,"type":"expense","category":"Bills & Utilities","note":"bayar listrik","date":"{today}"}}"""
+            }]
+        )
+        raw = resp.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.lower().startswith("json"):
+                raw = raw[4:]
+        return json.loads(raw.strip())
+    except Exception:
+        return None
 
 
 # ─────────────────────────────────────────
@@ -639,6 +752,99 @@ def line_chart_category(df_exp_all: pd.DataFrame) -> go.Figure:
 
 
 # ─────────────────────────────────────────
+# ADD TRANSACTION FORM (used by FAB popover)
+# ─────────────────────────────────────────
+def _render_add_transaction_form(user_id: int):
+    """Inline form for adding a new transaction — supports AI NL and structured input."""
+    today = date.today()
+
+    st.markdown('<div style="font-size:15px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">➕ Tambah Transaksi</div>', unsafe_allow_html=True)
+
+    input_mode = st.radio(
+        "mode",
+        ["💬 Natural Language (AI)", "📋 Form Biasa"],
+        horizontal=True, label_visibility="collapsed", key="add_mode",
+    )
+
+    if input_mode == "💬 Natural Language (AI)":
+        st.caption("Ketik dalam bahasa natural — AI otomatis analisis 🤖")
+        nl = st.text_area(
+            "Deskripsi",
+            placeholder='"beli makan siang 25rb", "gaji 5jt", "bayar listrik 200k kemarin"',
+            height=72, label_visibility="collapsed", key="add_nl",
+        )
+        if st.button("🔍 Parse dengan AI", key="ai_parse_btn", use_container_width=True):
+            if nl.strip():
+                with st.spinner("AI sedang menganalisis..."):
+                    parsed = ai_parse_transaction(nl.strip())
+                if parsed:
+                    st.session_state["_ai_parsed"] = parsed
+                else:
+                    st.error("Gagal parse. Coba tulis lebih spesifik ya.")
+            else:
+                st.warning("Isi deskripsi dulu ya!")
+
+        parsed = st.session_state.get("_ai_parsed")
+        if parsed:
+            st.success("✅ Hasil AI — koreksi jika perlu:")
+            c1, c2 = st.columns(2)
+            with c1:
+                amount = st.number_input("Nominal (Rp)", value=float(parsed.get("amount", 0)),
+                                         min_value=0.0, step=1000.0, key="ai_amount")
+            with c2:
+                tx_type = st.selectbox(
+                    "Jenis", ["expense", "income"],
+                    index=0 if parsed.get("type") == "expense" else 1,
+                    format_func=lambda x: "🔴 Pengeluaran" if x == "expense" else "💚 Pemasukan",
+                    key="ai_type",
+                )
+            cat_default = parsed.get("category", "Other")
+            cat_idx = ALL_CATEGORIES.index(cat_default) if cat_default in ALL_CATEGORIES else len(ALL_CATEGORIES) - 1
+            category = st.selectbox("Kategori", ALL_CATEGORIES, index=cat_idx, key="ai_cat")
+            note = st.text_input("Catatan", value=parsed.get("note", ""), key="ai_note")
+            try:
+                d_default = date.fromisoformat(parsed.get("date", today.isoformat()))
+            except Exception:
+                d_default = today
+            tx_date = st.date_input("Tanggal", value=d_default, key="ai_date")
+
+            if st.button("💾 Simpan", key="ai_save", type="primary", use_container_width=True):
+                if amount <= 0:
+                    st.error("Nominal harus > 0")
+                else:
+                    db_insert_transaction(user_id, amount, tx_type, category, note, tx_date)
+                    fetch_transactions.clear()
+                    fetch_all_transactions.clear()
+                    st.session_state.pop("_ai_parsed", None)
+                    st.success("✅ Transaksi tersimpan!")
+                    st.rerun()
+
+    else:  # Structured form
+        c1, c2 = st.columns(2)
+        with c1:
+            tx_type = st.selectbox(
+                "Jenis", ["expense", "income"],
+                format_func=lambda x: "🔴 Pengeluaran" if x == "expense" else "💚 Pemasukan",
+                key="s_type",
+            )
+        with c2:
+            amount = st.number_input("Nominal (Rp)", min_value=0.0, step=1000.0, key="s_amount")
+        category = st.selectbox("Kategori", ALL_CATEGORIES, key="s_cat")
+        note = st.text_input("Catatan", placeholder="e.g. makan siang, gaji april", key="s_note")
+        tx_date = st.date_input("Tanggal", value=today, key="s_date")
+
+        if st.button("💾 Simpan", key="s_save", type="primary", use_container_width=True):
+            if amount <= 0:
+                st.error("Nominal harus > 0")
+            else:
+                db_insert_transaction(user_id, amount, tx_type, category, note, tx_date)
+                fetch_transactions.clear()
+                fetch_all_transactions.clear()
+                st.success("✅ Transaksi tersimpan!")
+                st.rerun()
+
+
+# ─────────────────────────────────────────
 # LOGIN
 # ─────────────────────────────────────────
 def render_login():
@@ -717,7 +923,7 @@ def render_sidebar(user_name: str):
 
 
 # ─────────────────────────────────────────
-# TOP CONTROLS (month / year / page — always visible)
+# TOP CONTROLS + FAB (month / year / page + add button)
 # ─────────────────────────────────────────
 def render_top_controls(user_name: str) -> tuple[int, int, str]:
     today = date.today()
@@ -733,7 +939,50 @@ def render_top_controls(user_name: str) -> tuple[int, int, str]:
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([1, 1, 2])
+    # Inject FAB CSS + floating overlay button
+    st.markdown("""
+    <style>
+    /* Style the add popover trigger as a circular FAB */
+    [data-testid="stPopover"] > div:first-child > button {
+        border-radius: 50% !important;
+        width: 52px !important;
+        height: 52px !important;
+        min-height: 52px !important;
+        padding: 0 !important;
+        font-size: 22px !important;
+        font-weight: 300 !important;
+        background: #6DC641 !important;
+        border: none !important;
+        box-shadow: 0 4px 16px rgba(109,198,65,0.4) !important;
+        color: white !important;
+        line-height: 1 !important;
+    }
+    [data-testid="stPopover"] > div:first-child > button:hover {
+        background: #5cb530 !important;
+        transform: scale(1.06) !important;
+        box-shadow: 0 6px 20px rgba(109,198,65,0.55) !important;
+    }
+    </style>
+    <!-- Floating overlay FAB (cosmetic — clicks the real popover button) -->
+    <div style="position:fixed;bottom:32px;right:32px;z-index:9999;">
+      <button
+        title="Tambah Transaksi"
+        onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 26px rgba(109,198,65,0.55)'"
+        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(109,198,65,0.45)'"
+        onclick="
+          var btns = document.querySelectorAll('[data-testid=\\"stPopover\\"] button');
+          if (btns.length) { btns[btns.length - 1].click(); }
+        "
+        style="width:60px;height:60px;border-radius:50%;background:#6DC641;
+               border:none;cursor:pointer;box-shadow:0 4px 20px rgba(109,198,65,0.45);
+               font-size:28px;color:white;display:flex;align-items:center;
+               justify-content:center;transition:transform 0.15s,box-shadow 0.15s;">
+        ＋
+      </button>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col_fab = st.columns([1, 1, 2, 0.55])
     with col1:
         month = st.selectbox("Bulan", range(1, 13), index=today.month - 1,
                              format_func=lambda m: calendar.month_abbr[m],
@@ -744,6 +993,13 @@ def render_top_controls(user_name: str) -> tuple[int, int, str]:
                             index=year_opts.index(today.year), key="ctrl_year")
     with col3:
         page = st.selectbox("Halaman", PAGES, key="ctrl_page")
+    with col_fab:
+        st.markdown('<div style="padding-top:24px;">', unsafe_allow_html=True)
+        with st.popover("＋", use_container_width=True):
+            uid = st.session_state.get("user_id")
+            if uid:
+                _render_add_transaction_form(uid)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     return int(month), int(year), page
 
@@ -910,30 +1166,66 @@ def page_budget(user_id: int, month: int, year: int):
     st.markdown(page_header("Budget vs Aktual", f"{month_name} {year}"), unsafe_allow_html=True)
 
     df_bgt = fetch_budgets(user_id, month, year)
-    if df_bgt.empty:
-        st.info("Belum ada budget. Set via bot: `/budget food 500000`")
-        return
+    if not df_bgt.empty:
+        bgt_list = [{"name": r["category"], "budget": float(r["budget"]),
+                     "actual": float(r["actual"])} for _, r in df_bgt.iterrows()]
+        st.markdown(budget_rows_html(bgt_list), unsafe_allow_html=True)
 
-    bgt_list = [{"name": r["category"], "budget": float(r["budget"]),
-                 "actual": float(r["actual"])} for _, r in df_bgt.iterrows()]
-    st.markdown(budget_rows_html(bgt_list), unsafe_allow_html=True)
+        total_budget = float(df_bgt["budget"].sum())
+        total_actual = float(df_bgt["actual"].sum())
+        pct_used     = round(total_actual / total_budget * 100) if total_budget else 0
+        remaining    = total_budget - total_actual
 
-    total_budget = float(df_bgt["budget"].sum())
-    total_actual = float(df_bgt["actual"].sum())
-    pct_used     = round(total_actual / total_budget * 100) if total_budget else 0
-    remaining    = total_budget - total_actual
+        c1, c2, c3 = st.columns(3)
+        c1.markdown(metric_card("Total Budget", fmt_idr(total_budget, compact=True),
+                                "bulan ini", "teal", "📊"), unsafe_allow_html=True)
+        c2.markdown(metric_card("Terpakai", fmt_idr(total_actual, compact=True),
+                                f"{pct_used}% dari budget",
+                                "orange" if pct_used > 100 else "yellow" if pct_used > 80 else "green",
+                                "📉"), unsafe_allow_html=True)
+        c3.markdown(metric_card("Sisa Budget", fmt_idr(abs(remaining), compact=True),
+                                "aman" if remaining >= 0 else "defisit",
+                                "dark" if remaining >= 0 else "orange",
+                                "✅" if remaining >= 0 else "⚠️"), unsafe_allow_html=True)
+    else:
+        st.info("Belum ada budget untuk bulan ini. Tambahkan di bawah 👇")
 
-    c1, c2, c3 = st.columns(3)
-    c1.markdown(metric_card("Total Budget", fmt_idr(total_budget, compact=True),
-                            "bulan ini", "teal", "📊"), unsafe_allow_html=True)
-    c2.markdown(metric_card("Terpakai", fmt_idr(total_actual, compact=True),
-                            f"{pct_used}% dari budget",
-                            "orange" if pct_used > 100 else "yellow" if pct_used > 80 else "green",
-                            "📉"), unsafe_allow_html=True)
-    c3.markdown(metric_card("Sisa Budget", fmt_idr(abs(remaining), compact=True),
-                            "aman" if remaining >= 0 else "defisit",
-                            "dark" if remaining >= 0 else "orange",
-                            "✅" if remaining >= 0 else "⚠️"), unsafe_allow_html=True)
+    # ── Add / Edit budget ──────────────────────────────────────────
+    st.markdown(section_label("Tambah / Edit Budget"), unsafe_allow_html=True)
+    with st.expander("➕ Set Budget Kategori", expanded=df_bgt.empty):
+        bc1, bc2 = st.columns(2)
+        with bc1:
+            existing_cats = list(df_bgt["category"]) if not df_bgt.empty else []
+            all_bgt_cats = ALL_CATEGORIES
+            new_bgt_cat = st.selectbox("Kategori", all_bgt_cats, key="bgt_add_cat")
+        with bc2:
+            # Pre-fill if category already has a budget
+            current_bgt = 0.0
+            if not df_bgt.empty and new_bgt_cat in list(df_bgt["category"]):
+                row = df_bgt[df_bgt["category"] == new_bgt_cat].iloc[0]
+                current_bgt = float(row["budget"])
+            new_bgt_amt = st.number_input("Budget (Rp)", value=current_bgt,
+                                          min_value=0.0, step=50000.0, key="bgt_add_amt")
+        if st.button("💾 Simpan Budget", key="bgt_save", type="primary", use_container_width=True):
+            if new_bgt_amt <= 0:
+                st.error("Budget harus > 0")
+            else:
+                db_upsert_budget(user_id, new_bgt_cat, new_bgt_amt, month, year)
+                fetch_budgets.clear()
+                st.success(f"✅ Budget {new_bgt_cat} disimpan: {fmt_idr(new_bgt_amt)}")
+                st.rerun()
+
+    # ── Delete budget ──────────────────────────────────────────────
+    if not df_bgt.empty:
+        st.markdown(section_label("Hapus Budget"), unsafe_allow_html=True)
+        with st.expander("🗑️ Hapus Budget Kategori"):
+            del_bgt_cat = st.selectbox("Pilih kategori", list(df_bgt["category"]), key="bgt_del_cat")
+            st.warning(f"Hapus budget **{del_bgt_cat}** untuk {month_name} {year}?")
+            if st.button("🗑️ Hapus Budget", key="bgt_del_btn", use_container_width=True):
+                db_delete_budget(user_id, del_bgt_cat, month, year)
+                fetch_budgets.clear()
+                st.success(f"✅ Budget {del_bgt_cat} dihapus!")
+                st.rerun()
 
 
 # ─────────────────────────────────────────
@@ -943,32 +1235,90 @@ def page_goals(user_id: int):
     st.markdown(page_header("Savings Goals", "Pantau progress tabunganmu"), unsafe_allow_html=True)
 
     df_goals = fetch_goals(user_id)
-    if df_goals.empty:
-        st.info("Belum ada savings goal. Tambahkan via bot: `/goal add Liburan 5000000`")
-        return
 
-    goals_list = [{"name": g["name"], "saved": float(g["saved_amount"]),
-                   "target": float(g["target_amount"]),
-                   "deadline": str(g["deadline"]) if g["deadline"] else ""}
-                  for _, g in df_goals.iterrows()]
-    st.markdown(goal_list_html(goals_list), unsafe_allow_html=True)
+    if not df_goals.empty:
+        goals_list = [{"id": int(g["id"]), "name": g["name"],
+                       "saved": float(g["saved_amount"]),
+                       "target": float(g["target_amount"]),
+                       "deadline": str(g["deadline"]) if g["deadline"] else ""}
+                      for _, g in df_goals.iterrows()]
+        st.markdown(goal_list_html(goals_list), unsafe_allow_html=True)
 
-    st.markdown(section_label("Detail"), unsafe_allow_html=True)
-    for g in goals_list:
-        pct = min(round(g["saved"] / g["target"] * 100), 100) if g["target"] else 0
-        with st.expander(f"🎯 {g['name']} — {pct}%"):
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Terkumpul", fmt_idr(g["saved"], compact=True))
-            c2.metric("Target",    fmt_idr(g["target"], compact=True))
-            c3.metric("Progress",  f"{pct}%")
-            if g["deadline"]:
-                st.caption(f"📅 Deadline: {g['deadline']}")
+        st.markdown(section_label("Detail & Kelola"), unsafe_allow_html=True)
+        for g in goals_list:
+            pct = min(round(g["saved"] / g["target"] * 100), 100) if g["target"] else 0
+            with st.expander(f"🎯 {g['name']} — {pct}%"):
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Terkumpul", fmt_idr(g["saved"], compact=True))
+                c2.metric("Target",    fmt_idr(g["target"], compact=True))
+                c3.metric("Progress",  f"{pct}%")
+                if g["deadline"]:
+                    st.caption(f"📅 Deadline: {g['deadline']}")
+
+                # Edit goal
+                st.markdown("**✏️ Edit Goal:**")
+                ge1, ge2 = st.columns(2)
+                with ge1:
+                    g_new_name = st.text_input("Nama", value=g["name"], key=f"g_name_{g['id']}")
+                    g_new_target = st.number_input("Target (Rp)", value=g["target"],
+                                                   min_value=0.0, step=100000.0, key=f"g_target_{g['id']}")
+                with ge2:
+                    g_new_saved = st.number_input("Terkumpul (Rp)", value=g["saved"],
+                                                  min_value=0.0, step=10000.0, key=f"g_saved_{g['id']}")
+                    try:
+                        dl_default = date.fromisoformat(g["deadline"]) if g["deadline"] else None
+                    except Exception:
+                        dl_default = None
+                    g_new_dl = st.date_input("Deadline (opsional)", value=dl_default,
+                                             key=f"g_dl_{g['id']}")
+
+                col_save, col_del = st.columns(2)
+                with col_save:
+                    if st.button("💾 Simpan", key=f"g_save_{g['id']}", use_container_width=True):
+                        db_update_goal(user_id, g["id"], g_new_name, g_new_target,
+                                       g_new_saved, g_new_dl)
+                        fetch_goals.clear()
+                        st.success("✅ Goal diperbarui!")
+                        st.rerun()
+                with col_del:
+                    if st.button("🗑️ Hapus Goal", key=f"g_del_{g['id']}", use_container_width=True):
+                        db_delete_goal(user_id, g["id"])
+                        fetch_goals.clear()
+                        st.success(f"✅ Goal '{g['name']}' dihapus!")
+                        st.rerun()
+    else:
+        st.info("Belum ada savings goal. Tambahkan di bawah 👇")
+
+    # ── Add new goal ───────────────────────────────────────────────
+    st.markdown(section_label("Tambah Goal Baru"), unsafe_allow_html=True)
+    with st.expander("➕ Buat Savings Goal Baru", expanded=df_goals.empty):
+        ng1, ng2 = st.columns(2)
+        with ng1:
+            new_g_name = st.text_input("Nama goal", placeholder="e.g. Liburan Bali, Laptop Baru",
+                                       key="new_g_name")
+            new_g_target = st.number_input("Target (Rp)", min_value=0.0, step=100000.0,
+                                           key="new_g_target")
+        with ng2:
+            new_g_saved = st.number_input("Sudah terkumpul (Rp)", min_value=0.0, step=10000.0,
+                                          key="new_g_saved")
+            new_g_dl = st.date_input("Deadline (opsional)", value=None, key="new_g_dl")
+
+        if st.button("✨ Buat Goal", key="new_g_save", type="primary", use_container_width=True):
+            if not new_g_name.strip():
+                st.error("Nama goal tidak boleh kosong.")
+            elif new_g_target <= 0:
+                st.error("Target harus > 0.")
+            else:
+                db_insert_goal(user_id, new_g_name.strip(), new_g_target, new_g_dl)
+                fetch_goals.clear()
+                st.success(f"🎯 Goal '{new_g_name}' berhasil dibuat!")
+                st.rerun()
 
 
 # ─────────────────────────────────────────
 # PAGE: RIWAYAT
 # ─────────────────────────────────────────
-def page_riwayat(df: pd.DataFrame, month: int, year: int):
+def page_riwayat(df: pd.DataFrame, month: int, year: int, user_id: int):
     month_name = calendar.month_name[month]
     st.markdown(page_header("Riwayat Transaksi", f"{month_name} {year}"), unsafe_allow_html=True)
 
@@ -1004,6 +1354,61 @@ def page_riwayat(df: pd.DataFrame, month: int, year: int):
         use_container_width=True, hide_index=True,
     )
     st.caption(f"{len(display)} transaksi ditampilkan")
+
+    # ── Edit / Delete section ──────────────────────────────────────
+    st.markdown(section_label("Edit / Hapus Transaksi"), unsafe_allow_html=True)
+
+    if display.empty:
+        return
+
+    tx_options = {
+        f"{r['Tanggal']} — {r['Jenis']} — {r['Catatan'][:28]} — {r['Nominal']}": r["id"]
+        for _, r in display.iterrows()
+    }
+    selected_label = st.selectbox("Pilih transaksi", list(tx_options.keys()),
+                                  key="riwayat_select")
+    selected_id = tx_options[selected_label]
+    sel_row = display[display["id"] == selected_id].iloc[0]
+
+    tab_edit, tab_del = st.tabs(["✏️ Edit", "🗑️ Hapus"])
+
+    with tab_edit:
+        ec1, ec2 = st.columns(2)
+        with ec1:
+            new_amount = st.number_input("Nominal (Rp)", value=float(sel_row["amount"]),
+                                         min_value=0.0, step=1000.0, key="edit_amount")
+        with ec2:
+            new_type = st.selectbox(
+                "Jenis", ["expense", "income"],
+                index=0 if sel_row["type"] == "expense" else 1,
+                format_func=lambda x: "🔴 Pengeluaran" if x == "expense" else "💚 Pemasukan",
+                key="edit_type",
+            )
+        cat_idx = ALL_CATEGORIES.index(sel_row["category"]) if sel_row["category"] in ALL_CATEGORIES else len(ALL_CATEGORIES) - 1
+        new_cat  = st.selectbox("Kategori", ALL_CATEGORIES, index=cat_idx, key="edit_cat")
+        new_note = st.text_input("Catatan", value=sel_row["note"] or "", key="edit_note")
+        try:
+            date_val = pd.to_datetime(sel_row["date"]).date()
+        except Exception:
+            date_val = date.today()
+        new_date = st.date_input("Tanggal", value=date_val, key="edit_date")
+
+        if st.button("💾 Simpan Perubahan", key="edit_save", type="primary", use_container_width=True):
+            db_update_transaction(selected_id, user_id, new_amount, new_type, new_cat, new_note, new_date)
+            fetch_transactions.clear()
+            fetch_all_transactions.clear()
+            st.success("✅ Transaksi diperbarui!")
+            st.rerun()
+
+    with tab_del:
+        st.warning(f"Hapus: **{selected_label}** ?")
+        st.caption("Tindakan ini tidak bisa dibatalkan.")
+        if st.button("🗑️ Ya, Hapus Transaksi Ini", key="del_tx_btn", use_container_width=True):
+            db_delete_transaction(selected_id, user_id)
+            fetch_transactions.clear()
+            fetch_all_transactions.clear()
+            st.success("✅ Transaksi dihapus!")
+            st.rerun()
 
 
 # ─────────────────────────────────────────
@@ -1070,7 +1475,7 @@ def main():
     elif page == "💸 Pengeluaran": page_pengeluaran(df_expense, month, year)
     elif page == "🎯 Budget":      page_budget(user_id, month, year)
     elif page == "🏆 Goals":       page_goals(user_id)
-    elif page == "📋 Riwayat":     page_riwayat(df, month, year)
+    elif page == "📋 Riwayat":     page_riwayat(df, month, year, user_id)
     elif page == "📈 Tren":        page_tren(user_id)
 
 
