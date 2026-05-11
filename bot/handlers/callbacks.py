@@ -43,8 +43,9 @@ TUTORIAL_STEPS = {
         "*Format nominal lengkap:*\n"
         "`15k` · `15rb` · `15ribu` → Rp 15.000\n"
         "`1jt` · `1.5jt` · `1juta` → Rp 1.000.000\n\n"
-        "📅 *Transaksi lama (backdated)?* Tambahkan `@DD/MM` di akhir:\n"
+        "📅 *Transaksi lama (backdated)?* Tambahkan tanggal dengan `@` di akhir:\n"
         "• `/add 50000 makan siang @15/04`\n"
+        "• `/add 50000 makan siang @5mei` atau `@5 may`\n"
         "• `/add 200k bensin @01/04/2026`\n\n"
         "🤖 AI akan otomatis mendeteksi kategori transaksimu.",
         _nav(2),
@@ -122,7 +123,7 @@ TUTORIAL_DONE = (
     "📜 `/commands` — Semua daftar command\n"
     "━━━━━━━━━━━━━━━━━━━━\n\n"
     "💡 *Format nominal:* `15k` · `15ribu` · `1.5jt` · `2juta`\n"
-    "📅 *Backdated:* tambahkan `@DD/MM` di akhir keterangan\n\n"
+    "📅 *Backdated:* tambahkan tanggal dengan `@` di akhir — `@15/04` · `@5mei` · `@may 5`\n\n"
     "Selamat mencatat keuanganmu! 💪",
     InlineKeyboardMarkup([
         [InlineKeyboardButton("🎯 Set Budget Sekarang", callback_data="tutorial:try_qb")],
@@ -194,8 +195,9 @@ HELP_PAGES = {
         "• `15000` → Rp 15.000\n"
         "• `15k` · `15rb` · `15ribu` → Rp 15.000\n"
         "• `1.5jt` · `1juta` · `1jt` → Rp 1.500.000\n\n"
-        "*Backdated:* tambahkan `@DD/MM` di akhir\n"
-        "Contoh: `/add 50k makan @15/04`\n\n"
+        "*Backdated:* tambahkan tanggal dengan `@` di akhir\n"
+        "• Numerik: `/add 50k makan @15/04` atau `@15/04/2025`\n"
+        "• Nama bulan: `/add 50k kopi @5mei` · `@5 may` · `@may 5`\n\n"
         "*Perintah lainnya:*\n"
         "/history — 20 transaksi per periode\n"
         "/stats — Statistik hari ini\n"
@@ -258,9 +260,9 @@ QUICK_GUIDES = {
         "*Format nominal:*\n"
         "`15k` · `15rb` · `15ribu` → Rp 15.000\n"
         "`1jt` · `1.5jt` · `1juta` → Rp 1.000.000\n\n"
-        "📅 *Backdated?* Tambahkan `@DD/MM` di akhir:\n"
-        "• `/add 50000 makan siang @15/04`\n"
-        "• `/add 200k bensin @01/04/2026`"
+        "📅 *Backdated?* Tambahkan tanggal dengan `@` di akhir:\n"
+        "• Numerik: `/add 50000 makan @15/04` · `@15/04/2026`\n"
+        "• Nama bulan: `/add 50000 makan @5mei` · `@5 may` · `@may 5` · `@5 mei 2025`"
     ),
     "income": (
         "💚 *Catat Pemasukan*\n\n"
@@ -358,7 +360,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🎓 `/tutorial` — Tutorial interaktif\n"
             "❓ `/help` — Pusat bantuan\n\n"
             "💡 *Format:* `15k` · `15ribu` · `1.5jt` · `2juta`\n"
-            "📅 *Backdated:* `@DD/MM` di akhir keterangan",
+            "📅 *Backdated:* `@DD/MM` · `@5mei` · `@5 may` · `@may 5` di akhir keterangan",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
@@ -482,9 +484,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "summary:daily:pick":
         context.user_data["awaiting"] = "summary_date"
         await query.edit_message_text(
-            "📆 *Ketik tanggal dengan format:*\n\n"
-            "`@DD/MM` atau `@DD/MM/YYYY`\n\n"
-            "Contoh: `@15/04` atau `@15/04/2025`",
+            "📆 *Ketik tanggal:*\n\n"
+            "• Numerik: `@15/04` · `@15/04/2025`\n"
+            "• Nama bulan: `@5mei` · `@5 may` · `@may 5` · `@5 mei 2025`",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Kembali", callback_data="summary:picker")],
@@ -645,9 +647,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "recat_flow:pick":
         context.user_data["awaiting"] = "recat_date"
         await query.edit_message_text(
-            "📆 *Ketik tanggal dengan format:*\n\n"
-            "`@DD/MM` atau `@DD/MM/YYYY`\n\n"
-            "Contoh: `@15/04` atau `@15/04/2025`",
+            "📆 *Ketik tanggal:*\n\n"
+            "• Numerik: `@15/04` · `@15/04/2025`\n"
+            "• Nama bulan: `@5mei` · `@5 may` · `@may 5` · `@5 mei 2025`",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Kembali", callback_data="recat_flow:start")],
