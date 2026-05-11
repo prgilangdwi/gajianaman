@@ -151,8 +151,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         _, parsed_date = parse_backdate(text)
         if parsed_date is None:
             await update.message.reply_text(
-                "❌ Format tidak dikenali.\n\nGunakan: `@DD/MM` atau `@DD/MM/YYYY`\n"
-                "Contoh: `@15/04` atau `@15/04/2025`",
+                "❌ Format tidak dikenali.\n\n"
+                "Gunakan salah satu format:\n"
+                "• Numerik: `@15/04` atau `@15/04/2025`\n"
+                "• Nama bulan: `@5mei` · `@5 may` · `@may 5` · `@5 mei 2025`",
                 parse_mode=ParseMode.MARKDOWN,
             )
             return
