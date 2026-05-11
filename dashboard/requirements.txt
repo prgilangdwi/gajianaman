@@ -4,3 +4,4 @@ psycopg2-binary>=2.9.9
 pandas>=2.2.3
 plotly>=5.20.0
 python-dotenv>=1.0.1
+anthropic>=0.25.0
