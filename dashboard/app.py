@@ -137,14 +137,15 @@ st.markdown("""
 
   @media (max-width: 768px) {
     .block-container { padding: 0.5rem !important; }
-    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 4px !important; }
+    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 8px !important; }
     [data-testid="column"] {
       min-width: min(100%, 160px) !important;
       padding: 4px !important;
+      margin-bottom: 12px !important;
     }
   }
   @media (max-width: 480px) {
-    [data-testid="column"] { min-width: 100% !important; }
+    [data-testid="column"] { min-width: 100% !important; margin-bottom: 16px !important; }
   }
 </style>
 """, unsafe_allow_html=True)
@@ -830,7 +831,8 @@ def _render_add_transaction_form(user_id: int):
                     fetch_transactions.clear()
                     fetch_all_transactions.clear()
                     st.session_state.pop("_ai_parsed", None)
-                    st.success("✅ Transaksi tersimpan!")
+                    st.session_state["show_add_form"] = False
+                    st.toast("✅ Transaksi tersimpan!")
                     st.rerun()
 
     else:  # Structured form
@@ -854,8 +856,34 @@ def _render_add_transaction_form(user_id: int):
                 db_insert_transaction(user_id, amount, tx_type, category, note, tx_date)
                 fetch_transactions.clear()
                 fetch_all_transactions.clear()
-                st.success("✅ Transaksi tersimpan!")
+                st.session_state["show_add_form"] = False
+                st.toast("✅ Transaksi tersimpan!")
                 st.rerun()
+
+
+# ─────────────────────────────────────────
+# ADD TRANSACTION DIALOG (modal overlay)
+# ─────────────────────────────────────────
+def _add_transaction_dialog_body():
+    user_id = st.session_state.get("user_id")
+    if user_id:
+        _render_add_transaction_form(user_id)
+    if st.button("❌ Batal", key="dialog_cancel_btn", use_container_width=True):
+        st.session_state["show_add_form"] = False
+        st.rerun()
+
+
+try:
+    _add_transaction_dialog = st.dialog(
+        "➕ Tambah Transaksi", width="large"
+    )(_add_transaction_dialog_body)
+except AttributeError:
+    try:
+        _add_transaction_dialog = st.experimental_dialog(
+            "➕ Tambah Transaksi"
+        )(_add_transaction_dialog_body)
+    except AttributeError:
+        _add_transaction_dialog = None
 
 
 # ─────────────────────────────────────────
@@ -966,7 +994,7 @@ def render_top_controls(user_name: str) -> tuple:
         font-size: 22px !important;
         font-weight: 300 !important;
         line-height: 1 !important;
-        margin-top: 20px;
+        margin: 16px 4px 0 12px !important;
     }
     </style>
     <div style="position:fixed;bottom:32px;right:32px;z-index:9999;">
@@ -975,9 +1003,13 @@ def render_top_controls(user_name: str) -> tuple:
         onmouseover="this.style.transform='scale(1.08)'"
         onmouseout="this.style.transform='scale(1)'"
         onclick="(function(){
-          var all = Array.from(document.querySelectorAll('button'));
-          var t = all.find(function(b){ return b.textContent.trim() === '＋'; });
-          if(t) t.click();
+          var rows = document.querySelectorAll('[data-testid=\\"stHorizontalBlock\\"]');
+          var row = rows[0];
+          if(row){
+            var cols = row.querySelectorAll('[data-testid=\\"column\\"]');
+            var last = cols[cols.length-1];
+            if(last){var btn=last.querySelector('button');if(btn)btn.click();}
+          }
         })()"
         style="width:60px;height:60px;border-radius:50%;background:#6DC641;
                border:none;cursor:pointer;
@@ -1474,16 +1506,19 @@ def main():
     render_sidebar(user_name)
     month, year, page = render_top_controls(user_name)
 
-    # Add transaction form — shown when FAB is clicked
+    # Add transaction modal — shown when FAB is clicked
     if st.session_state.get("show_add_form"):
-        with st.container(border=True):
-            hcol, ccol = st.columns([9, 1])
-            with ccol:
-                if st.button("✕", key="close_add_form", help="Tutup"):
-                    st.session_state["show_add_form"] = False
-                    st.rerun()
-            _render_add_transaction_form(user_id)
-        st.divider()
+        if _add_transaction_dialog is not None:
+            _add_transaction_dialog()
+        else:
+            with st.container(border=True):
+                hcol, ccol = st.columns([9, 1])
+                with ccol:
+                    if st.button("✕", key="close_add_form", help="Tutup"):
+                        st.session_state["show_add_form"] = False
+                        st.rerun()
+                _render_add_transaction_form(user_id)
+            st.divider()
 
     df         = fetch_transactions(user_id, month, year)
     df_expense = df[df["type"] == "expense"]
