@@ -6,8 +6,9 @@ import html as _html
 import calendar
 import math
 import os
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import plotly.express as px
@@ -119,8 +120,20 @@ st.markdown("""
     font-weight: 600 !important; color: #1A1A1A !important;
   }
 
-  /* Radio / selectbox label */
-  .stRadio label, .stSelectbox label { color: rgba(255,255,255,0.6) !important; }
+  /* Labels — sidebar: white; main content: dark */
+  section[data-testid="stSidebar"] .stRadio label,
+  section[data-testid="stSidebar"] .stSelectbox label {
+    color: rgba(255,255,255,0.6) !important;
+  }
+  section.main .stRadio label,
+  section.main .stSelectbox label,
+  section.main .stTextInput label,
+  section.main .stTextArea label,
+  section.main .stNumberInput label,
+  section.main .stDateInput label,
+  section.main .stMultiSelect label {
+    color: #374151 !important;
+  }
 
   @media (max-width: 768px) {
     .block-container { padding: 0.5rem !important; }
@@ -378,10 +391,11 @@ def db_delete_goal(user_id, goal_id):
                      {"id": goal_id, "uid": user_id})
 
 
-def ai_parse_transaction(user_input: str) -> dict | None:
+def ai_parse_transaction(user_input: str) -> Optional[dict]:
     """Use Claude Haiku to parse natural language into structured transaction data."""
     try:
-        import anthropic, json
+        import json
+        import anthropic
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         today = date.today().isoformat()
         cats = ", ".join(ALL_CATEGORIES)
@@ -925,7 +939,7 @@ def render_sidebar(user_name: str):
 # ─────────────────────────────────────────
 # TOP CONTROLS + FAB (month / year / page + add button)
 # ─────────────────────────────────────────
-def render_top_controls(user_name: str) -> tuple[int, int, str]:
+def render_top_controls(user_name: str) -> tuple:
     today = date.today()
 
     st.markdown(f"""
@@ -939,50 +953,44 @@ def render_top_controls(user_name: str) -> tuple[int, int, str]:
     </div>
     """, unsafe_allow_html=True)
 
-    # Inject FAB CSS + floating overlay button
+    # Fixed floating '+' button — clicks the Streamlit toggle button below
     st.markdown("""
     <style>
-    /* Style the add popover trigger as a circular FAB */
-    [data-testid="stPopover"] > div:first-child > button {
+    /* Make the FAB column button circular */
+    div[data-testid="column"]:last-child .stButton > button {
         border-radius: 50% !important;
-        width: 52px !important;
-        height: 52px !important;
-        min-height: 52px !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-height: 48px !important;
         padding: 0 !important;
         font-size: 22px !important;
         font-weight: 300 !important;
-        background: #6DC641 !important;
-        border: none !important;
-        box-shadow: 0 4px 16px rgba(109,198,65,0.4) !important;
-        color: white !important;
         line-height: 1 !important;
-    }
-    [data-testid="stPopover"] > div:first-child > button:hover {
-        background: #5cb530 !important;
-        transform: scale(1.06) !important;
-        box-shadow: 0 6px 20px rgba(109,198,65,0.55) !important;
+        margin-top: 20px;
     }
     </style>
-    <!-- Floating overlay FAB (cosmetic — clicks the real popover button) -->
     <div style="position:fixed;bottom:32px;right:32px;z-index:9999;">
       <button
         title="Tambah Transaksi"
-        onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 26px rgba(109,198,65,0.55)'"
-        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(109,198,65,0.45)'"
-        onclick="
-          var btns = document.querySelectorAll('[data-testid=\\"stPopover\\"] button');
-          if (btns.length) { btns[btns.length - 1].click(); }
-        "
+        onmouseover="this.style.transform='scale(1.08)'"
+        onmouseout="this.style.transform='scale(1)'"
+        onclick="(function(){
+          var all = Array.from(document.querySelectorAll('button'));
+          var t = all.find(function(b){ return b.textContent.trim() === '＋'; });
+          if(t) t.click();
+        })()"
         style="width:60px;height:60px;border-radius:50%;background:#6DC641;
-               border:none;cursor:pointer;box-shadow:0 4px 20px rgba(109,198,65,0.45);
-               font-size:28px;color:white;display:flex;align-items:center;
-               justify-content:center;transition:transform 0.15s,box-shadow 0.15s;">
-        ＋
+               border:none;cursor:pointer;
+               box-shadow:0 4px 20px rgba(109,198,65,0.45);
+               font-size:28px;color:white;
+               display:flex;align-items:center;justify-content:center;
+               transition:transform 0.15s;">
+        +
       </button>
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3, col_fab = st.columns([1, 1, 2, 0.55])
+    col1, col2, col3, col_fab = st.columns([1, 1, 2, 0.5])
     with col1:
         month = st.selectbox("Bulan", range(1, 13), index=today.month - 1,
                              format_func=lambda m: calendar.month_abbr[m],
@@ -994,12 +1002,10 @@ def render_top_controls(user_name: str) -> tuple[int, int, str]:
     with col3:
         page = st.selectbox("Halaman", PAGES, key="ctrl_page")
     with col_fab:
-        st.markdown('<div style="padding-top:24px;">', unsafe_allow_html=True)
-        with st.popover("＋", use_container_width=True):
-            uid = st.session_state.get("user_id")
-            if uid:
-                _render_add_transaction_form(uid)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # ＋ = U+FF0B fullwidth — JS above targets this exact character
+        if st.button("＋", key="fab_toggle_btn", use_container_width=True):
+            st.session_state["show_add_form"] = not st.session_state.get("show_add_form", False)
+            st.rerun()
 
     return int(month), int(year), page
 
@@ -1467,6 +1473,17 @@ def main():
 
     render_sidebar(user_name)
     month, year, page = render_top_controls(user_name)
+
+    # Add transaction form — shown when FAB is clicked
+    if st.session_state.get("show_add_form"):
+        with st.container(border=True):
+            hcol, ccol = st.columns([9, 1])
+            with ccol:
+                if st.button("✕", key="close_add_form", help="Tutup"):
+                    st.session_state["show_add_form"] = False
+                    st.rerun()
+            _render_add_transaction_form(user_id)
+        st.divider()
 
     df         = fetch_transactions(user_id, month, year)
     df_expense = df[df["type"] == "expense"]
