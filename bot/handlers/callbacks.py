@@ -305,6 +305,47 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
     data = query.data
 
+    # ── Photo confirmation ──────────────────────────────
+    if data.startswith("photo:"):
+        action = data.split(":", 1)[1]
+        pending = context.user_data.get("pending_photo_tx")
+
+        if action == "save":
+            if not pending:
+                await query.edit_message_text("⚠️ Data foto sudah kedaluwarsa. Kirim foto kembali.")
+                return
+            user_id = update.effective_user.id
+            async with AsyncSessionLocal() as session:
+                await db.insert_transaction(
+                    session=session,
+                    user_id=user_id,
+                    amount=float(pending["amount"]),
+                    tx_type=pending["type"],
+                    category=pending["category"],
+                    subcategory=pending.get("subcategory", ""),
+                    note=pending.get("note", "Transaksi dari foto"),
+                    confidence=pending.get("confidence", "medium"),
+                )
+            context.user_data.pop("pending_photo_tx", None)
+            from services.formatter import fmt_currency
+            await query.edit_message_text(
+                f"✅ *Transaksi berhasil disimpan!*\n\n"
+                f"💰 {fmt_currency(float(pending['amount']))} — {pending.get('note', pending['category'])}",
+                parse_mode="Markdown",
+            )
+
+        elif action == "cancel":
+            context.user_data.pop("pending_photo_tx", None)
+            await query.edit_message_text("❌ Dibatalkan. Kirim foto lain kapan saja.")
+
+        elif action == "edit_amount":
+            context.user_data["awaiting"] = "photo_edit_amount"
+            await query.edit_message_text(
+                "✏️ *Edit Jumlah*\n\nKetik jumlah yang benar:\n_(contoh: `25000` atau `25k` atau `1.5jt`)_",
+                parse_mode="Markdown",
+            )
+        return
+
     # ── Menu Utama ─────────────────────────────────────
     if data == "menu:main":
         user_id = update.effective_user.id

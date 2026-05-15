@@ -147,6 +147,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         return
 
+    if awaiting == "photo_edit_amount":
+        from bot.handlers.commands import parse_amount as _parse_amount
+        try:
+            new_amount = _parse_amount(text)
+            context.user_data["pending_photo_tx"]["amount"] = new_amount
+            context.user_data.pop("awaiting", None)
+            pending = context.user_data["pending_photo_tx"]
+            from bot.handlers.photos import _build_confirm_text, _CONFIRM_KEYBOARD
+            await update.message.reply_text(
+                _build_confirm_text(pending),
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=_CONFIRM_KEYBOARD,
+            )
+        except Exception:
+            await update.message.reply_text(
+                "❌ Format tidak dikenali.\n\nContoh: `25000` · `25k` · `1.5jt`",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        return
+
     if awaiting in ("summary_date", "recat_date"):
         _, parsed_date = parse_backdate(text)
         if parsed_date is None:

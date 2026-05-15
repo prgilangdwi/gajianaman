@@ -20,6 +20,7 @@ from bot.handlers.commands import (
 )
 from bot.handlers.callbacks import handle_callback
 from bot.handlers.messages import handle_message
+from bot.handlers.photos import handle_photo
 
 load_dotenv()
 logging.basicConfig(
@@ -61,6 +62,9 @@ def main():
 
     # Inline keyboard callbacks
     app.add_handler(CallbackQueryHandler(handle_callback))
+
+    # Photo messages — analyze with Claude vision
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
     # Natural language fallback (non-command text messages)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

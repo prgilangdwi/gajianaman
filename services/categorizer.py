@@ -51,6 +51,93 @@ Return this exact format:
 }"""
 
 
+IMAGE_PARSE_PROMPT = """Analyze this image and extract financial transaction information.
+
+This could be: a store receipt (struk), bank transfer screenshot, e-wallet payment (GoPay, OVO, DANA, ShopeePay), food delivery order, invoice, or any payment confirmation.
+
+Return ONLY valid JSON (no markdown, no explanation):
+{
+  "amount": <number in IDR — the TOTAL/GRAND TOTAL amount paid>,
+  "type": "expense",
+  "category": "<one category from list>",
+  "subcategory": "<specific subcategory>",
+  "note": "<brief description in Indonesian, max 40 chars>",
+  "confidence": "<high|medium|low>",
+  "raw_text": "<key text — merchant name or transaction description, max 60 chars>"
+}
+
+Valid categories: Food & Dining, Groceries, Transport, Shopping, Health, Entertainment, Bills & Utilities, Education, Personal Care, Dining Out, Salary, Freelance, Investment Return, Other Income, Savings, Investment
+
+Use "income" for type only if this is clearly a received payment/transfer to the user.
+
+If no amount can be determined or image is unclear:
+{"error": "Tidak dapat membaca informasi transaksi dari gambar ini"}"""
+
+
+def parse_image_transaction(image_b64: str, media_type: str = "image/jpeg") -> dict:
+    """
+    Extract transaction info from a receipt/payment screenshot image.
+    Uses Claude Haiku vision — cheapest vision model.
+
+    Args:
+        image_b64: Base64-encoded image bytes
+        media_type: MIME type, e.g. "image/jpeg" or "image/png"
+
+    Returns:
+        dict with amount, type, category, subcategory, note, confidence, raw_text
+        OR {"error": "..."} if image unreadable
+    """
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": image_b64,
+                        },
+                    },
+                    {"type": "text", "text": IMAGE_PARSE_PROMPT},
+                ],
+            }],
+        )
+
+        raw = response.content[0].text.strip()
+
+        if "```" in raw:
+            for part in raw.split("```"):
+                part = part.strip().lstrip("json").strip()
+                if part.startswith("{"):
+                    raw = part
+                    break
+
+        result = json.loads(raw)
+
+        if "error" in result:
+            return result
+
+        result.setdefault("amount", 0)
+        result.setdefault("type", "expense")
+        result.setdefault("category", "Other")
+        result.setdefault("subcategory", "Uncategorized")
+        result.setdefault("note", "Transaksi dari foto")
+        result.setdefault("confidence", "low")
+        result.setdefault("raw_text", "")
+
+        return result
+
+    except json.JSONDecodeError:
+        return {"error": "Tidak dapat membaca informasi transaksi dari gambar ini"}
+    except Exception as e:
+        print(f"[Image Parser Error] {e}")
+        return {"error": "Terjadi error saat menganalisis gambar"}
+
+
 def categorize_transaction(note: str) -> dict:
     """
     Categorize a transaction note using Claude Haiku.
