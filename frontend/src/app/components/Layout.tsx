@@ -6,6 +6,7 @@ import {
   Home,
   TrendingDown,
   Target,
+  Star,
   History,
   TrendingUp,
   LogOut,
@@ -34,7 +35,7 @@ const navItems = [
   { icon: Home, label: 'Overview', path: '/' },
   { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
   { icon: Target, label: 'Budget', path: '/budget' },
-  { icon: Sparkles, label: 'Goals', path: '/goals' },
+  { icon: Star, label: 'Goals', path: '/goals' },
   { icon: History, label: 'Riwayat', path: '/riwayat' },
   { icon: TrendingUp, label: 'Tren', path: '/tren' },
 ];
