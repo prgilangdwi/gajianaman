@@ -373,7 +373,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🌐 *Live Dashboard — Gajian Aman*\n\n"
             "Pantau keuanganmu secara real-time di dashboard web!\n\n"
             "🔗 *Link Dashboard:*\n"
-            "https://gajianaman.streamlit.app/\n\n"
+            "https://gajianaman.xyz\n\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "🔐 *Cara Login:*\n"
             "1. Buka link dashboard di atas\n"
@@ -384,7 +384,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "2. Kirim `/start` ke bot tersebut\n"
             "3. Bot langsung tampilkan *Telegram ID* kamu\n"
             "4. Copy ID tersebut dan paste di dashboard\n\n"
-            "💡 _(ID berupa angka, contoh: `123456789`)_",
+            "💡 _(ID berupa angka, contoh: `123456789`)_\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "✨ *Fitur Baru — Integrasi Google Email!*\n"
+            "Sekarang kamu bisa menghubungkan akun *Google Email* dengan Telegram ID kamu.\n"
+            "Login ke dashboard dengan akun Google untuk pengalaman yang lebih mudah! 🎉",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Menu Utama", callback_data="menu:main")],
