@@ -22,6 +22,7 @@ export interface Transaction {
   ai_confidence?: string;
   date: string;
   created_at: string;
+  wallet_id?: string;
 }
 
 export interface Budget {
@@ -52,4 +53,38 @@ export interface User {
   timezone: string;
   tier: string;
   created_at: string;
+}
+
+export interface Wallet {
+  id: string;
+  user_id: number;
+  name: string;
+  type: 'bank' | 'ewallet' | 'cash';
+  icon?: string;
+  is_primary: boolean;
+  initial_balance: number;
+  created_at: string;
+}
+
+export interface SplitBill {
+  id: string;
+  user_id: number;
+  session_name: string;
+  total_amount: number;
+  participants: Array<{ name: string; amount: number; paid: boolean }>;
+  items?: Array<{ name: string; price: number; assignee: string }>;
+  share_token: string;
+  created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: number;
+  plan: 'gratis' | 'starter' | 'pro';
+  period: 'monthly' | '3month' | '6month' | 'yearly';
+  price_paid?: number;
+  started_at: string;
+  expires_at: string;
+  payment_ref?: string;
+  is_active: boolean;
 }
