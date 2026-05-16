@@ -9,12 +9,13 @@ export function useWallets(userId: number | undefined) {
   const fetch = useCallback(async () => {
     if (!userId) { setIsLoading(false); return; }
     setIsLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('wallets')
       .select('*')
       .eq('user_id', userId)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: true });
+    if (error) console.error('[useWallets]', error.message);
     setWallets(data ?? []);
     setIsLoading(false);
   }, [userId]);
