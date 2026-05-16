@@ -6,7 +6,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;
 
 -- ── Fitur 5: Gajian / Risk profile ────────────────────────────────────────
-ALTER TABLE users ADD COLUMN IF NOT EXISTS payday_date INTEGER;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS payday_date INTEGER CHECK (payday_date BETWEEN 1 AND 31);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS risk_profile JSONB;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_budget_recommendation JSONB;
 
@@ -52,3 +52,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   payment_ref TEXT,
   is_active BOOLEAN DEFAULT true
 );
+
+-- ── Indexes for new tables ────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_split_bills_user_id ON split_bills(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_active ON subscriptions(user_id, is_active);

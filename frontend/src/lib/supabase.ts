@@ -53,6 +53,13 @@ export interface User {
   timezone: string;
   tier: string;
   created_at: string;
+  email?: string;
+  google_id?: string;
+  payday_date?: number;
+  risk_profile?: Record<string, unknown>;
+  ai_budget_recommendation?: Record<string, unknown>;
+  subscription_plan?: 'gratis' | 'starter' | 'pro';
+  subscription_expires_at?: string;
 }
 
 export interface Wallet {
