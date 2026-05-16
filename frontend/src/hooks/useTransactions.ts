@@ -48,7 +48,7 @@ export function useRecentTransactions(limit = 10) {
       .eq('user_id', user.userId)
       .order('created_at', { ascending: false })
       .limit(limit)
-      .then(({ data }) => {
+      .then(({ data }: { data: Transaction[] | null }) => {
         setTransactions(data ?? []);
         setIsLoading(false);
       });

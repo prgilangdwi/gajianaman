@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
 import { formatRupiah } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { supabase, type Transaction } from '@/lib/supabase';
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -60,7 +60,7 @@ export default function Tren() {
         .gte('date', rangeStart)
         .lte('date', rangeEnd);
 
-      const txList = txAll ?? [];
+      const txList: Pick<Transaction, 'amount' | 'type' | 'category' | 'date'>[] = txAll ?? [];
 
       // Build monthly income/expense totals
       const monthly: MonthlyPoint[] = months6.map((d) => {
