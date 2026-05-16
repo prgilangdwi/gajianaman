@@ -34,7 +34,19 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error("Unhandled exception:", exc_info=context.error)
-    if isinstance(update, Update) and update.effective_message:
+    if not isinstance(update, Update) or not update.effective_message:
+        return
+
+    err_str = str(context.error).lower()
+    is_db_error = any(k in err_str for k in ("enotfound", "connection", "asyncpg", "sqlalchemy", "timeout"))
+    if is_db_error:
+        await update.effective_message.reply_text(
+            "⚠️ *Database tidak dapat dijangkau.*\n\n"
+            "Kemungkinan Supabase project sedang paused.\n"
+            "Admin sedang memperbaiki — coba lagi dalam beberapa menit.",
+            parse_mode="Markdown",
+        )
+    else:
         await update.effective_message.reply_text(
             "⚠️ Terjadi kesalahan. Coba lagi dalam beberapa saat.\n"
             "Jika masalah berlanjut, ketik /start untuk memulai ulang."

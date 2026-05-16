@@ -701,12 +701,18 @@ async def cmd_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @require_start
 async def cmd_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    parts = update.message.text.strip().split(" ", 3)
+    parts = update.message.text.strip().split()
 
     if len(parts) >= 3 and parts[1].lower() == "add":
+        # Try to parse the last token as amount; everything between "add" and
+        # the amount is the goal name (supports multi-word names).
         try:
-            name = parts[2]
-            target = parse_amount(parts[3]) if len(parts) > 3 else 0
+            if len(parts) < 4:
+                raise ValueError("missing target")
+            target = parse_amount(parts[-1])
+            name = " ".join(parts[2:-1])
+            if not name:
+                raise ValueError("missing name")
         except (ValueError, IndexError):
             await update.message.reply_text(
                 "❌ Format: `/goal add <nama> <target>`\n"

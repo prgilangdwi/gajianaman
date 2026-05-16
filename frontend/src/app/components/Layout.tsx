@@ -301,7 +301,11 @@ export function Layout() {
         </div>
       </nav>
 
-      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <TransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSaved={() => setTimeout(() => window.location.reload(), 600)}
+      />
     </div>
   );
 }
