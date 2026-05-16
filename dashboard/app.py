@@ -504,7 +504,18 @@ def bento_categories_html(rows: list, total: float) -> str:
 def budget_rows_html(budgets: list) -> str:
     items = ""
     for b in budgets:
-        raw_pct   = b["actual"] / b["budget"] * 100 if b["budget"] else 0
+        if not b["budget"]:
+            items += f"""
+        <div style="background:#F9FBF7;border-radius:14px;padding:14px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;font-weight:600;color:#1A1A1A;">
+              {cat_icon(b['name'])} {_html.escape(b['name'])}
+            </span>
+            <span style="font-size:11px;color:#9CA3AF;font-style:italic;">Belum Dibuat</span>
+          </div>
+        </div>"""
+            continue
+        raw_pct   = b["actual"] / b["budget"] * 100
         pct       = min(round(raw_pct), 100)
         over      = b["actual"] > b["budget"]
         warn      = raw_pct > 80
@@ -773,6 +784,20 @@ def _render_add_transaction_form(user_id: int):
     """Inline form for adding a new transaction — supports AI NL and structured input."""
     today = date.today()
 
+    st.markdown("""
+    <style>
+    div:has(> #ai-rangkum-marker) + div[data-testid="stButton"] button {
+        background-color: #7C3AED !important;
+        border-color: #6D28D9 !important;
+        color: white !important;
+    }
+    div:has(> #ai-rangkum-marker) + div[data-testid="stButton"] button:hover {
+        background-color: #6D28D9 !important;
+        border-color: #5B21B6 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown('<div style="font-size:15px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">➕ Tambah Transaksi</div>', unsafe_allow_html=True)
 
     input_mode = st.radio(
@@ -788,7 +813,8 @@ def _render_add_transaction_form(user_id: int):
             placeholder='"beli makan siang 25rb", "gaji 5jt", "bayar listrik 200k kemarin"',
             height=72, label_visibility="collapsed", key="add_nl",
         )
-        if st.button("🔍 Parse dengan AI", key="ai_parse_btn", use_container_width=True):
+        st.markdown('<span id="ai-rangkum-marker"></span>', unsafe_allow_html=True)
+        if st.button("🔍 Rangkum dengan AI", key="ai_parse_btn", use_container_width=True):
             if nl.strip():
                 with st.spinner("AI sedang menganalisis..."):
                     parsed = ai_parse_transaction(nl.strip())
