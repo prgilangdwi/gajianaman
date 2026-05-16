@@ -41,7 +41,7 @@ const ALL_CATEGORIES = Object.keys(CATEGORY_META).filter(
   (k) => !['Food', 'Bills'].includes(k),
 );
 
-type BudgetStatus = 'safe' | 'warning' | 'over';
+type BudgetStatus = 'safe' | 'warning' | 'over' | 'none';
 
 function getStatus(pct: number): BudgetStatus {
   if (pct > 100) return 'over';
@@ -50,6 +50,12 @@ function getStatus(pct: number): BudgetStatus {
 }
 
 function StatusBadge({ status }: { status: BudgetStatus }) {
+  if (status === 'none')
+    return (
+      <Badge className="bg-gray-100 text-gray-500 gap-1">
+        Belum Dibuat
+      </Badge>
+    );
   if (status === 'over')
     return (
       <Badge className="bg-red-100 text-red-700 gap-1">
@@ -102,6 +108,7 @@ export default function Budget() {
     return allCats
       .map((cat) => {
         const budgetEntry = budgets.find((b) => b.category === cat);
+        const hasEntry = budgetEntry !== undefined;
         const budgetAmt = budgetEntry?.amount ?? 0;
         const spent = spendingMap[cat] ?? 0;
         const pct = budgetAmt > 0 ? (spent / budgetAmt) * 100 : 0;
@@ -110,18 +117,22 @@ export default function Budget() {
           budget: budgetAmt,
           spent,
           pct,
-          status: getStatus(pct),
+          hasEntry,
+          status: hasEntry ? getStatus(pct) : ('none' as const),
           ...getCatMeta(cat),
         };
       })
-      .filter((r) => r.budget > 0 || r.spent > 0)
-      .sort((a, b) => b.spent - a.spent);
+      .sort((a, b) => {
+        if (a.hasEntry && !b.hasEntry) return -1;
+        if (!a.hasEntry && b.hasEntry) return 1;
+        return b.spent - a.spent;
+      });
   }, [allCats, budgets, spendingMap]);
 
   const totalBudget = budgetRows.reduce((s, r) => s + r.budget, 0);
   const totalUsed = budgetRows.reduce((s, r) => s + r.spent, 0);
   const remaining = totalBudget - totalUsed;
-  const safeCount = budgetRows.filter((r) => r.status === 'safe').length;
+  const safeCount = budgetRows.filter((r) => r.hasEntry && r.status === 'safe').length;
 
   const openEdit = (category: string, currentAmount: number) => {
     setEditCategory(category);
@@ -246,21 +257,36 @@ export default function Budget() {
                       </Button>
                     </div>
                   </div>
-                  {row.budget > 0 && (
-                    <Progress
-                      value={Math.min(row.pct, 100)}
-                      className="h-2"
-                      style={
-                        {
-                          '--progress-background':
-                            row.status === 'over'
-                              ? '#ef4444'
-                              : row.status === 'warning'
-                                ? '#f59e0b'
-                                : row.color,
-                        } as CSSProperties
-                      }
-                    />
+                  {row.hasEntry ? (
+                    <>
+                      <Progress
+                        value={Math.min(row.pct, 100)}
+                        className="h-2"
+                        style={
+                          {
+                            '--progress-background':
+                              row.status === 'over'
+                                ? '#ef4444'
+                                : row.status === 'warning'
+                                  ? '#f59e0b'
+                                  : row.color,
+                          } as CSSProperties
+                        }
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Terpakai: {formatRupiah(row.spent)}</span>
+                        <span>{row.pct.toFixed(0)}%</span>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 text-xs h-7"
+                      onClick={() => openEdit(row.category, 0)}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Buat Budget
+                    </Button>
                   )}
                 </div>
               ))}
