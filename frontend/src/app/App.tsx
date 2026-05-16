@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { AuthProvider, RequireAuth, useAuth } from '@/hooks/useAuth';
 import { MonthFilterProvider } from '@/hooks/useMonthFilter';
 import { PrivacyProvider } from '@/hooks/usePrivacy';
+import { WalletFilterProvider } from '@/hooks/useWalletFilter';
 import Overview from './pages/Overview';
 import Pengeluaran from './pages/Pengeluaran';
 import Budget from './pages/Budget';
@@ -36,6 +37,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <PrivacyProvider>
+          <WalletFilterProvider>
           <MonthFilterProvider>
             <Routes>
               <Route path="/" element={<SmartHome />} />
@@ -68,6 +70,7 @@ export default function App() {
             </Routes>
             <Toaster position="top-center" richColors />
           </MonthFilterProvider>
+          </WalletFilterProvider>
         </PrivacyProvider>
       </AuthProvider>
     </BrowserRouter>
