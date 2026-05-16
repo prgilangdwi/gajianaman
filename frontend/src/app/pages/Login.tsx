@@ -8,14 +8,7 @@ import { Label } from '../components/ui/label';
 import { DollarSign, PiggyBank, TrendingUp, Info, Loader2 } from 'lucide-react';
 
 function GajianAmanMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <rect width="32" height="32" rx="7" fill="#0D2818"/>
-      <rect x="6" y="20" width="5" height="6" rx="1" fill="#4AE54A" opacity="0.45"/>
-      <rect x="13.5" y="14" width="5" height="12" rx="1" fill="#4AE54A" opacity="0.72"/>
-      <rect x="21" y="7" width="5" height="19" rx="1" fill="#4AE54A"/>
-    </svg>
-  );
+  return <img src="/dark-logo.png" alt="Gajian Aman" className={className} />;
 }
 import { motion } from 'motion/react';
 import { toast } from 'sonner';

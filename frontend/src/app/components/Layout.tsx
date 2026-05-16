@@ -16,14 +16,13 @@ import {
   X,
 } from 'lucide-react';
 
-function GajianAmanMark({ className }: { className?: string }) {
+function GajianAmanMark({ className, variant = 'light' }: { className?: string; variant?: 'light' | 'dark' }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <rect width="32" height="32" rx="7" fill="#0D2818"/>
-      <rect x="6" y="20" width="5" height="6" rx="1" fill="#4AE54A" opacity="0.45"/>
-      <rect x="13.5" y="14" width="5" height="12" rx="1" fill="#4AE54A" opacity="0.72"/>
-      <rect x="21" y="7" width="5" height="19" rx="1" fill="#4AE54A"/>
-    </svg>
+    <img
+      src={variant === 'light' ? '/light-logo.png' : '/dark-logo.png'}
+      alt="Gajian Aman"
+      className={className}
+    />
   );
 }
 import { motion, AnimatePresence } from 'motion/react';
@@ -123,7 +122,7 @@ export function Layout() {
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
             <div className="flex items-center gap-2">
-              <GajianAmanMark className="w-8 h-8" />
+              <GajianAmanMark className="w-8 h-8" variant="dark" />
               <h1 className="font-bold tracking-tight">Gajian Aman</h1>
             </div>
           </div>
