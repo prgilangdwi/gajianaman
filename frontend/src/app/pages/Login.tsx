@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Footer from '../components/Footer';
 import { useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -94,8 +95,9 @@ export default function Login() {
   }
 
   return (
-    <div
-      className="min-h-screen relative overflow-hidden flex items-center justify-center px-4"
+    <div className="flex flex-col">
+      <div
+        className="min-h-screen relative overflow-hidden flex items-center justify-center px-4"
       style={{ background: 'linear-gradient(150deg, #0D2818 0%, #0D3B2E 55%, #163D24 100%)' }}
     >
       <FloatingIcon icon={DollarSign} style={{ top: '8%', left: '6%' }} delay={0} />
@@ -216,6 +218,12 @@ export default function Login() {
           Powered by Claude · Supabase
         </p>
       </motion.div>
+    </div>
+
+      {/* Footer — white section below the dark hero */}
+      <section style={{ background: '#ffffff', padding: '48px 24px' }}>
+        <Footer />
+      </section>
     </div>
   );
 }
