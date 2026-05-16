@@ -324,18 +324,23 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
         await update.message.reply_text(
             "📌 *Panduan Cepat:*\n\n"
+            "🤖 *Cara termudah — Natural Language:*\n"
+            "   Langsung ketik aja, AI yang urus sisanya!\n"
+            "   `beli makan siang 25000`\n"
+            "   `gaji april 5jt`\n"
+            "   `grab ke kantor 25rb kemarin`\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "⌨️ *Atau pakai command:*\n\n"
             "1️⃣ *Catat pengeluaran:*\n"
             "   `/add 15000 beli kopi`\n"
-            "   Format nominal: `15k` · `15rb` · `15ribu` · `1.5jt` · `2juta`\n"
-            "   Tanggal: `@15/04` · `@5mei` · `@5 mei` · `@may 5`\n\n"
+            "   Format: `15k` · `15rb` · `1.5jt` · `2juta`\n"
+            "   Tanggal: `@15/04` · `@5mei` · `@may 5`\n\n"
             "2️⃣ *Catat pemasukan:*\n"
             "   `/income 5jt gaji bulan ini`\n\n"
             "3️⃣ *Cek ringkasan:*\n"
             "   `/summary` → pilih bulanan atau harian\n\n"
             "4️⃣ *Set budget mudah:*\n"
-            "   `/quickbudget` → pilih kategori & nominal\n\n"
-            "💡 *Tips:* Bisa juga ketik langsung tanpa command!\n"
-            "   Contoh: `beli makan siang 25000`\n\n"
+            "   Ketuk 💰 Budget di menu utama\n\n"
             "Mau dipandu lebih detail? 👇",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=tutorial_keyboard,
@@ -352,18 +357,19 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if len(parts) < 3:
         await update.message.reply_text(
-            "❌ *Format salah.*\n\n"
+            "💡 *Tahukah kamu?* Kamu tidak perlu pakai command!\n"
+            "Cukup ketik langsung, AI yang urusin sisanya:\n"
+            "`beli jajan 7500` atau `makan siang 50rb`\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "❌ *Format command salah.*\n\n"
             "Gunakan: `/add <nominal> <keterangan>`\n"
             "Contoh: `/add 7500 beli jajan di warung`\n\n"
             "*Format nominal:*\n"
             "• `15000` → Rp 15.000\n"
-            "• `15k` atau `15rb` atau `15ribu` → Rp 15.000\n"
-            "• `1.5jt` atau `1juta` atau `1jt` → Rp 1.500.000\n\n"
+            "• `15k` · `15rb` · `15ribu` → Rp 15.000\n"
+            "• `1.5jt` · `1juta` · `1jt` → Rp 1.500.000\n\n"
             "*Backdated (opsional):*\n"
-            "• `/add 50000 makan siang @15/04` → tanggal 15 April\n"
-            "• `/add 50000 makan siang @5mei` → 5 Mei\n"
-            "• `/add 50000 makan siang @may 5` → 5 Mei\n"
-            "• `/add 50000 makan siang @5 mei 2025` → 5 Mei 2025",
+            "• `/add 50000 makan @15/04` · `@5mei` · `@may 5`",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -460,11 +466,15 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if len(parts) < 3:
         await update.message.reply_text(
-            "❌ *Format salah.*\n\n"
+            "💡 *Tahukah kamu?* Kamu tidak perlu pakai command!\n"
+            "Cukup ketik langsung, AI yang urusin sisanya:\n"
+            "`gaji april 5jt` atau `freelance desain 500k`\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "❌ *Format command salah.*\n\n"
             "Gunakan: `/income <nominal> <keterangan>`\n"
             "Contoh: `/income 5jt gaji bulan ini`\n\n"
             "*Format nominal:*\n"
-            "• `5000000` · `5jt` · `5juta` → Rp 5.000.000\n"
+            "• `5jt` · `5juta` → Rp 5.000.000\n"
             "• `500k` · `500rb` · `500ribu` → Rp 500.000",
             parse_mode=ParseMode.MARKDOWN,
         )
@@ -658,7 +668,11 @@ async def cmd_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(parts) < 3:
         cats = "\n".join(f"  • `{k}` → {v}" for k, v in CATEGORY_MAP.items())
         await update.message.reply_text(
-            "❌ *Format salah.*\n\n"
+            "💡 *Cara lebih mudah:* Gunakan wizard interaktif!\n"
+            "Ketuk 💰 *Budget* di menu utama → pilih kategori → masukkan nominal.\n"
+            "Tidak perlu hafal nama kategori 🎯\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "❌ *Format command salah.*\n\n"
             "Gunakan: `/budget <kategori> <nominal>`\n"
             "Contoh: `/budget food 500000`\n\n"
             f"*Kategori tersedia:*\n{cats}",
