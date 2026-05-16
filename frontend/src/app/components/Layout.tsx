@@ -14,6 +14,13 @@ import {
   Plus,
   Menu,
   X,
+  Eye,
+  EyeOff,
+  Calendar,
+  Users,
+  Wallet,
+  Crown,
+  Zap,
 } from 'lucide-react';
 
 function GajianAmanMark({ className, variant = 'light' }: { className?: string; variant?: 'light' | 'dark' }) {
@@ -29,14 +36,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TransactionModal } from './TransactionModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
+import { usePrivacy } from '@/hooks/usePrivacy';
 
 const navItems = [
-  { icon: Home, label: 'Overview', path: '/' },
+  { icon: Home,         label: 'Overview',    path: '/overview' },
   { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
-  { icon: Target, label: 'Budget', path: '/budget' },
-  { icon: Star, label: 'Goals', path: '/goals' },
-  { icon: History, label: 'Riwayat', path: '/riwayat' },
-  { icon: TrendingUp, label: 'Tren', path: '/tren' },
+  { icon: Target,       label: 'Budget',      path: '/budget' },
+  { icon: Star,         label: 'Goals',       path: '/goals' },
+  { icon: History,      label: 'Riwayat',     path: '/riwayat' },
+  { icon: TrendingUp,   label: 'Tren',        path: '/tren' },
+  { icon: Calendar,     label: 'Kalender',    path: '/kalender' },
+  { icon: Users,        label: 'Split Bill',  path: '/split' },
+  { icon: Zap,          label: 'Gajian',      path: '/gajian' },
+  { icon: Wallet,       label: 'Dompet',      path: '/wallet' },
+  { icon: Crown,        label: 'Langganan',   path: '/langganan' },
 ];
 
 export function Layout() {
@@ -45,6 +58,7 @@ export function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { selectedMonth, setSelectedMonth, monthOptions } = useMonthFilter();
+  const { isHidden, toggle } = usePrivacy();
 
   const userInitials = (user?.name ?? 'U').slice(0, 2).toUpperCase();
   const avatarSeed = user?.name ?? 'user';
@@ -243,6 +257,9 @@ export function Layout() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+              <Button variant="ghost" size="icon" onClick={toggle} title={isHidden ? 'Tampilkan angka' : 'Sembunyikan angka'}>
+                {isHidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </Button>
               <Button variant="ghost" size="icon">
                 <Bell className="w-5 h-5" />
               </Button>

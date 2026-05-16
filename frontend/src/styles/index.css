@@ -1,3 +1,15 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* Privacy mode — blur sensitive numbers */
+.privacy-hidden {
+  filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+  transition: filter 0.2s ease;
+}
+
+.privacy-hidden:hover {
+  filter: blur(4px);
+}
