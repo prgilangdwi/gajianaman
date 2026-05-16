@@ -9,6 +9,7 @@ import { Zap, Camera, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { COPY } from '@/lib/copy';
 
 const categories = [
   { id: 'Food & Dining', emoji: '🍔', label: 'Food', color: '#f59e0b' },
@@ -208,7 +209,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
       return;
     }
 
-    toast.success('Transaksi berhasil disimpan!');
+    toast.success(COPY.success.transactionAdded);
     onSaved?.();
     handleClose();
   };
