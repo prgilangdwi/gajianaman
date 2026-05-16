@@ -319,3 +319,68 @@ async def get_hourly_transaction_count(session: AsyncSession, user_id: int) -> i
     )
     row = result.fetchone()
     return int(row.cnt) if row else 0
+
+
+# ── Wallet operations ─────────────────────────────────────────────────────────
+
+async def get_wallets(session: AsyncSession, user_id: int) -> list:
+    result = await session.execute(
+        text("SELECT id, user_id, name, type, icon, is_primary, initial_balance, created_at "
+             "FROM wallets WHERE user_id = :uid ORDER BY is_primary DESC, created_at ASC"),
+        {"uid": user_id}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def create_wallet(
+    session: AsyncSession,
+    user_id: int,
+    name: str,
+    wallet_type: str,
+    is_primary: bool = False,
+    initial_balance: float = 0.0
+) -> dict:
+    result = await session.execute(
+        text("""
+            INSERT INTO wallets (user_id, name, type, is_primary, initial_balance)
+            VALUES (:uid, :name, :type, :primary, :balance)
+            RETURNING id, user_id, name, type, icon, is_primary, initial_balance, created_at
+        """),
+        {"uid": user_id, "name": name, "type": wallet_type,
+         "primary": is_primary, "balance": initial_balance}
+    )
+    await session.commit()
+    return dict(result.fetchone()._mapping)
+
+
+async def get_wallet_by_name(session: AsyncSession, user_id: int, name_fragment: str) -> dict | None:
+    """Case-insensitive partial match — used by bot wallet= parsing."""
+    result = await session.execute(
+        text("SELECT id, name, type FROM wallets "
+             "WHERE user_id = :uid AND LOWER(name) LIKE LOWER(:frag) LIMIT 1"),
+        {"uid": user_id, "frag": f"%{name_fragment}%"}
+    )
+    row = result.fetchone()
+    return dict(row._mapping) if row else None
+
+
+async def get_transactions_by_wallet(
+    session: AsyncSession,
+    user_id: int,
+    wallet_id: str,
+    month: int,
+    year: int
+) -> list:
+    result = await session.execute(
+        text("""
+            SELECT id, amount, type, category, note, date
+            FROM transactions
+            WHERE user_id = :uid
+              AND wallet_id = :wid
+              AND EXTRACT(MONTH FROM date) = :month
+              AND EXTRACT(YEAR FROM date) = :year
+            ORDER BY date DESC
+        """),
+        {"uid": user_id, "wid": wallet_id, "month": month, "year": year}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
