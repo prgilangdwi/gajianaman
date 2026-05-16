@@ -50,6 +50,16 @@ function GoalCard({
   const pct = target > 0 ? Math.min((saved / target) * 100, 100) : 0;
   const status = getGoalStatus(pct);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlineDate = goal.deadline ? (() => { const d = new Date(goal.deadline); d.setHours(0, 0, 0, 0); return d; })() : null;
+  const gap = Math.max(0, target - saved);
+  const daysLeft = deadlineDate ? Math.max(0, Math.ceil((deadlineDate.getTime() - today.getTime()) / 86_400_000)) : null;
+  const perDay = daysLeft !== null && daysLeft > 0 && gap > 0
+    ? Math.ceil(gap / daysLeft)
+    : null;
+  const deadlinePassed = deadlineDate !== null && deadlineDate < today && gap > 0;
+
   const handleAddSavings = async () => {
     const amt = parseInt(addAmount.replace(/\D/g, ''), 10);
     if (isNaN(amt) || amt <= 0) {
@@ -127,6 +137,30 @@ function GoalCard({
           <p className="text-xs text-right font-['DM_Mono'] text-muted-foreground">
             {pct.toFixed(1)}%
           </p>
+          {gap <= 0 ? (
+            <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-1">
+              ✅ Target tercapai!
+            </p>
+          ) : deadlinePassed ? (
+            <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-1">
+              ⚠️ Deadline terlewat
+            </p>
+          ) : perDay !== null && daysLeft !== null ? (
+            <div className="flex items-center justify-between text-xs mt-1">
+              <span className="text-muted-foreground">📅 {daysLeft} hari lagi</span>
+              <span
+                className={
+                  perDay > 500_000
+                    ? 'text-red-500 font-semibold'
+                    : perDay <= 50_000
+                    ? 'text-green-600 font-semibold'
+                    : 'text-muted-foreground font-medium'
+                }
+              >
+                💰 {formatRupiah(perDay)}/hari
+              </span>
+            </div>
+          ) : null}
         </div>
 
         {pct < 100 && (
