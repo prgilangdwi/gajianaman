@@ -1,9 +1,8 @@
 # railway.toml — Railway deployment config
 
 [build]
-builder = "NIXPACKS"
+builder = "DOCKERFILE"
 
 [deploy]
-startCommand = "python3 -m bot.main"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
