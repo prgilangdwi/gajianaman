@@ -14,6 +14,16 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import LinkTelegram from './pages/LinkTelegram';
 
+function StubPage({ title }: { title: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <p className="text-4xl">🚧</p>
+      <p className="text-lg font-bold">{title}</p>
+      <p className="text-sm text-muted-foreground">Fitur ini sedang dalam pengembangan.</p>
+    </div>
+  );
+}
+
 function SmartHome() {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
@@ -47,6 +57,11 @@ export default function App() {
                 <Route path="/goals" element={<Goals />} />
                 <Route path="/riwayat" element={<Riwayat />} />
                 <Route path="/tren" element={<Tren />} />
+                <Route path="/kalender" element={<StubPage title="Kalender" />} />
+                <Route path="/split" element={<StubPage title="Split Bill" />} />
+                <Route path="/gajian" element={<StubPage title="Gajian" />} />
+                <Route path="/wallet" element={<StubPage title="Dompet" />} />
+                <Route path="/langganan" element={<StubPage title="Langganan" />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />
