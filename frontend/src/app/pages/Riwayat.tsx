@@ -13,6 +13,8 @@ import { Search, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
+import { PrivacyAmount } from '../components/PrivacyAmount';
+import { COPY } from '@/lib/copy';
 
 const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
   'Food & Dining': { emoji: '🍔', color: '#f59e0b' },
@@ -122,7 +124,7 @@ export default function Riwayat() {
             <p className="text-sm text-muted-foreground text-center py-12">
               {search || typeFilter !== 'all'
                 ? 'Tidak ada transaksi yang cocok dengan filter'
-                : 'Belum ada transaksi untuk bulan ini'}
+                : COPY.emptyStates.history}
             </p>
           ) : (
             <div className="divide-y">
@@ -168,7 +170,7 @@ export default function Riwayat() {
                         }`}
                       >
                         {isIncome ? '+' : '-'}
-                        {formatRupiah(Number(tx.amount))}
+                        <PrivacyAmount value={formatRupiah(Number(tx.amount))} />
                       </span>
                     </div>
                   </div>
@@ -190,7 +192,7 @@ export default function Riwayat() {
             </CardHeader>
             <CardContent>
               <div className="font-['DM_Mono'] font-bold text-lg text-green-600">
-                {formatRupiah(totalIncome)}
+                <PrivacyAmount value={formatRupiah(totalIncome)} />
               </div>
             </CardContent>
           </Card>
@@ -202,7 +204,7 @@ export default function Riwayat() {
             </CardHeader>
             <CardContent>
               <div className="font-['DM_Mono'] font-bold text-lg">
-                {formatRupiah(totalExpense)}
+                <PrivacyAmount value={formatRupiah(totalExpense)} />
               </div>
             </CardContent>
           </Card>

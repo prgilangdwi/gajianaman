@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
 import { Badge } from '../components/ui/badge';
+import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions';
@@ -81,10 +82,10 @@ export default function Overview() {
   );
 
   const kpiData = [
-    { title: 'Total Income', value: formatRupiah(income), change: null, trend: 'up' as const, icon: TrendingUp },
-    { title: 'Total Expenses', value: formatRupiah(expenses), change: null, trend: 'down' as const, icon: TrendingDown },
-    { title: 'Net Balance', value: formatRupiah(netBalance), change: null, trend: netBalance >= 0 ? 'up' as const : 'down' as const, icon: netBalance >= 0 ? TrendingUp : TrendingDown },
-    { title: 'Transactions', value: String(transactions.length), change: null, trend: 'up' as const, icon: ArrowUpRight },
+    { title: 'Total Income', value: formatRupiah(income), change: null, trend: 'up' as const, icon: TrendingUp, isAmount: true },
+    { title: 'Total Expenses', value: formatRupiah(expenses), change: null, trend: 'down' as const, icon: TrendingDown, isAmount: true },
+    { title: 'Net Balance', value: formatRupiah(netBalance), change: null, trend: netBalance >= 0 ? 'up' as const : 'down' as const, icon: netBalance >= 0 ? TrendingUp : TrendingDown, isAmount: true },
+    { title: 'Transactions', value: String(transactions.length), change: null, trend: 'up' as const, icon: ArrowUpRight, isAmount: false },
   ];
 
   if (isLoading) {
@@ -111,7 +112,9 @@ export default function Overview() {
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="font-['DM_Mono'] font-bold text-2xl">{kpi.value}</div>
+                <div className="font-['DM_Mono'] font-bold text-2xl">
+                  {kpi.isAmount ? <PrivacyAmount value={kpi.value} /> : kpi.value}
+                </div>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendIcon className={`h-3 w-3 ${kpi.trend === 'up' ? 'text-success' : 'text-danger'}`} />
                   <span className="text-xs text-muted-foreground">bulan ini</span>
@@ -219,7 +222,7 @@ export default function Overview() {
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-['DM_Mono'] font-bold text-xl">
-                      {formatRupiah(expenses)}
+                      <PrivacyAmount value={formatRupiah(expenses)} />
                     </p>
                   </div>
                 </div>
@@ -280,7 +283,7 @@ export default function Overview() {
                         </div>
                       </div>
                       <p className={`font-['DM_Mono'] font-bold text-sm ${tx.type === 'income' ? 'text-success' : 'text-foreground'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatRupiah(Number(tx.amount))}
+                        {tx.type === 'income' ? '+' : '-'}<PrivacyAmount value={formatRupiah(Number(tx.amount))} />
                       </p>
                     </div>
                   );
@@ -316,8 +319,8 @@ export default function Overview() {
                         <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${Math.min(percentage, 100)}%`, backgroundColor: color }} />
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-['DM_Mono'] text-muted-foreground">{formatRupiah(Number(goal.saved_amount))}</p>
-                        <p className="text-xs font-['DM_Mono'] text-muted-foreground">{formatRupiah(Number(goal.target_amount))}</p>
+                        <p className="text-xs font-['DM_Mono'] text-muted-foreground"><PrivacyAmount value={formatRupiah(Number(goal.saved_amount))} /></p>
+                        <p className="text-xs font-['DM_Mono'] text-muted-foreground"><PrivacyAmount value={formatRupiah(Number(goal.target_amount))} /></p>
                       </div>
                     </div>
                   );

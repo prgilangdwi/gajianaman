@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useGoals, addGoal, updateGoalSaved } from '@/hooks/useGoals';
 import { useAuth } from '@/hooks/useAuth';
 import { formatRupiah } from '@/lib/utils';
+import { PrivacyAmount } from '../components/PrivacyAmount';
 import type { Goal } from '@/lib/supabase';
 
 const GOAL_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444'];
@@ -118,13 +119,13 @@ function GoalCard({
           <div>
             <p className="text-xs text-muted-foreground">Terkumpul</p>
             <p className="font-['DM_Mono'] font-bold text-lg" style={{ color }}>
-              {formatRupiah(saved)}
+              <PrivacyAmount value={formatRupiah(saved)} />
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Target</p>
             <p className="font-['DM_Mono'] font-semibold text-muted-foreground">
-              {formatRupiah(target)}
+              <PrivacyAmount value={formatRupiah(target)} />
             </p>
           </div>
         </div>
@@ -157,7 +158,7 @@ function GoalCard({
                     : 'text-muted-foreground font-medium'
                 }
               >
-                💰 {formatRupiah(perDay)}/hari
+                💰 <PrivacyAmount value={formatRupiah(perDay)} />/hari
               </span>
             </div>
           ) : null}
@@ -271,7 +272,7 @@ export default function Goals() {
           </CardHeader>
           <CardContent>
             <div className="font-['DM_Mono'] font-bold text-xl">
-              {formatRupiah(goals.reduce((s, g) => s + Number(g.saved_amount), 0))}
+              <PrivacyAmount value={formatRupiah(goals.reduce((s, g) => s + Number(g.saved_amount), 0))} />
             </div>
           </CardContent>
         </Card>

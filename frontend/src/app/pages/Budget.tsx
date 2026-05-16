@@ -19,6 +19,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { formatRupiah } from '@/lib/utils';
+import { PrivacyAmount } from '../components/PrivacyAmount';
 import type { CSSProperties } from 'react';
 
 const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
@@ -190,21 +191,24 @@ export default function Budget() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Budget', value: formatRupiah(totalBudget), color: 'text-foreground' },
-          { label: 'Total Terpakai', value: formatRupiah(totalUsed), color: 'text-orange-600' },
+          { label: 'Total Budget', value: formatRupiah(totalBudget), color: 'text-foreground', isAmount: true },
+          { label: 'Total Terpakai', value: formatRupiah(totalUsed), color: 'text-orange-600', isAmount: true },
           {
             label: 'Sisa Budget',
             value: formatRupiah(Math.max(remaining, 0)),
             color: remaining >= 0 ? 'text-green-600' : 'text-red-600',
+            isAmount: true,
           },
-          { label: 'Kategori Aman', value: `${safeCount} kategori`, color: 'text-green-600' },
+          { label: 'Kategori Aman', value: `${safeCount} kategori`, color: 'text-green-600', isAmount: false },
         ].map((kpi) => (
           <Card key={kpi.label}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground">{kpi.label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`font-['DM_Mono'] font-bold text-xl ${kpi.color}`}>{kpi.value}</div>
+              <div className={`font-['DM_Mono'] font-bold text-xl ${kpi.color}`}>
+                {kpi.isAmount ? <PrivacyAmount value={kpi.value} /> : kpi.value}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -240,8 +244,8 @@ export default function Budget() {
                       <div>
                         <p className="text-sm font-semibold">{row.category}</p>
                         <p className="text-xs text-muted-foreground font-['DM_Mono']">
-                          {formatRupiah(row.spent)}
-                          {row.budget > 0 && ` / ${formatRupiah(row.budget)}`}
+                          <PrivacyAmount value={formatRupiah(row.spent)} />
+                          {row.budget > 0 && <> / <PrivacyAmount value={formatRupiah(row.budget)} /></>}
                         </p>
                       </div>
                     </div>
@@ -274,7 +278,7 @@ export default function Budget() {
                         }
                       />
                       <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>Terpakai: {formatRupiah(row.spent)}</span>
+                        <span>Terpakai: <PrivacyAmount value={formatRupiah(row.spent)} /></span>
                         <span>{row.pct.toFixed(0)}%</span>
                       </div>
                     </>
