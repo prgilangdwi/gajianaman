@@ -96,7 +96,7 @@ export default function LinkTelegram() {
     sessionStorage.removeItem(PENDING_KEY);
 
     toast.success('Akun berhasil dihubungkan!');
-    navigate('/', { replace: true });
+    navigate('/overview', { replace: true });
   };
 
   if (!pending) return null;

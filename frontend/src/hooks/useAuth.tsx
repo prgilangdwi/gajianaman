@@ -37,8 +37,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setUser(resolveUserFromStorage());
-    setIsLoading(false);
+    async function init() {
+      // Primary: localStorage (Telegram login or already-resolved Google login)
+      const stored = resolveUserFromStorage();
+      if (stored) {
+        setUser(stored);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fallback: active Supabase session (Google OAuth in same browser)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: found } = await supabase
+          .from('users')
+          .select('user_id, name, username, email')
+          .or(`google_id.eq.${session.user.id},email.eq.${session.user.email ?? ''}`)
+          .maybeSingle();
+        if (found) {
+          setAndPersist({
+            userId: found.user_id,
+            name: found.name ?? found.username ?? session.user.email ?? 'User',
+            email: found.email ?? session.user.email ?? undefined,
+          });
+        }
+      }
+      setIsLoading(false);
+    }
+    init();
   }, [resolveUserFromStorage]);
 
   const setAndPersist = (u: AuthUser) => {

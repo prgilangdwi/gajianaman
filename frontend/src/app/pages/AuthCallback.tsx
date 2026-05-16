@@ -11,7 +11,6 @@ export default function AuthCallback() {
 
   useEffect(() => {
     async function handle() {
-      // Supabase client automatically picks up the OAuth tokens from the URL
       const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error || !session) {
@@ -23,27 +22,47 @@ export default function AuthCallback() {
       const googleId = session.user.id;
       const email = session.user.email ?? '';
 
-      // Look up if this Google account is already linked to a Telegram user
-      const { data: linked } = await supabase
+      // Try by google_id first
+      let { data: linked } = await supabase
         .from('users')
         .select('user_id, name, username')
         .eq('google_id', googleId)
         .maybeSingle();
 
+      // Fallback: try by email (covers users who linked before google_id column existed)
+      if (!linked && email) {
+        const { data: byEmail } = await supabase
+          .from('users')
+          .select('user_id, name, username')
+          .eq('email', email)
+          .maybeSingle();
+        linked = byEmail;
+
+        // Backfill google_id so future lookups use the fast path
+        if (linked) {
+          await supabase
+            .from('users')
+            .update({ google_id: googleId })
+            .eq('user_id', linked.user_id);
+        }
+      }
+
       if (linked) {
-        // Returning Google user — auto login
-        const authUser = {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
           userId: linked.user_id,
           name: linked.name ?? linked.username ?? email,
           email,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
-        navigate('/', { replace: true });
+        }));
+        navigate('/overview', { replace: true });
         return;
       }
 
       // First time — store pending session and ask to link Telegram ID
-      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ googleId, email, name: session.user.user_metadata?.full_name ?? '' }));
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({
+        googleId,
+        email,
+        name: session.user.user_metadata?.full_name ?? '',
+      }));
       setStatus('Akun baru. Menghubungkan ke Telegram...');
       navigate('/link-telegram', { replace: true });
     }
