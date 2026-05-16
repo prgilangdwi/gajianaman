@@ -51,6 +51,9 @@ secrets/
 .DS_Store
 Thumbs.db
 
+# Node
+node_modules/
+
 # Project specific
 *.zip
 .claude/settings.local.json
