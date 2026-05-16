@@ -43,7 +43,8 @@ env/
 # Credentials & secrets
 *.key
 *.pem
-token*.txt
+*token*.txt
+*api*.txt
 secrets/
 
 # OS
