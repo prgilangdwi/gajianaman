@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 import {
   Select,
   SelectContent,
@@ -9,7 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Search, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
@@ -77,6 +85,38 @@ export default function Riwayat() {
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async (format: 'csv' | 'pdf') => {
+    if (!user) return;
+    setDownloading(true);
+    try {
+      const res = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.userId, month, year, wallet_id: walletId, format }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error ?? 'Gagal download');
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = format === 'csv' ? `laporan-${month}-${year}.csv` : `laporan-${month}-${year}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Laporan berhasil didownload!');
+    } catch {
+      toast.error('Gagal download. Coba lagi ya.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -125,6 +165,22 @@ export default function Riwayat() {
           </SelectContent>
         </Select>
         <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={downloading} className="gap-2">
+              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Download
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleDownload('csv')}>
+              📊 CSV bulan ini
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDownload('pdf')}>
+              📄 PDF summary bulan ini
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Transaction List */}
