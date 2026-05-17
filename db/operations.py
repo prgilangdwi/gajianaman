@@ -499,7 +499,7 @@ async def create_split_bill(
             "name": session_name,
             "total": total_amount,
             "participants": json.dumps(participants),
-            "items": json.dumps(items) if items else "null",
+            "items": json.dumps(items) if items else None,
         }
     )
     await session.commit()
