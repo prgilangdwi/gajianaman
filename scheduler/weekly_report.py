@@ -5,10 +5,14 @@ import os
 import random
 import asyncio
 import httpx
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+import pytz
 from apscheduler.schedulers.blocking import BlockingScheduler
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+from services.formatter import fmt_payday_reminder
+
+WIB = pytz.timezone('Asia/Jakarta')
 
 load_dotenv()
 
@@ -95,6 +99,16 @@ def get_weekly_summary(user_id: int):
     return float(total), top_cats
 
 
+def get_payday_users_today():
+    today_day = datetime.now(WIB).day
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT user_id, name FROM users WHERE payday_date = :day"),
+            {"day": today_day}
+        )
+        return result.fetchall()
+
+
 # ─────────────────────────────────────────
 # Message builders
 # ─────────────────────────────────────────
@@ -168,12 +182,25 @@ async def send_weekly_reports():
             print(f"[Scheduler] ❌ Weekly failed for {user.user_id}: {e}")
 
 
+async def send_payday_reminders():
+    users = get_payday_users_today()
+    print(f"[Scheduler] Sending payday reminders to {len(users)} users...")
+    for user in users:
+        try:
+            msg = fmt_payday_reminder()
+            await send_telegram_message(user.user_id, msg)
+            print(f"[Scheduler] ✅ Payday → {user.user_id}")
+        except Exception as e:
+            print(f"[Scheduler] ❌ Payday failed for {user.user_id}: {e}")
+
+
 def run_weekly():       asyncio.run(send_weekly_reports())
 def run_morning():      asyncio.run(_broadcast("morning"))
 def run_lunch():        asyncio.run(_broadcast("lunch"))
 def run_afternoon():    asyncio.run(_broadcast("afternoon"))
 def run_evening():      asyncio.run(_broadcast("evening"))
 def run_night():        asyncio.run(_broadcast("night"))
+def run_payday():       asyncio.run(send_payday_reminders())
 
 
 # ─────────────────────────────────────────
@@ -192,8 +219,12 @@ if __name__ == "__main__":
     scheduler.add_job(run_evening,   "cron", hour=18, minute=0)   # 18:00 — dinner / commute
     scheduler.add_job(run_night,     "cron", hour=21, minute=0)   # 21:00 — evening recap
 
+    # Payday reminder — daily at 08:00 WIB, only to users whose payday_date = today
+    scheduler.add_job(run_payday,    "cron", hour=8,  minute=0)   # 08:00 — payday reminder
+
     print("⏰ Scheduler started:")
     print("   📅 Weekly summary   → every Sunday 09:00 WIB")
+    print("   💰 Payday reminder  → daily 08:00 WIB (per-user payday_date)")
     print("   ☀️  Morning reminder → daily 09:00 WIB")
     print("   🍜 Lunch reminder   → daily 12:00 WIB")
     print("   ☕ Afternoon nudge  → daily 15:00 WIB")
