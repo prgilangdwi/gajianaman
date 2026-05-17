@@ -436,3 +436,95 @@ async def create_subscription_record(
     )
     await session.commit()
     return dict(result.fetchone()._mapping)
+
+
+# ── Gajian / Risk Profile operations ─────────────────────────────────────────
+
+async def save_payday_date(session: AsyncSession, user_id: int, payday_date: int) -> None:
+    await session.execute(
+        text("UPDATE users SET payday_date = :day WHERE user_id = :uid"),
+        {"day": payday_date, "uid": user_id}
+    )
+    await session.commit()
+
+
+async def save_risk_profile(session: AsyncSession, user_id: int, profile: dict) -> None:
+    import json
+    await session.execute(
+        text("UPDATE users SET risk_profile = :profile::jsonb WHERE user_id = :uid"),
+        {"profile": json.dumps(profile), "uid": user_id}
+    )
+    await session.commit()
+
+
+async def save_ai_budget_recommendation(session: AsyncSession, user_id: int, recommendation: dict) -> None:
+    import json
+    from datetime import datetime, timezone
+    recommendation['generated_at'] = datetime.now(timezone.utc).isoformat()
+    await session.execute(
+        text("UPDATE users SET ai_budget_recommendation = :rec::jsonb WHERE user_id = :uid"),
+        {"rec": json.dumps(recommendation), "uid": user_id}
+    )
+    await session.commit()
+
+
+async def get_payday_users(session: AsyncSession, day: int) -> list:
+    """Returns users whose payday_date matches today's day of month."""
+    result = await session.execute(
+        text("SELECT user_id, name FROM users WHERE payday_date = :day"),
+        {"day": day}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+# ── Split Bill operations ─────────────────────────────────────────────────────
+
+async def create_split_bill(
+    session: AsyncSession,
+    user_id: int,
+    session_name: str,
+    total_amount: float,
+    participants: list,
+    items: list | None = None
+) -> dict:
+    import json
+    result = await session.execute(
+        text("""
+            INSERT INTO split_bills (user_id, session_name, total_amount, participants, items)
+            VALUES (:uid, :name, :total, :participants::jsonb, :items::jsonb)
+            RETURNING id, share_token, session_name, total_amount, participants, items, created_at
+        """),
+        {
+            "uid": user_id,
+            "name": session_name,
+            "total": total_amount,
+            "participants": json.dumps(participants),
+            "items": json.dumps(items) if items else "null",
+        }
+    )
+    await session.commit()
+    return dict(result.fetchone()._mapping)
+
+
+async def get_split_bill_by_token(session: AsyncSession, token: str) -> dict | None:
+    result = await session.execute(
+        text("""
+            SELECT id, session_name, total_amount, participants, items, share_token, created_at
+            FROM split_bills WHERE share_token = :token
+        """),
+        {"token": token}
+    )
+    row = result.fetchone()
+    return dict(row._mapping) if row else None
+
+
+async def get_split_bill_history(session: AsyncSession, user_id: int, limit: int = 10) -> list:
+    result = await session.execute(
+        text("""
+            SELECT id, session_name, total_amount, share_token, created_at
+            FROM split_bills WHERE user_id = :uid
+            ORDER BY created_at DESC LIMIT :limit
+        """),
+        {"uid": user_id, "limit": limit}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
