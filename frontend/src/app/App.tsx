@@ -15,6 +15,7 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import LinkTelegram from './pages/LinkTelegram';
 import WalletPage from './pages/Wallet';
+import Kalender from './pages/Kalender';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -60,7 +61,7 @@ export default function App() {
                 <Route path="/goals" element={<Goals />} />
                 <Route path="/riwayat" element={<Riwayat />} />
                 <Route path="/tren" element={<Tren />} />
-                <Route path="/kalender" element={<StubPage title="Kalender" />} />
+                <Route path="/kalender" element={<Kalender />} />
                 <Route path="/split" element={<StubPage title="Split Bill" />} />
                 <Route path="/gajian" element={<StubPage title="Gajian" />} />
                 <Route path="/wallet" element={<WalletPage />} />
