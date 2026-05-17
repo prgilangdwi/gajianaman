@@ -5,7 +5,7 @@ import calendar
 from functools import wraps
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
+from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
 from telegram.constants import ParseMode
 from datetime import date
 
