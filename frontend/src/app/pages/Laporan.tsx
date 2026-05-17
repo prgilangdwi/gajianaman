@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import {
@@ -14,21 +14,9 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
+import { useLaporanData } from '@/hooks/data/useLaporanData';
 import { formatRupiah } from '@/lib/utils';
-import { supabase, type Transaction } from '@/lib/supabase';
-import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
-
-interface MonthlyPoint {
-  month: string;
-  income: number;
-  expenses: number;
-}
-
-interface CategoryTrendPoint {
-  month: string;
-  [category: string]: number | string;
-}
+import type { MonthlyPoint, CategoryTrendPoint } from '@/hooks/data/useLaporanData';
 
 interface HealthScore {
   score: number;
@@ -61,80 +49,7 @@ function calculateHealthScore(monthlyData: MonthlyPoint[]): HealthScore {
 
 export default function Laporan() {
   const { user } = useAuth();
-  const [monthlyData, setMonthlyData] = useState<MonthlyPoint[]>([]);
-  const [categoryTrend, setCategoryTrend] = useState<CategoryTrendPoint[]>([]);
-  const [topCategories, setTopCategories] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-    const userId = user.userId;
-
-    async function loadTrends() {
-      setIsLoading(true);
-      const now = new Date();
-      const months6 = Array.from({ length: 6 }, (_, i) => subMonths(now, 5 - i));
-      const months3 = months6.slice(3);
-
-      const rangeStart = format(startOfMonth(months6[0]), 'yyyy-MM-dd');
-      const rangeEnd = format(endOfMonth(months6[5]), 'yyyy-MM-dd');
-
-      const { data: txAll } = await supabase
-        .from('transactions')
-        .select('amount, type, category, date')
-        .eq('user_id', userId)
-        .gte('date', rangeStart)
-        .lte('date', rangeEnd);
-
-      const txList: Pick<Transaction, 'amount' | 'type' | 'category' | 'date'>[] = txAll ?? [];
-
-      const monthly: MonthlyPoint[] = months6.map((d) => {
-        const label = format(d, 'MMM', { locale: idLocale });
-        const mStr = format(d, 'yyyy-MM');
-        const relevant = txList.filter((t) => t.date.startsWith(mStr));
-        const income = relevant
-          .filter((t) => t.type === 'income')
-          .reduce((s, t) => s + Number(t.amount), 0);
-        const expenses = relevant
-          .filter((t) => t.type === 'expense')
-          .reduce((s, t) => s + Number(t.amount), 0);
-        return { month: label, income, expenses };
-      });
-
-      const catTotals: Record<string, number> = {};
-      months3.forEach((d) => {
-        const mStr = format(d, 'yyyy-MM');
-        txList
-          .filter((t) => t.type === 'expense' && t.date.startsWith(mStr))
-          .forEach((t) => {
-            catTotals[t.category] = (catTotals[t.category] ?? 0) + Number(t.amount);
-          });
-      });
-      const top4 = Object.entries(catTotals)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 4)
-        .map(([cat]) => cat);
-
-      const catTrend: CategoryTrendPoint[] = months3.map((d) => {
-        const label = format(d, 'MMM', { locale: idLocale });
-        const mStr = format(d, 'yyyy-MM');
-        const row: CategoryTrendPoint = { month: label };
-        top4.forEach((cat) => {
-          row[cat] = txList
-            .filter((t) => t.type === 'expense' && t.date.startsWith(mStr) && t.category === cat)
-            .reduce((s, t) => s + Number(t.amount), 0);
-        });
-        return row;
-      });
-
-      setMonthlyData(monthly);
-      setCategoryTrend(catTrend);
-      setTopCategories(top4);
-      setIsLoading(false);
-    }
-
-    loadTrends();
-  }, [user]);
+  const { monthlyData, categoryTrend, topCategories, isLoading } = useLaporanData(user?.userId);
 
   const summary = useMemo(() => {
     if (monthlyData.length === 0) return null;
