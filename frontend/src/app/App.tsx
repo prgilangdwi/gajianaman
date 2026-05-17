@@ -20,6 +20,7 @@ import Langganan from './pages/Langganan';
 import Landing from './pages/Landing';
 import Gajian from './pages/Gajian';
 import SplitBill from './pages/SplitBill';
+import SplitBillShare from './pages/SplitBillShare';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -51,6 +52,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/link-telegram" element={<LinkTelegram />} />
+              <Route path="/split/:token" element={<SplitBillShare />} />
 
               <Route
                 element={
