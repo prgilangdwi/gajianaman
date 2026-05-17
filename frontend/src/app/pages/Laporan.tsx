@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
 import {
   LineChart,
   Line,
@@ -15,6 +16,9 @@ import {
 } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
 import { useLaporanData } from '@/hooks/data/useLaporanData';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useInsights } from '@/hooks/data/useInsights';
+import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
 import type { MonthlyPoint, CategoryTrendPoint } from '@/hooks/data/useLaporanData';
 
@@ -49,7 +53,14 @@ function calculateHealthScore(monthlyData: MonthlyPoint[]): HealthScore {
 
 export default function Laporan() {
   const { user } = useAuth();
+  const { month, year } = useMonthFilter();
   const { monthlyData, categoryTrend, topCategories, isLoading } = useLaporanData(user?.userId);
+  const { transactions } = useTransactions(month, year);
+  const { patterns, budgetRecommendations, forecast, hasEnoughData } = useInsights(
+    transactions,
+    month,
+    year,
+  );
 
   const summary = useMemo(() => {
     if (monthlyData.length === 0) return null;
@@ -278,6 +289,128 @@ export default function Laporan() {
           )}
         </CardContent>
       </Card>
+
+      {/* Spending Patterns — 3-month trend analysis */}
+      {hasEnoughData && patterns.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" /> Tren Pengeluaran — 3 Bulan Terakhir
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {patterns.slice(0, 5).map((pattern) => (
+                <div key={pattern.category} className="flex items-start justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{pattern.category}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Rata-rata: {formatRupiah(pattern.avgMonthly)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-sm font-semibold flex items-center gap-1 justify-end ${
+                      pattern.trend === 'up' ? 'text-red-600' : pattern.trend === 'down' ? 'text-green-600' : 'text-yellow-600'
+                    }`}>
+                      {pattern.trend === 'up' ? <TrendingUp className="w-4 h-4" /> : pattern.trend === 'down' ? <TrendingDown className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                      {Math.abs(pattern.changePercent)}%
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      vs rata-rata
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Budget Recommendations — AI-powered with confidence */}
+      {hasEnoughData && budgetRecommendations.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Zap className="w-5 h-5" /> Rekomendasi Anggaran
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-4">Berdasarkan data historis + buffer 15%</p>
+            <div className="space-y-3">
+              {budgetRecommendations.map((rec) => (
+                <div key={rec.category} className="flex items-start justify-between p-3 rounded-lg border border-border/50">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-sm">{rec.category}</p>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          rec.confidence === 'high'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : rec.confidence === 'medium'
+                            ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                            : 'bg-gray-50 text-gray-700 border-gray-200'
+                        }`}
+                      >
+                        {rec.confidence === 'high' ? '✓ Tinggi' : rec.confidence === 'medium' ? '◐ Sedang' : '○ Rendah'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pengeluaran rata-rata: {formatRupiah(rec.avgSpending)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-sm">{formatRupiah(rec.recommendedAmount)}</p>
+                    <p className="text-xs text-muted-foreground">Anggaran yang disarankan</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Spending Forecast — projected month-end */}
+      {hasEnoughData && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Target className="w-5 h-5" /> Proyeksi Akhir Bulan
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                <p className="text-xs text-muted-foreground mb-1">Sudah keluar</p>
+                <p className="font-semibold text-sm">{formatRupiah(forecast.currentSpent)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                <p className="text-xs text-muted-foreground mb-1">Rata-rata/hari</p>
+                <p className="font-semibold text-sm">{formatRupiah(forecast.dailyAverage)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                <p className="text-xs text-muted-foreground mb-1">Hari sisa</p>
+                <p className="font-semibold text-sm">{forecast.daysRemaining} hari</p>
+              </div>
+              <div className="p-3 rounded-lg bg-primary/10 border-2 border-primary">
+                <p className="text-xs text-muted-foreground mb-1">Proyeksi akhir</p>
+                <p className="font-bold text-sm text-primary">{formatRupiah(forecast.projectedMonthEnd)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty state when not enough data */}
+      {!hasEnoughData && (
+        <Card>
+          <CardContent className="py-12 text-center space-y-3">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto" />
+            <p className="text-muted-foreground">Belum cukup data untuk analisis mendalam</p>
+            <p className="text-xs text-muted-foreground">Mulai catat transaksi Anda agar kami bisa memberikan rekomendasi yang lebih akurat.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
