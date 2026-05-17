@@ -15,7 +15,7 @@ export interface Transaction {
   id: number;
   user_id: number;
   amount: number;
-  type: 'expense' | 'income';
+  type: 'expense' | 'income' | 'savings' | 'transfer';
   category: string;
   subcategory?: string;
   note?: string;
@@ -23,6 +23,8 @@ export interface Transaction {
   date: string;
   created_at: string;
   wallet_id?: string;
+  wallet_destination_id?: string;
+  tags?: string[];
 }
 
 export interface Budget {

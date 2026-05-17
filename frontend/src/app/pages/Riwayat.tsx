@@ -85,6 +85,7 @@ export default function Riwayat() {
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async (format: 'csv' | 'pdf') => {
@@ -118,6 +119,16 @@ export default function Riwayat() {
     }
   };
 
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    filteredTransactions.forEach((t) => {
+      if (Array.isArray(t.tags)) {
+        t.tags.forEach((tag) => tags.add(tag));
+      }
+    });
+    return Array.from(tags).sort();
+  }, [filteredTransactions]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return filteredTransactions.filter((t) => {
@@ -127,9 +138,12 @@ export default function Riwayat() {
         (t.note ?? '').toLowerCase().includes(q) ||
         t.category.toLowerCase().includes(q) ||
         (t.subcategory ?? '').toLowerCase().includes(q);
-      return matchType && matchSearch;
+      const matchTags =
+        selectedTags.size === 0 ||
+        (Array.isArray(t.tags) && t.tags.some((tag) => selectedTags.has(tag)));
+      return matchType && matchSearch && matchTags;
     });
-  }, [filteredTransactions, search, typeFilter]);
+  }, [filteredTransactions, search, typeFilter, selectedTags]);
 
   const totalIncome = filtered
     .filter((t) => t.type === 'income')
@@ -141,30 +155,67 @@ export default function Riwayat() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari catatan atau kategori…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari catatan atau kategori…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select
+            value={typeFilter}
+            onValueChange={(v) => setTypeFilter(v as FilterType)}
+          >
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Semua Tipe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Tipe</SelectItem>
+              <SelectItem value="income">Pemasukan</SelectItem>
+              <SelectItem value="expense">Pengeluaran</SelectItem>
+            </SelectContent>
+          </Select>
+          <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
         </div>
-        <Select
-          value={typeFilter}
-          onValueChange={(v) => setTypeFilter(v as FilterType)}
-        >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Semua Tipe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Tipe</SelectItem>
-            <SelectItem value="income">Pemasukan</SelectItem>
-            <SelectItem value="expense">Pengeluaran</SelectItem>
-          </SelectContent>
-        </Select>
-        <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
+
+        {/* Tag Filter */}
+        {availableTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => {
+                  const newTags = new Set(selectedTags);
+                  if (newTags.has(tag)) {
+                    newTags.delete(tag);
+                  } else {
+                    newTags.add(tag);
+                  }
+                  setSelectedTags(newTags);
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  selectedTags.has(tag)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+            {selectedTags.size > 0 && (
+              <button
+                onClick={() => setSelectedTags(new Set())}
+                className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" disabled={downloading} className="gap-2">
@@ -242,6 +293,19 @@ export default function Riwayat() {
                           >
                             {tx.category}
                           </Badge>
+                          {tx.tags && tx.tags.length > 0 && (
+                            <div className="flex gap-1 flex-wrap">
+                              {tx.tags.map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="outline"
+                                  className="text-[9px] sm:text-[8px] h-4 px-1"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

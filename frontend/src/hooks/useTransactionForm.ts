@@ -9,6 +9,7 @@ export interface TransactionFormState {
   date: string;
   sourceWalletId?: string | null;
   destinationWalletId?: string | null;
+  tags: string[];
 }
 
 const initialState: TransactionFormState = {
@@ -20,6 +21,7 @@ const initialState: TransactionFormState = {
   date: new Date().toISOString().split('T')[0],
   sourceWalletId: null,
   destinationWalletId: null,
+  tags: [],
 };
 
 export function useTransactionForm(onReset?: () => void) {
@@ -55,6 +57,26 @@ export function useTransactionForm(onReset?: () => void) {
 
   const setDestinationWalletId = useCallback((id: string | null) => {
     setForm((prev) => ({ ...prev, destinationWalletId: id }));
+  }, []);
+
+  const setTags = useCallback((tags: string[]) => {
+    setForm((prev) => ({ ...prev, tags }));
+  }, []);
+
+  const addTag = useCallback((tag: string) => {
+    if (tag.trim()) {
+      setForm((prev) => ({
+        ...prev,
+        tags: [...new Set([...prev.tags, tag.trim().toLowerCase()])],
+      }));
+    }
+  }, []);
+
+  const removeTag = useCallback((tag: string) => {
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((t) => t !== tag),
+    }));
   }, []);
 
   const updateFromParsed = useCallback((parsed: Partial<TransactionFormState>) => {
@@ -98,6 +120,9 @@ export function useTransactionForm(onReset?: () => void) {
     setDate,
     setSourceWalletId,
     setDestinationWalletId,
+    setTags,
+    addTag,
+    removeTag,
     updateFromParsed,
     reset,
     validate,

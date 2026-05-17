@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -60,6 +60,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [isSaving, setIsSaving] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [parsedData, setParsedData] = useState<ParsedTx | null>(null);
+  const [allUserTags, setAllUserTags] = useState<string[]>([]);
 
   // Photo tab state
   const [photoPhase, setPhotoPhase] = useState<PhotoPhase>('idle');
@@ -68,6 +69,28 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [photoMediaType, setPhotoMediaType] = useState<string>('image/jpeg');
   const [photoResult, setPhotoResult] = useState<PhotoResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load tag suggestions from previous transactions
+  const loadTagSuggestions = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('transactions')
+        .select('tags')
+        .eq('user_id', user.userId)
+        .not('tags', 'is', null);
+
+      const allTags = new Set<string>();
+      data?.forEach((tx: any) => {
+        if (Array.isArray(tx.tags)) {
+          tx.tags.forEach((tag: string) => allTags.add(tag));
+        }
+      });
+      setAllUserTags(Array.from(allTags).sort());
+    } catch {
+      // Silently fail if tags column doesn't exist yet
+    }
+  };
 
   const handleParseAI = async () => {
     if (!aiInput.trim()) return;
@@ -190,6 +213,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
         note: form.form.note || null,
         date: form.form.date,
         wallet_id: form.form.sourceWalletId || null,
+        tags: form.form.tags.length > 0 ? form.form.tags : null,
         ...(form.form.type === 'transfer' && {
           wallet_destination_id: form.form.destinationWalletId || null,
         }),
@@ -218,6 +242,13 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     setActiveTab('ai');
     onClose();
   };
+
+  // Load tag suggestions when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadTagSuggestions();
+    }
+  }, [isOpen]);
 
   const confidenceColor = { high: 'text-green-600', medium: 'text-yellow-600', low: 'text-red-500' };
   const confidenceLabel = { high: 'Tinggi', medium: 'Sedang', low: 'Rendah' };
@@ -293,7 +324,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   onTypeChange={form.setType}
                   onDateChange={form.setDate}
                   onSourceWalletChange={form.setSourceWalletId}
+                  onAddTag={form.addTag}
+                  onRemoveTag={form.removeTag}
                   wallets={wallets}
+                  tagSuggestions={allUserTags}
                   showType={false}
                   showDate={true}
                   showWallet={true}
@@ -431,7 +465,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   onTypeChange={form.setType}
                   onDateChange={form.setDate}
                   onSourceWalletChange={form.setSourceWalletId}
+                  onAddTag={form.addTag}
+                  onRemoveTag={form.removeTag}
                   wallets={wallets}
+                  tagSuggestions={allUserTags}
                   showType={true}
                   showDate={false}
                   showWallet={true}
@@ -461,7 +498,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               onTypeChange={form.setType}
               onDateChange={form.setDate}
               onSourceWalletChange={form.setSourceWalletId}
+              onAddTag={form.addTag}
+              onRemoveTag={form.removeTag}
               wallets={wallets}
+              tagSuggestions={allUserTags}
               showType={false}
               showDate={true}
               showWallet={true}
@@ -482,7 +522,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               onDateChange={form.setDate}
               onSourceWalletChange={form.setSourceWalletId}
               onDestinationWalletChange={form.setDestinationWalletId}
+              onAddTag={form.addTag}
+              onRemoveTag={form.removeTag}
               wallets={wallets}
+              tagSuggestions={allUserTags}
               showType={false}
               showDate={true}
               showWallet={false}

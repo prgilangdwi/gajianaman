@@ -1,6 +1,7 @@
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { TagInput } from './TagInput';
 import type { TransactionFormState } from '@/hooks/useTransactionForm';
 import type { Wallet } from '@/lib/supabase';
 
@@ -30,7 +31,10 @@ interface TransactionFormProps {
   onDateChange: (date: string) => void;
   onSourceWalletChange?: (id: string | null) => void;
   onDestinationWalletChange?: (id: string | null) => void;
+  onAddTag?: (tag: string) => void;
+  onRemoveTag?: (tag: string) => void;
   wallets?: Wallet[];
+  tagSuggestions?: string[];
   showType?: boolean;
   showDate?: boolean;
   showWallet?: boolean;
@@ -47,7 +51,10 @@ export function TransactionForm({
   onDateChange,
   onSourceWalletChange,
   onDestinationWalletChange,
+  onAddTag,
+  onRemoveTag,
   wallets = [],
+  tagSuggestions = [],
   showType = true,
   showDate = true,
   showWallet = false,
@@ -188,6 +195,19 @@ export function TransactionForm({
           onChange={(e) => onNoteChange(e.target.value)}
         />
       </div>
+
+      {/* Tags Input */}
+      {onAddTag && onRemoveTag && (
+        <div className="space-y-2">
+          <Label>Tag (opsional)</Label>
+          <TagInput
+            tags={form.tags}
+            onAddTag={onAddTag}
+            onRemoveTag={onRemoveTag}
+            suggestions={tagSuggestions}
+          />
+        </div>
+      )}
 
       {/* Date Picker */}
       {showDate && (
