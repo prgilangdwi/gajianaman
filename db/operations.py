@@ -386,3 +386,53 @@ async def get_transactions_by_wallet(
         {"uid": user_id, "wid": wallet_id, "month": month, "year": year}
     )
     return [dict(row._mapping) for row in result.fetchall()]
+
+
+# ── Subscription operations ───────────────────────────────────────────────────
+
+async def get_user_subscription_plan(session: AsyncSession, user_id: int) -> str:
+    result = await session.execute(
+        text("SELECT subscription_plan FROM users WHERE user_id = :uid"),
+        {"uid": user_id}
+    )
+    row = result.fetchone()
+    return (row[0] if row else None) or 'gratis'
+
+
+async def update_user_subscription(
+    session: AsyncSession,
+    user_id: int,
+    plan: str,
+    expires_at: str
+) -> None:
+    await session.execute(
+        text("""
+            UPDATE users
+            SET subscription_plan = :plan, subscription_expires_at = :expires
+            WHERE user_id = :uid
+        """),
+        {"plan": plan, "expires": expires_at, "uid": user_id}
+    )
+    await session.commit()
+
+
+async def create_subscription_record(
+    session: AsyncSession,
+    user_id: int,
+    plan: str,
+    period: str,
+    price_paid: float,
+    expires_at: str,
+    payment_ref: str | None = None
+) -> dict:
+    result = await session.execute(
+        text("""
+            INSERT INTO subscriptions (user_id, plan, period, price_paid, expires_at, payment_ref)
+            VALUES (:uid, :plan, :period, :price, :expires, :ref)
+            RETURNING id, plan, period, started_at, expires_at
+        """),
+        {"uid": user_id, "plan": plan, "period": period,
+         "price": price_paid, "expires": expires_at, "ref": payment_ref}
+    )
+    await session.commit()
+    return dict(result.fetchone()._mapping)
