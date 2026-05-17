@@ -19,6 +19,7 @@ import Kalender from './pages/Kalender';
 import Langganan from './pages/Langganan';
 import Landing from './pages/Landing';
 import Gajian from './pages/Gajian';
+import SplitBill from './pages/SplitBill';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -65,7 +66,7 @@ export default function App() {
                 <Route path="/riwayat" element={<Riwayat />} />
                 <Route path="/tren" element={<Tren />} />
                 <Route path="/kalender" element={<Kalender />} />
-                <Route path="/split" element={<StubPage title="Split Bill" />} />
+                <Route path="/split" element={<SplitBill />} />
                 <Route path="/gajian" element={<Gajian />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/langganan" element={<Langganan />} />
