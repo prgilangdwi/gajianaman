@@ -9,6 +9,7 @@ import { Zap, Camera, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallets } from '@/hooks/useWallets';
 import { COPY } from '@/lib/copy';
 
 const categories = [
@@ -50,6 +51,8 @@ interface TransactionModalProps {
 
 export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalProps) {
   const { user } = useAuth();
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const { wallets } = useWallets(user?.userId);
   const [activeTab, setActiveTab] = useState('ai');
   const [isParsingAI, setIsParsingAI] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -201,7 +204,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     }
 
     setIsSaving(true);
-    const { error } = await supabase.from('transactions').insert({ user_id: user.userId, ...txData });
+    const { error } = await supabase.from('transactions').insert({ user_id: user.userId, ...txData, wallet_id: selectedWalletId || null });
     setIsSaving(false);
 
     if (error) {
@@ -221,6 +224,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     setSelectedCategory('');
     setNote('');
     setDate(new Date().toISOString().split('T')[0]);
+    setSelectedWalletId(null);
     resetPhoto();
     setActiveTab('ai');
     onClose();
@@ -501,6 +505,24 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               <Label>Tanggal</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
+
+            {wallets.length > 0 && (
+              <div className="space-y-2">
+                <Label>Dari wallet mana? (opsional)</Label>
+                <select
+                  value={selectedWalletId ?? ''}
+                  onChange={(e) => setSelectedWalletId(e.target.value || null)}
+                  className="w-full px-3 py-2 rounded-lg border bg-input text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Pilih wallet...</option>
+                  {wallets.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}{w.is_primary ? ' ⭐' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

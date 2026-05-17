@@ -9,6 +9,9 @@ import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions'
 import { useBudgets } from '@/hooks/useBudgets';
 import { useGoals } from '@/hooks/useGoals';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
+import { useWalletFilter } from '@/hooks/useWalletFilter';
+import { useWallets } from '@/hooks/useWallets';
+import { useAuth } from '@/hooks/useAuth';
 import { formatRupiah } from '@/lib/utils';
 import { format, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -41,19 +44,49 @@ function SkeletonCard() {
   );
 }
 
+function WalletFilterBar({ wallets, walletId, setWalletId }: {
+  wallets: import('@/lib/supabase').Wallet[];
+  walletId: string;
+  setWalletId: (id: string) => void;
+}) {
+  if (wallets.length === 0) return null;
+  return (
+    <select
+      value={walletId}
+      onChange={(e) => setWalletId(e.target.value)}
+      className="px-3 py-2 rounded-lg border bg-input text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+    >
+      <option value="all">Semua Wallet</option>
+      {wallets.map((w) => (
+        <option key={w.id} value={w.id}>{w.name}</option>
+      ))}
+    </select>
+  );
+}
+
 export default function Overview() {
+  const { user } = useAuth();
   const { month, year } = useMonthFilter();
+  const { walletId, setWalletId } = useWalletFilter();
+  const { wallets } = useWallets(user?.userId);
   const { transactions, income, expenses, isLoading } = useTransactions(month, year);
   const { transactions: recentTx } = useRecentTransactions(6);
   const { budgets } = useBudgets(month, year);
   const { goals } = useGoals();
 
-  const netBalance = income - expenses;
+  const filteredTransactions = walletId === 'all'
+    ? transactions
+    : transactions.filter((t) => t.wallet_id === walletId);
+
+  const filteredIncome = filteredTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const filteredExpenses = filteredTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+
+  const netBalance = (walletId === 'all' ? income : filteredIncome) - (walletId === 'all' ? expenses : filteredExpenses);
 
   // Spending by category this month
   const categorySpending = useMemo(() => {
     const map: Record<string, number> = {};
-    transactions.filter((t) => t.type === 'expense').forEach((t) => {
+    filteredTransactions.filter((t) => t.type === 'expense').forEach((t) => {
       map[t.category] = (map[t.category] ?? 0) + Number(t.amount);
     });
     return Object.entries(map)
@@ -63,29 +96,32 @@ export default function Overview() {
       })
       .sort((a, b) => b.spent - a.spent)
       .slice(0, 6);
-  }, [transactions, budgets]);
+  }, [filteredTransactions, budgets]);
 
   // 7-day spending chart
   const weeklyData = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = subDays(new Date(), 6 - i);
       const dateStr = format(d, 'yyyy-MM-dd');
-      const amount = transactions
+      const amount = filteredTransactions
         .filter((t) => t.type === 'expense' && t.date === dateStr)
         .reduce((s, t) => s + Number(t.amount), 0);
       return { day: format(d, 'EEE', { locale: idLocale }), amount };
     });
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   const overBudgetCategories = categorySpending.filter(
     (c) => c.budget > 0 && c.spent > c.budget,
   );
 
+  const displayIncome = walletId === 'all' ? income : filteredIncome;
+  const displayExpenses = walletId === 'all' ? expenses : filteredExpenses;
+
   const kpiData = [
-    { title: 'Total Income', value: formatRupiah(income), change: null, trend: 'up' as const, icon: TrendingUp, isAmount: true },
-    { title: 'Total Expenses', value: formatRupiah(expenses), change: null, trend: 'down' as const, icon: TrendingDown, isAmount: true },
+    { title: 'Total Income', value: formatRupiah(displayIncome), change: null, trend: 'up' as const, icon: TrendingUp, isAmount: true },
+    { title: 'Total Expenses', value: formatRupiah(displayExpenses), change: null, trend: 'down' as const, icon: TrendingDown, isAmount: true },
     { title: 'Net Balance', value: formatRupiah(netBalance), change: null, trend: netBalance >= 0 ? 'up' as const : 'down' as const, icon: netBalance >= 0 ? TrendingUp : TrendingDown, isAmount: true },
-    { title: 'Transactions', value: String(transactions.length), change: null, trend: 'up' as const, icon: ArrowUpRight, isAmount: false },
+    { title: 'Transactions', value: String(filteredTransactions.length), change: null, trend: 'up' as const, icon: ArrowUpRight, isAmount: false },
   ];
 
   if (isLoading) {
@@ -100,6 +136,21 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
+      {/* Wallet Filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
+        {walletId !== 'all' && (() => {
+          const wallet = wallets.find((w) => w.id === walletId);
+          if (!wallet) return null;
+          const bal = Number(wallet.initial_balance) + filteredIncome - filteredExpenses;
+          return (
+            <div className="text-sm text-muted-foreground">
+              Estimasi saldo {wallet.name}: <PrivacyAmount value={formatRupiah(bal)} className="font-semibold text-foreground" />
+            </div>
+          );
+        })()}
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiData.map((kpi) => {
@@ -222,7 +273,7 @@ export default function Overview() {
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="font-['DM_Mono'] font-bold text-xl">
-                      <PrivacyAmount value={formatRupiah(expenses)} />
+                      <PrivacyAmount value={formatRupiah(displayExpenses)} />
                     </p>
                   </div>
                 </div>
@@ -332,7 +383,7 @@ export default function Overview() {
       </div>
 
       {/* Income Allocation */}
-      {income > 0 && (
+      {displayIncome > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Income Allocation</CardTitle>
@@ -342,14 +393,14 @@ export default function Overview() {
               <div className="flex gap-1 h-8 rounded-full overflow-hidden">
                 <div
                   className="flex items-center justify-center text-xs font-semibold text-white"
-                  style={{ width: `${Math.min((expenses / income) * 100, 100)}%`, backgroundColor: '#ef4444', minWidth: expenses > 0 ? '2rem' : '0' }}
+                  style={{ width: `${Math.min((displayExpenses / displayIncome) * 100, 100)}%`, backgroundColor: '#ef4444', minWidth: displayExpenses > 0 ? '2rem' : '0' }}
                 >
-                  {((expenses / income) * 100).toFixed(0)}%
+                  {((displayExpenses / displayIncome) * 100).toFixed(0)}%
                 </div>
                 <div
                   className="flex items-center justify-center text-xs font-semibold text-white bg-muted-foreground/30 flex-1"
                 >
-                  {(((income - expenses) / income) * 100).toFixed(0)}%
+                  {(((displayIncome - displayExpenses) / displayIncome) * 100).toFixed(0)}%
                 </div>
               </div>
               <div className="flex gap-6">

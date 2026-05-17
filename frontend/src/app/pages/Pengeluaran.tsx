@@ -14,6 +14,9 @@ import {
 } from 'recharts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
+import { useWalletFilter } from '@/hooks/useWalletFilter';
+import { useWallets } from '@/hooks/useWallets';
+import { useAuth } from '@/hooks/useAuth';
 import { formatRupiah } from '@/lib/utils';
 import type { CSSProperties } from 'react';
 
@@ -33,6 +36,26 @@ function getCatMeta(cat: string) {
   return CATEGORY_META[cat] ?? { emoji: '💰', color: '#94a3b8' };
 }
 
+function WalletFilterBar({ wallets, walletId, setWalletId }: {
+  wallets: import('@/lib/supabase').Wallet[];
+  walletId: string;
+  setWalletId: (id: string) => void;
+}) {
+  if (wallets.length === 0) return null;
+  return (
+    <select
+      value={walletId}
+      onChange={(e) => setWalletId(e.target.value)}
+      className="px-3 py-2 rounded-lg border bg-input text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+    >
+      <option value="all">Semua Wallet</option>
+      {wallets.map((w) => (
+        <option key={w.id} value={w.id}>{w.name}</option>
+      ))}
+    </select>
+  );
+}
+
 function SkeletonRow() {
   return (
     <div className="flex items-center justify-between py-3 border-b last:border-0">
@@ -49,12 +72,21 @@ function SkeletonRow() {
 }
 
 export default function Pengeluaran() {
+  const { user } = useAuth();
   const { month, year } = useMonthFilter();
-  const { transactions, expenses, isLoading } = useTransactions(month, year);
+  const { walletId, setWalletId } = useWalletFilter();
+  const { wallets } = useWallets(user?.userId);
+  const { transactions, isLoading } = useTransactions(month, year);
+
+  const filteredTransactions = walletId === 'all'
+    ? transactions
+    : transactions.filter((t) => t.wallet_id === walletId);
+
+  const expenses = filteredTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
   const categoryData = useMemo(() => {
     const map: Record<string, number> = {};
-    transactions
+    filteredTransactions
       .filter((t) => t.type === 'expense')
       .forEach((t) => {
         map[t.category] = (map[t.category] ?? 0) + Number(t.amount);
@@ -62,7 +94,7 @@ export default function Pengeluaran() {
     return Object.entries(map)
       .map(([name, spent]) => ({ name, spent, ...getCatMeta(name) }))
       .sort((a, b) => b.spent - a.spent);
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   const maxSpent = categoryData[0]?.spent ?? 1;
 
@@ -95,6 +127,11 @@ export default function Pengeluaran() {
 
   return (
     <div className="space-y-6">
+      {/* Wallet Filter */}
+      <div className="flex items-center gap-3">
+        <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
+      </div>
+
       {/* KPI Card */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>

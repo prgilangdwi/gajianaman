@@ -12,6 +12,9 @@ import {
 import { Search, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
+import { useWalletFilter } from '@/hooks/useWalletFilter';
+import { useWallets } from '@/hooks/useWallets';
+import { useAuth } from '@/hooks/useAuth';
 import { formatRupiah } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { COPY } from '@/lib/copy';
@@ -34,6 +37,26 @@ function getCatMeta(cat: string) {
 
 type FilterType = 'all' | 'income' | 'expense';
 
+function WalletFilterBar({ wallets, walletId, setWalletId }: {
+  wallets: import('@/lib/supabase').Wallet[];
+  walletId: string;
+  setWalletId: (id: string) => void;
+}) {
+  if (wallets.length === 0) return null;
+  return (
+    <select
+      value={walletId}
+      onChange={(e) => setWalletId(e.target.value)}
+      className="px-3 py-2 rounded-lg border bg-input text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+    >
+      <option value="all">Semua Wallet</option>
+      {wallets.map((w) => (
+        <option key={w.id} value={w.id}>{w.name}</option>
+      ))}
+    </select>
+  );
+}
+
 function formatDateShort(dateStr: string) {
   return new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
@@ -42,15 +65,22 @@ function formatDateShort(dateStr: string) {
 }
 
 export default function Riwayat() {
+  const { user } = useAuth();
   const { month, year } = useMonthFilter();
+  const { walletId, setWalletId } = useWalletFilter();
+  const { wallets } = useWallets(user?.userId);
   const { transactions, isLoading } = useTransactions(month, year);
+
+  const filteredTransactions = walletId === 'all'
+    ? transactions
+    : transactions.filter((t) => t.wallet_id === walletId);
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return transactions.filter((t) => {
+    return filteredTransactions.filter((t) => {
       const matchType = typeFilter === 'all' || t.type === typeFilter;
       const matchSearch =
         !q ||
@@ -59,7 +89,7 @@ export default function Riwayat() {
         (t.subcategory ?? '').toLowerCase().includes(q);
       return matchType && matchSearch;
     });
-  }, [transactions, search, typeFilter]);
+  }, [filteredTransactions, search, typeFilter]);
 
   const totalIncome = filtered
     .filter((t) => t.type === 'income')
@@ -94,6 +124,7 @@ export default function Riwayat() {
             <SelectItem value="expense">Pengeluaran</SelectItem>
           </SelectContent>
         </Select>
+        <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
       </div>
 
       {/* Transaction List */}
