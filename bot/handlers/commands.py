@@ -5,10 +5,11 @@ import calendar
 from functools import wraps
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
 from telegram.constants import ParseMode
 from datetime import date
 
+import os
 from db.database import AsyncSessionLocal
 from db import operations as db
 from services.categorizer import categorize_transaction
@@ -16,8 +17,9 @@ from services.formatter import (
     build_transaction_confirm,
     fmt_currency,
     fmt_wallet_list,
+    fmt_splitbill_result,
 )
-from db.operations import get_wallets, create_wallet, get_wallet_by_name
+from db.operations import get_wallets, create_wallet, get_wallet_by_name, create_split_bill
 
 MONTH_MAP = {
     'jan': 1, 'january': 1, 'januari': 1,
@@ -1004,4 +1006,157 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await update.message.reply_text(
         fmt_wallet_list(wallets_with_balance),
         parse_mode='Markdown'
+    )
+
+
+# ── /splitbill ConversationHandler ───────────────────────────────────────────
+
+SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)
+
+APP_URL = os.getenv('APP_URL', 'https://gajianam.com')
+
+
+async def splitbill_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "🍽️ *Split Bill*\n\nYuk mulai! Berapa total tagihan?\n\n"
+        "Contoh: `150000` atau `1500000`\n\n"
+        "Ketik /cancel untuk batal.",
+        parse_mode='Markdown'
+    )
+    return SB_TOTAL
+
+
+async def splitbill_get_total(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text.strip().replace('.', '').replace(',', '')
+    try:
+        total = float(text)
+        if total <= 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text("Hmm, nominalnya gak kebaca nih 😅 Coba ketik lagi ya.")
+        return SB_TOTAL
+
+    context.user_data['sb_total'] = total
+    await update.message.reply_text(
+        f"Total: *Rp {int(total):,}*\n\n"
+        "Siapa saja yang ikut? Pisah dengan koma.\n"
+        "Contoh: `Andi, Budi, Sari`",
+        parse_mode='Markdown'
+    )
+    return SB_PARTICIPANTS
+
+
+async def splitbill_get_participants(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    names = [n.strip() for n in update.message.text.split(',') if n.strip()]
+    if len(names) < 2:
+        await update.message.reply_text("Minimal 2 peserta ya. Pisah nama dengan koma.")
+        return SB_PARTICIPANTS
+
+    context.user_data['sb_participants'] = names
+    names_text = ', '.join(names)
+    await update.message.reply_text(
+        f"Peserta: *{names_text}*\n\n"
+        "Pilih cara bagi:\n"
+        "1️⃣ Rata (semua bayar sama)\n"
+        "2️⃣ Custom (tiap orang beda)\n\n"
+        "Balas dengan angka 1 atau 2.",
+        parse_mode='Markdown'
+    )
+    return SB_MODE
+
+
+async def splitbill_get_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text.strip()
+    total = context.user_data.get('sb_total', 0)
+    participants = context.user_data.get('sb_participants', [])
+
+    if text == '1':
+        share = total / len(participants)
+        parts = [{'name': n, 'amount': round(share), 'paid': False} for n in participants]
+        context.user_data['sb_parts'] = parts
+        return await splitbill_save(update, context)
+
+    elif text == '2':
+        context.user_data['sb_custom_idx'] = 0
+        context.user_data['sb_custom_amounts'] = []
+        name = participants[0]
+        await update.message.reply_text(
+            f"Berapa yang harus dibayar *{name}*? (Rp)",
+            parse_mode='Markdown'
+        )
+        return SB_AMOUNTS
+    else:
+        await update.message.reply_text("Balas 1 untuk Rata, 2 untuk Custom.")
+        return SB_MODE
+
+
+async def splitbill_get_amounts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text.strip().replace('.', '').replace(',', '')
+    try:
+        amount = float(text)
+    except ValueError:
+        await update.message.reply_text("Ketik nominalnya aja ya.")
+        return SB_AMOUNTS
+
+    participants = context.user_data.get('sb_participants', [])
+    amounts = context.user_data.get('sb_custom_amounts', [])
+    idx = context.user_data.get('sb_custom_idx', 0)
+
+    amounts.append({'name': participants[idx], 'amount': round(amount), 'paid': False})
+    context.user_data['sb_custom_amounts'] = amounts
+    context.user_data['sb_custom_idx'] = idx + 1
+
+    if idx + 1 < len(participants):
+        name = participants[idx + 1]
+        await update.message.reply_text(
+            f"Berapa yang harus dibayar *{name}*? (Rp)",
+            parse_mode='Markdown'
+        )
+        return SB_AMOUNTS
+    else:
+        context.user_data['sb_parts'] = amounts
+        return await splitbill_save(update, context)
+
+
+async def splitbill_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_id = update.effective_user.id
+    total = context.user_data.get('sb_total', 0)
+    parts = context.user_data.get('sb_parts', [])
+    session_name = f"Split Bill {update.effective_user.first_name}"
+
+    async with AsyncSessionLocal() as session:
+        record = await create_split_bill(session, user_id, session_name, total, parts)
+
+    share_url = f"{APP_URL}/split/{record['share_token']}"
+    msg = fmt_splitbill_result(session_name, parts, share_url)
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📋 Salin Link", callback_data=f"copy_split_{record['share_token']}")],
+        [InlineKeyboardButton("✅ Catat ke Transaksi Saya", callback_data=f"record_split_{record['share_token']}")],
+    ])
+
+    await update.message.reply_text(msg, parse_mode='Markdown', reply_markup=keyboard)
+
+    for key in ['sb_total', 'sb_participants', 'sb_mode', 'sb_parts', 'sb_custom_idx', 'sb_custom_amounts']:
+        context.user_data.pop(key, None)
+
+    return ConversationHandler.END
+
+
+async def splitbill_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Split bill dibatalkan. Ketik /splitbill kapan saja untuk mulai lagi.")
+    return ConversationHandler.END
+
+
+def get_splitbill_handler() -> ConversationHandler:
+    return ConversationHandler(
+        entry_points=[CommandHandler('splitbill', splitbill_start)],
+        states={
+            SB_TOTAL:        [MessageHandler(filters.TEXT & ~filters.COMMAND, splitbill_get_total)],
+            SB_PARTICIPANTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, splitbill_get_participants)],
+            SB_MODE:         [MessageHandler(filters.TEXT & ~filters.COMMAND, splitbill_get_mode)],
+            SB_AMOUNTS:      [MessageHandler(filters.TEXT & ~filters.COMMAND, splitbill_get_amounts)],
+        },
+        fallbacks=[CommandHandler('cancel', splitbill_cancel)],
+        per_message=False,
     )

@@ -1129,6 +1129,50 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]),
         )
 
+    # ── Split bill callbacks ───────────────────────────
+    elif data.startswith('copy_split_') or data.startswith('record_split_'):
+        await handle_split_callbacks(update, context)
+
+
+# ─────────────────────────────────────────
+# Split bill callbacks
+# ─────────────────────────────────────────
+async def handle_split_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    data = query.data
+
+    if data.startswith('copy_split_'):
+        token = data.replace('copy_split_', '')
+        import os
+        app_url = os.getenv('APP_URL', 'https://gajianam.com')
+        url = f"{app_url}/split/{token}"
+        await query.message.reply_text(f"🔗 Link split bill:\n{url}")
+
+    elif data.startswith('record_split_'):
+        token = data.replace('record_split_', '')
+        user_id = update.effective_user.id
+        async with AsyncSessionLocal() as session:
+            from db.operations import get_split_bill_by_token
+            record = await get_split_bill_by_token(session, token)
+        if record:
+            parts = record['participants']
+            if parts:
+                my_amount = parts[0]['amount'] if isinstance(parts[0], dict) else 0
+                async with AsyncSessionLocal() as session:
+                    await db.insert_transaction(
+                        session=session,
+                        user_id=user_id,
+                        amount=my_amount,
+                        tx_type='expense',
+                        category='Food & Dining',
+                        subcategory='',
+                        note=f"Split bill: {record['session_name']}",
+                        confidence='medium',
+                    )
+                await query.message.reply_text(
+                    f"✅ Pengeluaran {fmt_currency(float(my_amount))} untuk split bill berhasil dicatat!"
+                )
+
 
 # ─────────────────────────────────────────
 # Helpers

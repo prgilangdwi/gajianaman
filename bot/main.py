@@ -17,6 +17,7 @@ from bot.handlers.commands import (
     cmd_start, cmd_add, cmd_income, cmd_summary, cmd_history,
     cmd_budget, cmd_goal, cmd_help, cmd_delete, cmd_stats, cmd_cancel,
     cmd_tutorial, cmd_quickbudget, cmd_commands, cmd_wallet,
+    get_splitbill_handler,
 )
 from bot.handlers.callbacks import handle_callback
 from bot.handlers.messages import handle_message
@@ -55,6 +56,9 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # ConversationHandlers — must be registered BEFORE generic message handlers
+    app.add_handler(get_splitbill_handler())
 
     # Commands
     app.add_handler(CommandHandler("start", cmd_start))
