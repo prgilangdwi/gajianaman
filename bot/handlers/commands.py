@@ -1191,6 +1191,53 @@ async def cmd_notify(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, parse_mode='Markdown')
 
 
+async def cmd_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Export transactions as CSV file."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=10000,
+        )
+
+        if not txs:
+            await update.message.reply_text(
+                "Belum ada transaksi untuk di-export."
+            )
+            return
+
+        # Build CSV
+        csv_lines = ["Tanggal,Type,Kategori,Jumlah,Note,AI Confidence"]
+        for tx in sorted(txs, key=lambda x: x.date, reverse=True):
+            note = (tx.note or "").replace(",", ";").replace("\n", " ")
+            confidence = tx.ai_confidence or ""
+            csv_lines.append(
+                f'{tx.date},{tx.type},{tx.category},{tx.amount},"{note}",{confidence}'
+            )
+
+        csv_content = "\n".join(csv_lines)
+
+        # Send as document
+        filename = f"gajian_aman_{datetime.now().strftime('%Y%m%d')}.csv"
+        await update.message.reply_document(
+            document=csv_content.encode('utf-8'),
+            filename=filename,
+            caption=f"📊 *{len(txs)} transaksi* di-export ke CSV",
+            parse_mode='Markdown',
+        )
+
+
 # ── /splitbill ConversationHandler ───────────────────────────────────────────
 
 SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)
