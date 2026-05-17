@@ -58,7 +58,7 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center justify-between py-3 border-b last:border-0">
+    <div className="flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto border-b last:border-0">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
         <div className="space-y-1">
@@ -224,13 +224,13 @@ export default function Pengeluaran() {
                   <div key={cat.name} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">{cat.emoji}</span>
-                        <span className="text-sm font-semibold">{cat.name}</span>
+                        <span className="text-lg sm:text-xl">{cat.emoji}</span>
+                        <span className="text-base sm:text-sm font-semibold">{cat.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="secondary"
-                          className="font-['DM_Mono'] text-xs"
+                          className="font-['DM_Mono'] text-xs sm:text-[11px]"
                           style={{ backgroundColor: `${cat.color}20`, color: cat.color } as CSSProperties}
                         >
                           {formatRupiah(cat.spent)}

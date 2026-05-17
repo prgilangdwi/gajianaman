@@ -195,7 +195,7 @@ export default function Riwayat() {
           {isLoading ? (
             <div className="space-y-3">
               {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b last:border-0">
+                <div key={i} className="flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto border-b last:border-0">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
                     <div className="space-y-1">
@@ -219,22 +219,22 @@ export default function Riwayat() {
                 const meta = getCatMeta(tx.category);
                 const isIncome = tx.type === 'income';
                 return (
-                  <div key={tx.id} className="flex items-center justify-between py-3">
+                  <div key={tx.id} className="flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg flex-shrink-0">
                         {meta.emoji}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">
+                        <p className="text-base sm:text-sm font-semibold truncate">
                           {tx.note || tx.category}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs sm:text-[12px] text-muted-foreground">
                             {formatDateShort(tx.date)}
                           </span>
                           <Badge
                             variant="secondary"
-                            className="text-[10px] h-4 px-1.5"
+                            className="text-[11px] sm:text-[10px] h-5 sm:h-4 px-1.5"
                             style={{
                               backgroundColor: `${meta.color}20`,
                               color: meta.color,
@@ -252,7 +252,7 @@ export default function Riwayat() {
                         <ArrowDownRight className="w-4 h-4 text-muted-foreground" />
                       )}
                       <span
-                        className={`font-['DM_Mono'] font-bold text-sm ${
+                        className={`font-['DM_Mono'] font-bold text-base sm:text-sm ${
                           isIncome ? 'text-green-600' : 'text-foreground'
                         }`}
                       >

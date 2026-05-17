@@ -104,11 +104,11 @@ export default function Kalender() {
                     hover:border-primary/50
                   `}
                 >
-                  <span className={`text-xs font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
+                  <span className={`text-sm sm:text-xs font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
                     {day}
                   </span>
                   {expense > 0 && (
-                    <p className="text-[9px] font-mono text-muted-foreground leading-tight mt-0.5 truncate">
+                    <p className="text-[10px] sm:text-[9px] font-mono text-muted-foreground leading-tight mt-0.5 truncate">
                       {formatRupiah(expense).replace('Rp ', '')}
                     </p>
                   )}
@@ -118,7 +118,7 @@ export default function Kalender() {
           </div>
 
           {/* Summary row */}
-          <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-base sm:text-sm text-muted-foreground">
             <span>Total bulan ini: <span className="font-semibold text-foreground">{formatRupiah(totalMonth)}</span></span>
             {worstDate && <span>Hari termahal: <span className="font-semibold text-foreground">Tgl {new Date(worstDate + 'T00:00:00').getDate()} ({formatRupiah(worstAmount)})</span></span>}
           </div>
@@ -138,12 +138,12 @@ export default function Kalender() {
               <p className="text-sm text-muted-foreground">Tidak ada transaksi.</p>
             ) : (
               selectedTxs.map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-1 border-b last:border-0">
-                  <div>
-                    <p className="text-sm font-medium">{t.category}</p>
-                    {t.note && <p className="text-xs text-muted-foreground">{t.note}</p>}
+                <div key={t.id} className="flex items-center justify-between py-3 sm:py-2 min-h-[48px] sm:min-h-auto border-b last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-base sm:text-sm font-medium truncate">{t.category}</p>
+                    {t.note && <p className="text-xs text-muted-foreground truncate">{t.note}</p>}
                   </div>
-                  <span className={`text-sm font-mono font-semibold ${t.type === 'expense' ? 'text-red-500' : 'text-green-600'}`}>
+                  <span className={`text-base sm:text-sm font-mono font-semibold ml-2 flex-shrink-0 ${t.type === 'expense' ? 'text-red-500' : 'text-green-600'}`}>
                     {t.type === 'expense' ? '-' : '+'}{formatRupiah(Number(t.amount))}
                   </span>
                 </div>
