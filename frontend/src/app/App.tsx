@@ -17,6 +17,7 @@ import LinkTelegram from './pages/LinkTelegram';
 import WalletPage from './pages/Wallet';
 import Kalender from './pages/Kalender';
 import Langganan from './pages/Langganan';
+import Landing from './pages/Landing';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -32,7 +33,7 @@ function SmartHome() {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   if (user) return <Navigate to="/overview" replace />;
-  return <Navigate to="/login" replace />;
+  return <Landing />;
 }
 
 export default function App() {
