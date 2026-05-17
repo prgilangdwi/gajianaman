@@ -12,26 +12,10 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
+import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah } from '@/lib/utils';
 import { format, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-
-const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
-  'Food & Dining': { emoji: '🍔', color: '#f59e0b' },
-  'Food': { emoji: '🍔', color: '#f59e0b' },
-  'Transport': { emoji: '🚗', color: '#3b82f6' },
-  'Groceries': { emoji: '🛒', color: '#10b981' },
-  'Shopping': { emoji: '🛍️', color: '#ec4899' },
-  'Bills & Utilities': { emoji: '📱', color: '#8b5cf6' },
-  'Bills': { emoji: '📱', color: '#8b5cf6' },
-  'Health': { emoji: '🏥', color: '#ef4444' },
-  'Entertainment': { emoji: '🎬', color: '#f97316' },
-  'Education': { emoji: '📚', color: '#06b6d4' },
-};
-
-function getCatMeta(category: string) {
-  return CATEGORY_META[category] ?? { emoji: '💰', color: '#94a3b8' };
-}
 
 function SkeletonCard() {
   return (
@@ -92,7 +76,7 @@ export default function Overview() {
     return Object.entries(map)
       .map(([name, spent]) => {
         const budget = budgets.find((b) => b.category === name)?.amount ?? 0;
-        return { name, spent, budget, ...getCatMeta(name) };
+        return { name, spent, budget, ...getCategoryMeta(name) };
       })
       .sort((a, b) => b.spent - a.spent)
       .slice(0, 6);
@@ -321,7 +305,7 @@ export default function Overview() {
                 <p className="text-sm text-muted-foreground text-center py-8">Belum ada transaksi</p>
               ) : (
                 recentTx.map((tx) => {
-                  const meta = getCatMeta(tx.category);
+                  const meta = getCategoryMeta(tx.category);
                   return (
                     <div key={tx.id} className="flex items-center justify-between py-2 border-b last:border-0">
                       <div className="flex items-center gap-3">
