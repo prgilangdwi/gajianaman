@@ -110,8 +110,8 @@ export default function Overview() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-3 sm:space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function Overview() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Wallet Filter */}
       <div className="flex flex-wrap items-center gap-3">
         <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
@@ -136,7 +136,7 @@ export default function Overview() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {kpiData.map((kpi) => {
           const Icon = kpi.icon;
           const TrendIcon = kpi.trend === 'up' ? ArrowUpRight : ArrowDownRight;
@@ -176,7 +176,7 @@ export default function Overview() {
       )}
 
       {/* Category Progress & Donut Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Category Spending</CardTitle>
@@ -294,7 +294,7 @@ export default function Overview() {
       </Card>
 
       {/* Recent Transactions & Savings Goals */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Recent Transactions</CardTitle>
@@ -334,7 +334,7 @@ export default function Overview() {
             <CardTitle>Savings Goals</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-6">
               {goals.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Belum ada goals. Tambahkan di halaman Goals!</p>
               ) : (
