@@ -103,7 +103,7 @@ export default function Pengeluaran() {
       </div>
 
       {/* KPI Card */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground">
@@ -137,11 +137,11 @@ export default function Pengeluaran() {
       {/* Horizontal Bar Chart */}
       {categoryData.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Pengeluaran per Kategori</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Pengeluaran per Kategori</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={Math.max(categoryData.length * 44, 140)}>
+            <ResponsiveContainer width="100%" height={Math.max(categoryData.length * 40, 120)}>
               <BarChart
                 data={categoryData}
                 layout="vertical"
