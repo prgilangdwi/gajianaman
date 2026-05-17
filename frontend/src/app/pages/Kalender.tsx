@@ -120,7 +120,7 @@ export default function Kalender() {
           {/* Summary row */}
           <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>Total bulan ini: <span className="font-semibold text-foreground">{formatRupiah(totalMonth)}</span></span>
-            {worstDate && <span>Hari termahal: <span className="font-semibold text-foreground">Tgl {new Date(worstDate).getDate()} ({formatRupiah(worstAmount)})</span></span>}
+            {worstDate && <span>Hari termahal: <span className="font-semibold text-foreground">Tgl {new Date(worstDate + 'T00:00:00').getDate()} ({formatRupiah(worstAmount)})</span></span>}
           </div>
         </CardContent>
       </Card>
@@ -156,9 +156,9 @@ export default function Kalender() {
       {/* Legend */}
       <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border" /> Tidak ada</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100" /> &lt; Rp 100rb</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100" /> {'<'} Rp 100rb</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100" /> Rp 100–500rb</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100" /> &gt; Rp 500rb</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100" /> {'>'} Rp 500rb</span>
       </div>
     </div>
   );
