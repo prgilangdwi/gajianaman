@@ -1009,6 +1009,107 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     )
 
 
+async def cmd_insights(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show financial insights: spending patterns, budget recommendations, forecast."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        # Get transactions from the past 3 months
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        # Filter to last 3 months
+        three_months_ago = now - timedelta(days=90)
+        recent_txs = [t for t in txs if datetime.fromisoformat(t.date) >= three_months_ago]
+
+        if not recent_txs:
+            await update.message.reply_text(
+                "📊 *Insights*\n\n"
+                "Belum ada transaksi untuk dianalisis.\n"
+                "Mulai catat transaksi dengan `/add` atau `/income`!",
+                parse_mode='Markdown'
+            )
+            return
+
+        # Calculate spending patterns (3-month comparison)
+        monthly_spending = {}
+        for i in range(3):
+            m = (current_month - i - 1 + 12) % 12 + 1
+            y = current_year - (1 if current_month - i - 1 < 0 else 0)
+            monthly_spending[f"{y}-{m:02d}"] = {}
+
+        for tx in recent_txs:
+            tx_date = datetime.fromisoformat(tx.date)
+            tx_month = f"{tx_date.year}-{tx_date.month:02d}"
+            if tx_month in monthly_spending and tx.type == "expense":
+                cat = tx.category or "Other"
+                if cat not in monthly_spending[tx_month]:
+                    monthly_spending[tx_month][cat] = 0
+                monthly_spending[tx_month][cat] += float(tx.amount)
+
+        # Get top categories
+        all_cats = {}
+        for month_data in monthly_spending.values():
+            for cat, amt in month_data.items():
+                if cat not in all_cats:
+                    all_cats[cat] = []
+                all_cats[cat].append(amt)
+
+        top_cats = sorted(all_cats.items(), key=lambda x: sum(x[1]), reverse=True)[:3]
+
+        # Current month expenses
+        current_month_txs = [t for t in txs if datetime.fromisoformat(t.date).month == current_month and t.type == "expense"]
+        current_spent = sum(float(t.amount) for t in current_month_txs)
+        day_of_month = now.day
+        days_in_month = calendar.monthrange(current_year, current_month)[1]
+        daily_avg = current_spent / day_of_month if day_of_month > 0 else 0
+        projected_month_end = int(daily_avg * days_in_month)
+
+        # Build message
+        msg = "📊 *Financial Insights*\n\n"
+        msg += f"💰 *Bulan Ini*\n"
+        msg += f"  Sudah keluar: {fmt_currency(int(current_spent))}\n"
+        msg += f"  Rata-rata/hari: {fmt_currency(int(daily_avg))}\n"
+        msg += f"  Proyeksi akhir: {fmt_currency(projected_month_end)}\n"
+        msg += f"  Hari sisa: {days_in_month - day_of_month}\n\n"
+
+        if top_cats:
+            msg += "🏆 *Top Categories (3 bulan)*\n"
+            for cat, amounts in top_cats:
+                avg = sum(amounts) / len(amounts)
+                msg += f"  • {cat}: {fmt_currency(int(avg))}/bulan\n"
+            msg += "\n"
+
+        msg += "📈 *Tips*\n"
+        if projected_month_end > 0:
+            monthly_avg = sum(float(t.amount) for t in txs if t.type == "expense") / max(1, len([t for t in txs if t.type == "expense"]))
+            if projected_month_end > monthly_avg * 1.2:
+                msg += "  ⚠️ Proyeksi bulanmu lebih tinggi dari biasanya.\n"
+            else:
+                msg += "  ✅ Pengeluaran bulanmu sesuai target.\n"
+
+        msg += "\n🌐 Lihat analisis lengkap di Dashboard!\n"
+        msg += "[Buka Dashboard](https://gajianam.com)"
+
+        await update.message.reply_text(msg, parse_mode='Markdown', disable_web_page_preview=True)
+
+
 # ── /splitbill ConversationHandler ───────────────────────────────────────────
 
 SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)
