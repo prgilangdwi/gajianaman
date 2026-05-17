@@ -1155,6 +1155,9 @@ async def handle_split_callbacks(update: Update, context: ContextTypes.DEFAULT_T
             from db.operations import get_split_bill_by_token
             record = await get_split_bill_by_token(session, token)
         if record:
+            if record['user_id'] != user_id:
+                await query.answer("Kamu bukan yang buat split bill ini.", show_alert=True)
+                return
             parts = record['participants']
             if parts:
                 my_amount = parts[0]['amount'] if isinstance(parts[0], dict) else 0
