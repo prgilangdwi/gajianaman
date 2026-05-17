@@ -170,7 +170,7 @@ export default function Budget() {
   return (
     <div className="space-y-6">
       {/* Summary KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {[
           { label: 'Total Budget', value: formatRupiah(totalBudget), color: 'text-foreground', isAmount: true },
           { label: 'Total Terpakai', value: formatRupiah(totalUsed), color: 'text-orange-600', isAmount: true },
