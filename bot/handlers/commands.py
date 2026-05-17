@@ -1238,6 +1238,95 @@ async def cmd_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+async def cmd_trends(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show 3-month spending trends by category."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        # Get transactions from the past 3 months
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        # Organize by month
+        three_months = {}
+        for i in range(3):
+            m = (current_month - i - 1 + 12) % 12 + 1
+            y = current_year - (1 if current_month - i - 1 < 0 else 0)
+            month_key = f"{y}-{m:02d}"
+            three_months[month_key] = {}
+
+        for tx in txs:
+            if tx.type != "expense":
+                continue
+            tx_date = datetime.fromisoformat(tx.date)
+            month_key = f"{tx_date.year}-{tx_date.month:02d}"
+            if month_key in three_months:
+                cat = tx.category or "Other"
+                if cat not in three_months[month_key]:
+                    three_months[month_key][cat] = 0
+                three_months[month_key][cat] += float(tx.amount)
+
+        # Calculate trends
+        all_categories = set()
+        for month_data in three_months.values():
+            all_categories.update(month_data.keys())
+
+        if not all_categories:
+            await update.message.reply_text(
+                "Belum ada pengeluaran dalam 3 bulan terakhir."
+            )
+            return
+
+        # Build message
+        msg = "📈 *Tren Pengeluaran — 3 Bulan Terakhir*\n\n"
+
+        for cat in sorted(all_categories):
+            amounts = [
+                three_months[mk].get(cat, 0)
+                for mk in sorted(three_months.keys(), reverse=True)
+            ]
+            total = sum(amounts)
+            if total == 0:
+                continue
+
+            trend_line = " → ".join(
+                fmt_currency(int(amt)) if amt > 0 else "—"
+                for amt in amounts
+            )
+
+            # Determine trend
+            if len(amounts) >= 2 and amounts[0] > 0 and amounts[1] > 0:
+                change = ((amounts[0] - amounts[1]) / amounts[1]) * 100
+                if change > 10:
+                    arrow = "📈"
+                elif change < -10:
+                    arrow = "📉"
+                else:
+                    arrow = "→"
+            else:
+                arrow = "→"
+
+            msg += f"{arrow} *{cat}*\n   {trend_line}\n"
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
 # ── /splitbill ConversationHandler ───────────────────────────────────────────
 
 SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)

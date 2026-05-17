@@ -16,7 +16,7 @@ from telegram.ext import (
 from bot.handlers.commands import (
     cmd_start, cmd_add, cmd_income, cmd_summary, cmd_history,
     cmd_budget, cmd_goal, cmd_help, cmd_delete, cmd_stats, cmd_cancel,
-    cmd_tutorial, cmd_quickbudget, cmd_commands, cmd_wallet, cmd_insights, cmd_notify, cmd_csv,
+    cmd_tutorial, cmd_quickbudget, cmd_commands, cmd_wallet, cmd_insights, cmd_notify, cmd_csv, cmd_trends,
     get_splitbill_handler,
 )
 from bot.handlers.callbacks import handle_callback
@@ -79,6 +79,7 @@ def main():
     app.add_handler(CommandHandler("insights", cmd_insights))
     app.add_handler(CommandHandler("notify", cmd_notify))
     app.add_handler(CommandHandler("csv", cmd_csv))
+    app.add_handler(CommandHandler("trends", cmd_trends))
 
     # Inline keyboard callbacks
     app.add_handler(CallbackQueryHandler(handle_callback))
