@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '../components/ui/accordion';
@@ -81,7 +82,15 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/light-logo.png" alt="Gajian Aman" className="w-8 h-8" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <div className="w-8 h-8">
+              <OptimizedImage
+                src="/light-logo.png"
+                alt="Gajian Aman"
+                width={32}
+                height={32}
+                priority
+              />
+            </div>
             <span className="font-extrabold tracking-tight">Gajian Aman</span>
           </div>
           <div className="flex items-center gap-3">

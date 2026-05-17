@@ -16,10 +16,25 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router'],
           charts: ['recharts'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-select', 'lucide-react'],
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tooltip',
+            'lucide-react',
+          ],
           supabase: ['@supabase/supabase-js'],
           motion: ['motion'],
+          pdf: ['html2pdf.js'],
         },
+      },
+    },
+    chunkSizeWarningLimit: 400,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
       },
     },
   },
