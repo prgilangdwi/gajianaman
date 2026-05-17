@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
+import { toast } from 'sonner';
 import {
   LineChart,
   Line,
@@ -20,6 +22,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useInsights } from '@/hooks/data/useInsights';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
+import { exportLaporanToPDF } from '@/lib/pdfExport';
 import type { MonthlyPoint, CategoryTrendPoint } from '@/hooks/data/useLaporanData';
 
 interface HealthScore {
@@ -61,6 +64,25 @@ export default function Laporan() {
     month,
     year,
   );
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(
+        new Date(year, month - 1),
+      );
+      await exportLaporanToPDF('laporan-content', {
+        filename: `Laporan-Keuangan-${monthName}.pdf`,
+        title: `Laporan Keuangan — ${monthName}`,
+      });
+      toast.success('Laporan berhasil didownload');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal export laporan');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const summary = useMemo(() => {
     if (monthlyData.length === 0) return null;
@@ -127,6 +149,27 @@ export default function Laporan() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Export Button */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Laporan Keuangan</h1>
+        <Button
+          onClick={handleExportPDF}
+          disabled={exporting}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          {exporting ? 'Mengunduh…' : 'Unduh PDF'}
+        </Button>
+      </div>
+
+      {/* Content wrapper for PDF export */}
+      <div id="laporan-content" className="space-y-6">
       {/* Health Score Card */}
       <Card className={`border-2 ${getHealthColor(healthScore.status)}`}>
         <CardHeader className="pb-3">
@@ -411,6 +454,7 @@ export default function Laporan() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }
