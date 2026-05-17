@@ -63,7 +63,7 @@ export function MobileNav({
       <nav className="flex-1 overflow-y-auto px-4 space-y-6">
         {/* Primary Section */}
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-1">MAIN</p>
+          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-2">MAIN</p>
           {sections.primary.map((item) => {
             const isActive = currentPath === item.path;
             const Icon = item.icon;
@@ -72,7 +72,7 @@ export function MobileNav({
                 key={item.path}
                 to={item.path}
                 onClick={onNavigate}
-                className={`flex items-center gap-3 px-3 py-2.5 min-h-[40px] rounded-lg transition-colors text-sm ${
+                className={`flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-lg transition-colors text-sm ${
                   isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -87,7 +87,7 @@ export function MobileNav({
 
         {/* Tools Section */}
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-1">TOOLS</p>
+          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-2">TOOLS</p>
           {sections.tools.map((item) => {
             const isActive = currentPath === item.path;
             const Icon = item.icon;
@@ -96,7 +96,7 @@ export function MobileNav({
                 key={item.path}
                 to={item.path}
                 onClick={onNavigate}
-                className={`flex items-center gap-3 px-3 py-2.5 min-h-[40px] rounded-lg transition-colors text-sm ${
+                className={`flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-lg transition-colors text-sm ${
                   isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -111,7 +111,7 @@ export function MobileNav({
 
         {/* Account Section */}
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-1">ACCOUNT</p>
+          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-2">ACCOUNT</p>
           {sections.account.map((item) => {
             const isActive = currentPath === item.path;
             const Icon = item.icon;
@@ -120,7 +120,7 @@ export function MobileNav({
                 key={item.path}
                 to={item.path}
                 onClick={onNavigate}
-                className={`flex items-center gap-3 px-3 py-2.5 min-h-[40px] rounded-lg transition-colors text-sm ${
+                className={`flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-lg transition-colors text-sm ${
                   isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'

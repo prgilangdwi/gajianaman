@@ -214,7 +214,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="p-4 lg:p-8 pb-24 lg:pb-8">
+        <main className="px-3 py-4 lg:p-8 pb-24 lg:pb-8">
           <div className="max-w-[1200px] mx-auto">
             <Outlet />
           </div>
@@ -224,7 +224,7 @@ export function Layout() {
       {/* FAB Button */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-40 lg:z-50"
+        className="fixed bottom-[88px] lg:bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center z-40 lg:z-50 hover:shadow-2xl"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         animate={{
@@ -241,7 +241,7 @@ export function Layout() {
 
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="flex items-center justify-around h-16 px-2">
+        <div className="flex items-center justify-around px-1">
           {navItems.slice(0, 5).map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -249,7 +249,7 @@ export function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] ${
+                className={`flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-lg transition-colors flex-1 min-h-[56px] ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
