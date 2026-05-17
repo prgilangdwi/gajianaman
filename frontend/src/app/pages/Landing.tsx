@@ -21,16 +21,16 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { step: '1', icon: '💬', title: 'Kirim pesan ke bot Telegram', desc: '/add 25000 makan siang — sesimple itu.' },
-  { step: '2', icon: '🤖', title: 'AI kategoriin otomatis', desc: 'Claude Haiku langsung tahu ini Food & Dining.' },
-  { step: '3', icon: '📊', title: 'Dashboard siap', desc: 'Buka web, lihat semua laporan dan tren keuanganmu.' },
+  { step: '1', icon: '📊', title: 'Buka dashboard web', desc: 'Daftar pakai Telegram ID atau Google dalam 30 detik.' },
+  { step: '2', icon: '💬', title: 'Catat via Telegram', desc: 'Ketik /add 25000 makan siang ke bot kapan aja, dimana aja.' },
+  { step: '3', icon: '📈', title: 'Lihat laporan real-time', desc: 'Dashboard langsung update. Lihat tren, budget, dan goals kamu.' },
 ];
 
 const COMPARISON = [
-  { item: 'Setup', ga: 'Instan, pakai Telegram', spreadsheet: 'Manual buat tabel', catatan: 'Manual tulis', buku: 'Manual tulis' },
+  { item: 'Setup', ga: 'Instan, 30 detik', spreadsheet: 'Manual buat tabel', catatan: 'Manual tulis', buku: 'Manual tulis' },
   { item: 'Kategorisasi', ga: 'AI otomatis ✅', spreadsheet: 'Manual ❌', catatan: 'Manual ❌', buku: 'Manual ❌' },
-  { item: 'Laporan', ga: 'Otomatis + download ✅', spreadsheet: 'Hitung manual ❌', catatan: 'Tidak ada ❌', buku: 'Tidak ada ❌' },
-  { item: 'Akses', ga: 'Telegram + Web ✅', spreadsheet: 'PC saja ⚠️', catatan: 'HP saja ⚠️', buku: 'Fisik saja ❌' },
+  { item: 'Laporan & Tren', ga: 'Real-time + download ✅', spreadsheet: 'Hitung manual ❌', catatan: 'Tidak ada ❌', buku: 'Tidak ada ❌' },
+  { item: 'Akses', ga: 'Web + Telegram ✅', spreadsheet: 'PC saja ⚠️', catatan: 'HP saja ⚠️', buku: 'Fisik saja ❌' },
   { item: 'Split Bill', ga: '✅', spreadsheet: '❌', catatan: '❌', buku: '❌' },
 ];
 
@@ -66,9 +66,9 @@ const PRICING = [
 
 const FAQ = [
   { q: 'Apakah Gajian Aman gratis?', a: 'Ya, ada plan Gratis tanpa batas waktu. Upgrade ke Starter atau Pro untuk fitur lebih lengkap.' },
-  { q: 'Bagaimana cara mulai?', a: 'Cari bot Gajian Aman di Telegram, kirim /start, dan mulai catat. Dashboard web langsung tersedia.' },
+  { q: 'Bagaimana cara mulai?', a: 'Buka web, daftar pakai Telegram ID atau Google. Atau langsung cari bot di Telegram & kirim /start untuk setup cepat.' },
   { q: 'Data saya aman?', a: 'Ya. Tersimpan di Supabase (PostgreSQL enterprise). Tidak dijual ke pihak ketiga.' },
-  { q: 'Bisa pakai tanpa Telegram?', a: 'Untuk mencatat transaksi perlu bot Telegram. Dashboard web bisa diakses secara terpisah.' },
+  { q: 'Apa bedanya web dan bot Telegram?', a: 'Web adalah dashboard utama untuk laporan, budget, & goals. Bot Telegram adalah cara praktis catat transaksi sehari-hari sambil chatting. Dua-duanya terintegrasi penuh.' },
   { q: 'Apa itu Gajian Credits?', a: 'Tidak ada lagi! Fitur AI sekarang berbasis plan langganan, bukan kredit terpisah.' },
 ];
 
@@ -105,7 +105,7 @@ export default function Landing() {
           <span className="text-primary">tapi duit ke mana?</span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
-          Catat, pantau, dan kelola keuanganmu dari Telegram &amp; Web.
+          Dashboard keuangan lengkap. Catat transaksi via Telegram untuk kemudahan sehari-hari.
           AI yang kategoriin, kamu yang kontrol. Simple banget.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

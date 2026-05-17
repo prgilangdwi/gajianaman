@@ -120,7 +120,7 @@ export default function Login() {
                 Gajian Aman
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1 font-body">
-                Kelola keuangan kamu dengan cerdas
+                Dashboard keuangan lengkap, catat transaksi via Telegram
               </p>
             </div>
           </CardHeader>
@@ -148,7 +148,7 @@ export default function Login() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-card px-3 text-muted-foreground">atau masuk dengan Telegram ID</span>
+                <span className="bg-card px-3 text-muted-foreground">atau gunakan Telegram ID</span>
               </div>
             </div>
 
@@ -186,7 +186,7 @@ export default function Login() {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Belum punya akun?{' '}
                 <span className="font-semibold text-primary">Kirim /start ke @GajianAmanBot</span>{' '}
-                di Telegram untuk mendaftar. Google login memerlukan link ke Telegram ID terlebih dahulu.
+                di Telegram, atau mulai langsung dengan Google. Semua terintegrasi otomatis.
               </p>
             </div>
 
