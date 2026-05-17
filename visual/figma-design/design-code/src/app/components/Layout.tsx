@@ -6,79 +6,61 @@ import {
   Home,
   TrendingDown,
   Target,
-  Star,
+  Sparkles,
   History,
   TrendingUp,
   LogOut,
   Bell,
   Plus,
   Menu,
-  X,
-  Eye,
-  EyeOff,
-  Calendar,
-  Users,
-  Wallet,
-  Crown,
-  Zap,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TransactionModal } from './TransactionModal';
-import { GajianAmanMark } from './GajianAmanMark';
-import { MobileNav } from './MobileNav';
-import { useAuth } from '@/hooks/useAuth';
-import { useMonthFilter } from '@/hooks/useMonthFilter';
-import { usePrivacy } from '@/hooks/usePrivacy';
 
 const navItems = [
-  { icon: Home,         label: 'Overview',    path: '/overview' },
+  { icon: Home, label: 'Overview', path: '/' },
   { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
-  { icon: Target,       label: 'Budget',      path: '/budget' },
-  { icon: Star,         label: 'Goals',       path: '/goals' },
-  { icon: History,      label: 'Riwayat',     path: '/riwayat' },
-  { icon: TrendingUp,   label: 'Tren',        path: '/tren' },
-  { icon: Calendar,     label: 'Kalender',    path: '/kalender' },
-  { icon: Users,        label: 'Split Bill',  path: '/split' },
-  { icon: Zap,          label: 'Gajian',      path: '/gajian' },
-  { icon: Wallet,       label: 'Dompet',      path: '/wallet' },
-  { icon: Crown,        label: 'Langganan',   path: '/langganan' },
+  { icon: Target, label: 'Budget', path: '/budget' },
+  { icon: Sparkles, label: 'Goals', path: '/goals' },
+  { icon: History, label: 'Riwayat', path: '/riwayat' },
+  { icon: TrendingUp, label: 'Tren', path: '/tren' },
 ];
 
 export function Layout() {
   const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const { selectedMonth, setSelectedMonth, monthOptions } = useMonthFilter();
-  const { isHidden, toggle } = usePrivacy();
-
-  const userInitials = (user?.name ?? 'U').slice(0, 2).toUpperCase();
-  const avatarSeed = user?.name ?? 'user';
 
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-[260px] lg:flex-col bg-sidebar">
         <div className="flex flex-col gap-y-6 px-6 py-8 h-full">
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <GajianAmanMark className="w-10 h-10" />
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-primary-foreground" />
+            </div>
             <div className="flex flex-col">
-              <h1 className="font-extrabold tracking-tight text-sidebar-foreground">Gajian Aman</h1>
-              <p className="text-xs text-sidebar-foreground/60 font-body">Safe Paycheck</p>
+              <h1 className="font-['Plus_Jakarta_Sans'] font-extrabold text-sidebar-foreground">Gajian Aman</h1>
+              <p className="text-xs text-sidebar-foreground/70">Safe Paycheck</p>
             </div>
           </div>
 
+          {/* User Greeting */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/30">
             <Avatar>
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
-              <AvatarFallback>{userInitials}</AvatarFallback>
+              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Gilang" />
+              <AvatarFallback>GI</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm text-sidebar-foreground">Halo, {user?.name ?? 'User'} 👋</p>
-              <p className="text-xs text-sidebar-foreground/60">ID: {user?.userId}</p>
+              <p className="text-sm text-sidebar-foreground">Halo, Gilang 👋</p>
+              <p className="text-xs text-sidebar-foreground/60">gilang@email.com</p>
             </div>
           </div>
 
+          {/* Navigation */}
           <nav className="flex-1 space-y-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -100,13 +82,13 @@ export function Layout() {
             })}
           </nav>
 
+          {/* Footer */}
           <div className="space-y-3 border-t border-sidebar-border pt-4">
             <p className="text-xs text-sidebar-foreground/50 text-center">
               Powered by Claude · Supabase
             </p>
             <Button
               variant="ghost"
-              onClick={logout}
               className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             >
               <LogOut className="w-5 h-5 mr-3" />
@@ -128,23 +110,21 @@ export function Layout() {
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
             <div className="flex items-center gap-2">
-              <GajianAmanMark className="w-8 h-8" variant="dark" />
-              <h1 className="font-bold tracking-tight">Gajian Aman</h1>
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <h1 className="font-bold">Gajian Aman</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="text-sm font-medium bg-transparent border-none focus:outline-none"
-            >
-              {monthOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
+            <select className="text-sm font-medium bg-transparent border-none focus:outline-none">
+              <option>Mei 2026</option>
+              <option>Apr 2026</option>
+              <option>Mar 2026</option>
             </select>
             <Avatar className="w-8 h-8">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
-              <AvatarFallback>{userInitials}</AvatarFallback>
+              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Gilang" />
+              <AvatarFallback>GI</AvatarFallback>
             </Avatar>
           </div>
         </div>
@@ -168,13 +148,63 @@ export function Layout() {
               className="w-[280px] h-full bg-sidebar"
               onClick={(e) => e.stopPropagation()}
             >
-              <MobileNav
-                navItems={navItems}
-                currentPath={location.pathname}
-                onNavigate={() => setIsMobileMenuOpen(false)}
-                user={user}
-                onLogout={logout}
-              />
+              <div className="flex flex-col gap-y-6 px-6 py-8 h-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                  <div className="flex flex-col">
+                    <h1 className="font-extrabold text-sidebar-foreground">Gajian Aman</h1>
+                    <p className="text-xs text-sidebar-foreground/70">Safe Paycheck</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/30">
+                  <Avatar>
+                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Gilang" />
+                    <AvatarFallback>GI</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm text-sidebar-foreground">Halo, Gilang 👋</p>
+                    <p className="text-xs text-sidebar-foreground/60">gilang@email.com</p>
+                  </div>
+                </div>
+
+                <nav className="flex-1 space-y-1">
+                  {navItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                          isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="font-semibold">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                <div className="space-y-3 border-t border-sidebar-border pt-4">
+                  <p className="text-xs text-sidebar-foreground/50 text-center">
+                    Powered by Claude · Supabase
+                  </p>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  >
+                    <LogOut className="w-5 h-5 mr-3" />
+                    Logout
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -191,30 +221,24 @@ export function Layout() {
               </h2>
             </div>
             <div className="flex items-center gap-4">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-2 rounded-lg border bg-input-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {monthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
+              <select className="px-3 py-2 rounded-lg border bg-input-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary">
+                <option>Mei 2026</option>
+                <option>Apr 2026</option>
+                <option>Mar 2026</option>
               </select>
-              <Button variant="ghost" size="icon" onClick={toggle} title={isHidden ? 'Tampilkan angka' : 'Sembunyikan angka'}>
-                {isHidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </Button>
               <Button variant="ghost" size="icon">
                 <Bell className="w-5 h-5" />
               </Button>
               <Avatar>
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
-                <AvatarFallback>{userInitials}</AvatarFallback>
+                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Gilang" />
+                <AvatarFallback>GI</AvatarFallback>
               </Avatar>
             </div>
           </div>
         </header>
 
-        <main className="p-4 lg:p-8 pb-24 lg:pb-8">
+        {/* Page Content */}
+        <main className="p-4 lg:p-8">
           <div className="max-w-[1200px] mx-auto">
             <Outlet />
           </div>
@@ -224,14 +248,14 @@ export function Layout() {
       {/* FAB Button */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-20 right-6 lg:bottom-8 lg:right-8 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-50"
+        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-50 hover:scale-110 transition-transform"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         animate={{
           boxShadow: [
-            '0 10px 30px rgba(74, 229, 74, 0.3)',
-            '0 10px 40px rgba(74, 229, 74, 0.55)',
-            '0 10px 30px rgba(74, 229, 74, 0.3)',
+            '0 10px 30px rgba(16, 185, 129, 0.3)',
+            '0 10px 40px rgba(16, 185, 129, 0.5)',
+            '0 10px 30px rgba(16, 185, 129, 0.3)',
           ],
         }}
         transition={{ duration: 2, repeat: Infinity }}
@@ -261,11 +285,8 @@ export function Layout() {
         </div>
       </nav>
 
-      <TransactionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSaved={() => setTimeout(() => window.location.reload(), 600)}
-      />
+      {/* Transaction Modal */}
+      <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

@@ -1,0 +1,17 @@
+https://oauth.telegram.org/.well-known/openid-configuration
+
+User Data Structure:
+All requested user information is returned directly in the ID token. After successful authentication, the decoded ID token will look like this:
+
+{
+  "iss": "https://oauth.telegram.org",
+  "aud": "123456789",
+  "sub": "1234123412341234123",
+  "iat": 1700000000,
+  "exp": 1700003600,
+  "id": 987654321,
+  "name": "John Doe",
+  "preferred_username": "johndoe",
+  "picture": "https://cdn4.telesco.pe/file...",
+  "phone_number": "971577777777"
+}

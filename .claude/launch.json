@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "C:\\Users\\Gilang Dwi\\OneDrive\\Documents\\00. Claude AI\\Claude Project\\4. Fintrack\\frontend",
+      "port": 5173
+    }
+  ]
+}

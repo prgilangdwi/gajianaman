@@ -1,0 +1,56 @@
+Gajian Aman (Fintrack) — Project Reference
+What it is: A personal finance tracker for Indonesian users — branded Gajian Aman. Users log transactions via a Telegram bot, and view reports via a React web dashboard.
+
+Architecture
+
+Two separate applications:
+
+1. Python Backend (bot + services)
+   ├── bot/          → Telegram bot (python-telegram-bot v20, async)
+   ├── db/           → Supabase/PostgreSQL (asyncpg for bot, psycopg2 for dashboard)
+   ├── services/     → Claude Haiku AI categorizer, message formatter
+   ├── scheduler/    → APScheduler weekly report (Monday 08:00)
+   └── dashboard/    → Streamlit dashboard (legacy, being replaced by frontend)
+
+2. React Frontend (modern web dashboard)
+   └── frontend/src/
+       ├── app/pages/    → Overview, Pengeluaran, Budget, Goals, Riwayat, Tren
+       ├── app/components/ → Layout, TransactionModal, shadcn/ui components
+       ├── hooks/        → useAuth, useTransactions, useBudgets, useGoals, useMonthFilter
+       └── lib/supabase.ts → Supabase JS client
+Tech Stack
+Layer	Tool
+Telegram Bot	python-telegram-bot v20 (async)
+AI Categorization	Claude Haiku (vision + text)
+Database	Supabase (PostgreSQL via PgBouncer)
+React Frontend	Vite + React 18 + TypeScript
+Styling	Tailwind CSS v4 + shadcn/ui (Radix UI)
+Charts	Recharts
+Auth	Supabase Auth (Google OAuth)
+Hosting (bot)	Railway
+Hosting (frontend)	Vercel
+Image parsing	Vercel serverless function (/api/parse-image.js) + Claude Haiku vision
+Key Features
+/add, /income, /budget, /goal Telegram commands
+Receipt photo upload → Claude Haiku reads image → shows parsed transaction for confirmation
+Backdated entries with @DD/MM syntax
+AI auto-categorizes transactions into Indonesian spending categories (Food, Transport, Bills, etc.)
+Weekly Telegram summary report
+React dashboard pages: Overview, Spending breakdown, Budget tracking, Goals, History, Trends
+Google OAuth login linked to Telegram user ID
+Known Issues / Active Work
+PgBouncer prepared statement errors — fixed via NullPool + simple query protocol (branch: fix/pgbouncer-prepared-statement-error)
+Dashboard migrating from Streamlit → React/Vite frontend
+Brand: "Gajian Aman" with custom color system applied
+Key Files
+bot/handlers/ — all Telegram command + message + photo handlers
+services/categorizer.py — Claude Haiku categorization prompt
+frontend/src/app/pages/Overview.tsx — main dashboard page
+frontend/api/parse-image.js — Vercel serverless image parsing endpoint
+db/schema.sql — full DB schema
+db/operations.py — all DB query functions
+Brand
+Name: Gajian Aman
+Colors: custom design token system in frontend/src/styles/theme.css
+Logo assets in logo/arc/
+You can paste this directly into a Claude Desktop project as a reference document. It covers the architecture, stack, key files, and current state well enough for Claude to give useful, context-aware help without needing to re-explore the codebase each time.

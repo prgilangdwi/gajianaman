@@ -1,0 +1,3 @@
+<script async src="https://oauth.telegram.org/js/telegram-login.js?5" data-client-id="8379572024" data-onauth="console.log(data)" data-request-access="write phone"></script>
+
+<button class="tg-auth-button" data-style="outlined">Sign In with Telegram</button>
