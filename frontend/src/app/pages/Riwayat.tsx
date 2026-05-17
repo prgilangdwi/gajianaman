@@ -24,25 +24,10 @@ import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredTransactions } from '@/hooks/data/useFilteredTransactions';
+import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { COPY } from '@/lib/copy';
-
-const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
-  'Food & Dining': { emoji: '🍔', color: '#f59e0b' },
-  'Food': { emoji: '🍔', color: '#f59e0b' },
-  'Transport': { emoji: '🚗', color: '#3b82f6' },
-  'Groceries': { emoji: '🛒', color: '#10b981' },
-  'Shopping': { emoji: '🛍️', color: '#ec4899' },
-  'Bills & Utilities': { emoji: '📱', color: '#8b5cf6' },
-  'Bills': { emoji: '📱', color: '#8b5cf6' },
-  'Health': { emoji: '🏥', color: '#ef4444' },
-  'Entertainment': { emoji: '🎬', color: '#f97316' },
-  'Education': { emoji: '📚', color: '#06b6d4' },
-};
-function getCatMeta(cat: string) {
-  return CATEGORY_META[cat] ?? { emoji: '💰', color: '#94a3b8' };
-}
 
 type FilterType = 'all' | 'income' | 'expense';
 
@@ -258,7 +243,7 @@ export default function Riwayat() {
           ) : (
             <div className="divide-y">
               {filtered.map((tx) => {
-                const meta = getCatMeta(tx.category);
+                const meta = getCategoryMeta(tx.category);
                 const isIncome = tx.type === 'income';
                 return (
                   <div key={tx.id} className="flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto">

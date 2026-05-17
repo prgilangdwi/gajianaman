@@ -18,29 +18,10 @@ import { useBudgets, upsertBudget } from '@/hooks/useBudgets';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
+import { getCategoryMeta, ALL_CATEGORIES } from '@/lib/categoryMetadata';
 import { formatRupiah } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import type { CSSProperties } from 'react';
-
-const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
-  'Food & Dining': { emoji: '🍔', color: '#f59e0b' },
-  'Food': { emoji: '🍔', color: '#f59e0b' },
-  'Transport': { emoji: '🚗', color: '#3b82f6' },
-  'Groceries': { emoji: '🛒', color: '#10b981' },
-  'Shopping': { emoji: '🛍️', color: '#ec4899' },
-  'Bills & Utilities': { emoji: '📱', color: '#8b5cf6' },
-  'Bills': { emoji: '📱', color: '#8b5cf6' },
-  'Health': { emoji: '🏥', color: '#ef4444' },
-  'Entertainment': { emoji: '🎬', color: '#f97316' },
-  'Education': { emoji: '📚', color: '#06b6d4' },
-};
-function getCatMeta(cat: string) {
-  return CATEGORY_META[cat] ?? { emoji: '💰', color: '#94a3b8' };
-}
-
-const ALL_CATEGORIES = Object.keys(CATEGORY_META).filter(
-  (k) => !['Food', 'Bills'].includes(k),
-);
 
 type BudgetStatus = 'safe' | 'warning' | 'over' | 'none';
 
@@ -120,7 +101,7 @@ export default function Budget() {
           pct,
           hasEntry,
           status: hasEntry ? getStatus(pct) : ('none' as const),
-          ...getCatMeta(cat),
+          ...getCategoryMeta(cat),
         };
       })
       .sort((a, b) => {
@@ -319,7 +300,7 @@ export default function Budget() {
                   <option value="">Pilih kategori...</option>
                   {ALL_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {getCatMeta(c).emoji} {c}
+                      {getCategoryMeta(c).emoji} {c}
                     </option>
                   ))}
                 </select>
