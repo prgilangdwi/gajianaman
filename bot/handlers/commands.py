@@ -1110,6 +1110,87 @@ async def cmd_insights(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, parse_mode='Markdown', disable_web_page_preview=True)
 
 
+async def cmd_notify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Check for unusual spending patterns and alert user."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        # Get recent transactions (last 7 days)
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=500,
+        )
+
+        seven_days_ago = now - timedelta(days=7)
+        recent_txs = [
+            t for t in txs
+            if datetime.fromisoformat(t.date) >= seven_days_ago and t.type == "expense"
+        ]
+
+        if not recent_txs:
+            await update.message.reply_text(
+                "✅ Gak ada pengeluaran signifikan dalam 7 hari terakhir."
+            )
+            return
+
+        # Calculate average by category
+        cat_totals = {}
+        cat_counts = {}
+        for tx in recent_txs:
+            cat = tx.category or "Other"
+            amt = float(tx.amount)
+            if cat not in cat_totals:
+                cat_totals[cat] = 0
+                cat_counts[cat] = 0
+            cat_totals[cat] += amt
+            cat_counts[cat] += 1
+
+        alerts = []
+
+        # Alert 1: Large individual transactions
+        large_txs = [t for t in recent_txs if float(t.amount) > 500000]
+        if large_txs:
+            for tx in sorted(large_txs, key=lambda x: float(x.amount), reverse=True)[:2]:
+                alerts.append(
+                    f"💰 *Pengeluaran besar* ({(now - datetime.fromisoformat(tx.date)).days}d lalu)\n"
+                    f"   {tx.note or tx.category}: {fmt_currency(int(float(tx.amount)))}"
+                )
+
+        # Alert 2: Categories with unusual activity
+        for cat in cat_totals:
+            total = cat_totals[cat]
+            count = cat_counts[cat]
+            daily_avg = total / 7
+            if daily_avg > 200000:  # More than 200k/day on average
+                alerts.append(
+                    f"⚠️ *Pengeluaran tinggi: {cat}*\n"
+                    f"   Total 7 hari: {fmt_currency(int(total))} ({count} transaksi)"
+                )
+
+        if alerts:
+            msg = "🔔 *Spending Alerts*\n\n"
+            msg += "\n\n".join(alerts)
+            msg += "\n\n💡 Cek dashboard untuk analisis lengkap!"
+        else:
+            msg = "✅ Pengeluaranmu stabil, gak ada yang aneh nih."
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
 # ── /splitbill ConversationHandler ───────────────────────────────────────────
 
 SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)
