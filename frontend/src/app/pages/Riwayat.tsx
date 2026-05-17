@@ -129,24 +129,24 @@ export default function Riwayat() {
     .reduce((s, t) => s + Number(t.amount), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Filters */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Cari catatan atau kategori…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-9 sm:h-10 text-sm"
             />
           </div>
           <Select
             value={typeFilter}
             onValueChange={(v) => setTypeFilter(v as FilterType)}
           >
-            <SelectTrigger className="w-full sm:w-[160px]">
+            <SelectTrigger className="w-full sm:w-[140px] h-9 sm:h-10 text-sm">
               <SelectValue placeholder="Semua Tipe" />
             </SelectTrigger>
             <SelectContent>
@@ -160,7 +160,7 @@ export default function Riwayat() {
 
         {/* Tag Filter */}
         {availableTags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {availableTags.map((tag) => (
               <button
                 key={tag}
@@ -212,8 +212,8 @@ export default function Riwayat() {
 
       {/* Transaction List */}
       <Card>
-        <CardHeader>
-          <CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">
             {filtered.length} Transaksi
             {search && ` · "${search}"`}
           </CardTitle>
@@ -310,7 +310,7 @@ export default function Riwayat() {
 
       {/* Footer summary */}
       {!isLoading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
