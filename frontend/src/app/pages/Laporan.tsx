@@ -24,6 +24,7 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
 import { exportLaporanToPDF } from '@/lib/pdfExport';
 import { ConfidenceTooltip } from '@/components/ConfidenceTooltip';
+import { SpendingComparison } from '@/components/SpendingComparison';
 import type { MonthlyPoint, CategoryTrendPoint } from '@/hooks/data/useLaporanData';
 
 interface HealthScore {
@@ -292,6 +293,15 @@ export default function Laporan() {
           )}
         </CardContent>
       </Card>
+
+      {/* Spending Comparison */}
+      {monthlyData.length >= 2 && (
+        <SpendingComparison
+          currentMonth={monthlyData[0]?.expenses || 0}
+          previousMonth={monthlyData[1]?.expenses || 0}
+          monthLabel={monthlyData[0]?.month || '—'}
+        />
+      )}
 
       {/* Category Breakdown Bar Chart (3 months) */}
       <Card>
