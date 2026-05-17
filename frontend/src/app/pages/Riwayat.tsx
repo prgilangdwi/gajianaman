@@ -23,6 +23,7 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
+import { useFilteredTransactions } from '@/hooks/data/useFilteredTransactions';
 import { formatRupiah } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { COPY } from '@/lib/copy';
@@ -129,21 +130,11 @@ export default function Riwayat() {
     return Array.from(tags).sort();
   }, [filteredTransactions]);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return filteredTransactions.filter((t) => {
-      const matchType = typeFilter === 'all' || t.type === typeFilter;
-      const matchSearch =
-        !q ||
-        (t.note ?? '').toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q) ||
-        (t.subcategory ?? '').toLowerCase().includes(q);
-      const matchTags =
-        selectedTags.size === 0 ||
-        (Array.isArray(t.tags) && t.tags.some((tag) => selectedTags.has(tag)));
-      return matchType && matchSearch && matchTags;
-    });
-  }, [filteredTransactions, search, typeFilter, selectedTags]);
+  const filtered = useFilteredTransactions(filteredTransactions, {
+    search,
+    type: typeFilter === 'all' ? 'all' : typeFilter,
+    tags: selectedTags,
+  });
 
   const totalIncome = filtered
     .filter((t) => t.type === 'income')
