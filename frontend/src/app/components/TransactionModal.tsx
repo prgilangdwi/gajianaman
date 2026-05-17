@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Zap, Camera, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -10,6 +9,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
+import { useTransactionForm } from '@/hooks/useTransactionForm';
+import { TransactionForm } from './TransactionForm';
 import { COPY } from '@/lib/copy';
 
 const categories = [
@@ -51,19 +52,14 @@ interface TransactionModalProps {
 
 export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalProps) {
   const { user } = useAuth();
-  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const { wallets } = useWallets(user?.userId);
+  const form = useTransactionForm();
+
   const [activeTab, setActiveTab] = useState('ai');
   const [isParsingAI, setIsParsingAI] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [parsedData, setParsedData] = useState<ParsedTx | null>(null);
-
-  const [transactionType, setTransactionType] = useState<'expense' | 'income'>('expense');
-  const [amount, setAmount] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [note, setNote] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Photo tab state
   const [photoPhase, setPhotoPhase] = useState<PhotoPhase>('idle');
@@ -71,10 +67,6 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [photoMediaType, setPhotoMediaType] = useState<string>('image/jpeg');
   const [photoResult, setPhotoResult] = useState<PhotoResult | null>(null);
-  const [photoAmount, setPhotoAmount] = useState('');
-  const [photoCategory, setPhotoCategory] = useState('');
-  const [photoNote, setPhotoNote] = useState('');
-  const [photoType, setPhotoType] = useState<'expense' | 'income'>('expense');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleParseAI = async () => {
@@ -107,7 +99,9 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
         if (plainMatch) parsedAmount = String(parseFloat(plainMatch[1].replace(/[.,]/g, '')));
       }
 
-      setParsedData({ type, amount: parsedAmount, category, note: aiInput, date: new Date().toISOString().split('T')[0] });
+      const parsed = { type, amount: parsedAmount, category, note: aiInput, date: new Date().toISOString().split('T')[0] };
+      setParsedData(parsed);
+      form.updateFromParsed(parsed);
     } finally {
       setIsParsingAI(false);
     }
@@ -155,10 +149,12 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
       }
 
       setPhotoResult(data as PhotoResult);
-      setPhotoAmount(String(data.amount ?? ''));
-      setPhotoCategory(data.category ?? '');
-      setPhotoNote(data.note ?? '');
-      setPhotoType(data.type ?? 'expense');
+      form.updateFromParsed({
+        amount: String(data.amount ?? ''),
+        category: data.category ?? '',
+        note: data.note ?? '',
+        type: data.type ?? 'expense',
+      });
       setPhotoPhase('confirm');
     } catch {
       toast.error('Gagal menghubungi server. Coba lagi.');
@@ -171,61 +167,54 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     setPhotoPreviewUrl(null);
     setPhotoBase64(null);
     setPhotoResult(null);
-    setPhotoAmount('');
-    setPhotoCategory('');
-    setPhotoNote('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSave = async () => {
     if (!user) return;
 
-    let txData: { type: string; amount: number; category: string; note?: string; date: string };
-
-    if (activeTab === 'ai' && parsedData) {
-      txData = { type: parsedData.type, amount: Number(parsedData.amount), category: parsedData.category, note: parsedData.note, date: parsedData.date };
-    } else if (activeTab === 'foto' && photoPhase === 'confirm') {
-      if (!photoAmount || !photoCategory) {
-        toast.error('Mohon lengkapi jumlah dan kategori');
-        return;
-      }
-      txData = { type: photoType, amount: Number(photoAmount), category: photoCategory, note: photoNote || undefined, date: new Date().toISOString().split('T')[0] };
-    } else {
-      if (!amount || !selectedCategory) {
-        toast.error('Mohon lengkapi jumlah dan kategori');
-        return;
-      }
-      txData = { type: transactionType, amount: Number(amount), category: selectedCategory, note: note || undefined, date };
-    }
-
-    if (txData.amount <= 0) {
-      toast.error('Jumlah harus lebih dari 0');
+    const validation = form.validate();
+    if (!validation.valid) {
+      validation.errors.forEach((err) => toast.error(err));
       return;
     }
 
     setIsSaving(true);
-    const { error } = await supabase.from('transactions').insert({ user_id: user.userId, ...txData, wallet_id: selectedWalletId || null });
-    setIsSaving(false);
+    try {
+      const insertData = {
+        user_id: user.userId,
+        type: form.form.type,
+        amount: Number(form.form.amount),
+        category: form.form.category,
+        subcategory: form.form.subcategory || null,
+        note: form.form.note || null,
+        date: form.form.date,
+        wallet_id: form.form.sourceWalletId || null,
+        ...(form.form.type === 'transfer' && {
+          wallet_destination_id: form.form.destinationWalletId || null,
+        }),
+      };
 
-    if (error) {
-      toast.error('Gagal menyimpan: ' + error.message);
-      return;
+      const { error } = await supabase.from('transactions').insert(insertData);
+
+      if (error) {
+        toast.error('Gagal menyimpan: ' + error.message);
+        return;
+      }
+
+      toast.success(COPY.success.transactionAdded);
+      onSaved?.();
+      handleClose();
+    } finally {
+      setIsSaving(false);
     }
-
-    toast.success(COPY.success.transactionAdded);
-    onSaved?.();
-    handleClose();
   };
 
   const handleClose = () => {
     setAiInput('');
     setParsedData(null);
-    setAmount('');
-    setSelectedCategory('');
-    setNote('');
-    setDate(new Date().toISOString().split('T')[0]);
-    setSelectedWalletId(null);
     resetPhoto();
+    form.reset();
     setActiveTab('ai');
     onClose();
   };
@@ -240,56 +229,90 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           <DialogTitle className="text-2xl font-bold tracking-tight">Tambah Transaksi</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); }} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            if (v === 'tabung') form.setType('savings');
+            else if (v === 'transfer') form.setType('transfer');
+            else if (v === 'ai' || v === 'foto') form.setType('expense');
+            setActiveTab(v);
+          }}
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="ai" className="gap-1.5">
               <Zap className="w-3.5 h-3.5" />
-              AI Input
+              AI
             </TabsTrigger>
             <TabsTrigger value="foto" className="gap-1.5">
               <Camera className="w-3.5 h-3.5" />
               Foto
             </TabsTrigger>
-            <TabsTrigger value="manual">Manual</TabsTrigger>
+            <TabsTrigger value="tabung">Tabung</TabsTrigger>
+            <TabsTrigger value="transfer">Transfer</TabsTrigger>
           </TabsList>
 
-          {/* ── AI Tab ── */}
+          {/* ── AI Input Tab ── */}
           <TabsContent value="ai" className="space-y-4 mt-6">
-            <div className="space-y-3">
-              <Label className="font-body">Ketik bebas, AI akan parsing untuk kamu</Label>
-              <Textarea
-                placeholder="contoh: beli kopi 25rb tadi pagi"
-                className="min-h-[120px] resize-none"
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-              />
-              <Button
-                onClick={handleParseAI}
-                disabled={isParsingAI || !aiInput.trim()}
-                className="w-full bg-primary hover:bg-primary-dark"
-              >
-                {isParsingAI ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Parsing...</>
-                ) : (
-                  <><Zap className="w-4 h-4 mr-2" />Parse dengan AI</>
-                )}
-              </Button>
-            </div>
-
-            {parsedData && (
-              <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-2">
-                <p className="text-sm font-semibold text-primary">Hasil Parsing:</p>
-                <div className="space-y-1 text-sm">
-                  <p><span className="text-muted-foreground font-body">Tipe:</span> <span className="font-medium capitalize">{parsedData.type}</span></p>
-                  <p><span className="text-muted-foreground font-body">Jumlah:</span> <span className="font-mono font-semibold">Rp {Number(parsedData.amount).toLocaleString('id-ID')}</span></p>
-                  <p><span className="text-muted-foreground font-body">Kategori:</span> <span className="font-medium">{categories.find((c) => c.id === parsedData.category)?.emoji} {parsedData.category}</span></p>
-                  <p><span className="text-muted-foreground font-body">Catatan:</span> <span className="font-medium">{parsedData.note}</span></p>
+            {!parsedData ? (
+              <div className="space-y-3">
+                <Label className="font-body">Ketik bebas, AI akan parsing untuk kamu</Label>
+                <Textarea
+                  placeholder="contoh: beli kopi 25rb tadi pagi"
+                  className="min-h-[120px] resize-none"
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                />
+                <Button
+                  onClick={handleParseAI}
+                  disabled={isParsingAI || !aiInput.trim()}
+                  className="w-full bg-primary hover:bg-primary-dark"
+                >
+                  {isParsingAI ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Parsing...</>
+                  ) : (
+                    <><Zap className="w-4 h-4 mr-2" />Parse dengan AI</>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-2">
+                  <p className="text-sm font-semibold text-primary">Hasil Parsing:</p>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="text-muted-foreground font-body">Tipe:</span> <span className="font-medium capitalize">{form.form.type}</span></p>
+                    <p><span className="text-muted-foreground font-body">Jumlah:</span> <span className="font-mono font-semibold">Rp {Number(form.form.amount).toLocaleString('id-ID')}</span></p>
+                    <p><span className="text-muted-foreground font-body">Kategori:</span> <span className="font-medium">{categories.find((c) => c.id === form.form.category)?.emoji} {form.form.category}</span></p>
+                  </div>
                 </div>
+                <TransactionForm
+                  form={form.form}
+                  onAmountChange={form.setAmount}
+                  onCategoryChange={form.setCategory}
+                  onNoteChange={form.setNote}
+                  onTypeChange={form.setType}
+                  onDateChange={form.setDate}
+                  onSourceWalletChange={form.setSourceWalletId}
+                  wallets={wallets}
+                  showType={false}
+                  showDate={true}
+                  showWallet={true}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setParsedData(null);
+                    setAiInput('');
+                  }}
+                >
+                  ← Kembali ke Input
+                </Button>
               </div>
             )}
           </TabsContent>
 
-          {/* ── Foto Tab ── */}
+          {/* ── Photo Tab ── */}
           <TabsContent value="foto" className="space-y-4 mt-6">
             <input
               ref={fileInputRef}
@@ -399,135 +422,81 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   </div>
                 )}
 
-                {/* Editable fields */}
-                <div className="space-y-1">
-                  <Label>Tipe</Label>
-                  <div className="flex gap-2">
-                    <Button type="button" variant={photoType === 'expense' ? 'default' : 'outline'} className="flex-1 h-9" onClick={() => setPhotoType('expense')}>Pengeluaran</Button>
-                    <Button type="button" variant={photoType === 'income' ? 'default' : 'outline'} className="flex-1 h-9" onClick={() => setPhotoType('income')}>Pemasukan</Button>
-                  </div>
-                </div>
+                {/* Editable fields using TransactionForm */}
+                <TransactionForm
+                  form={form.form}
+                  onAmountChange={form.setAmount}
+                  onCategoryChange={form.setCategory}
+                  onNoteChange={form.setNote}
+                  onTypeChange={form.setType}
+                  onDateChange={form.setDate}
+                  onSourceWalletChange={form.setSourceWalletId}
+                  wallets={wallets}
+                  showType={true}
+                  showDate={false}
+                  showWallet={true}
+                />
 
-                <div className="space-y-1">
-                  <Label>Jumlah</Label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-mono font-semibold text-muted-foreground">Rp</span>
-                    <Input
-                      type="text"
-                      className="pl-14 text-2xl font-mono font-bold h-14"
-                      value={Number(photoAmount).toLocaleString('id-ID')}
-                      onChange={(e) => setPhotoAmount(e.target.value.replace(/\D/g, ''))}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Kategori</Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setPhotoCategory(cat.id)}
-                        className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
-                          photoCategory === cat.id ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <span className="text-xl">{cat.emoji}</span>
-                        <span className="text-[9px] font-medium text-center leading-tight">{cat.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Catatan</Label>
-                  <Input
-                    placeholder="Catatan transaksi..."
-                    value={photoNote}
-                    onChange={(e) => setPhotoNote(e.target.value)}
-                  />
-                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={resetPhoto}
+                >
+                  ← Pilih Foto Lain
+                </Button>
               </div>
             )}
           </TabsContent>
 
-          {/* ── Manual Tab ── */}
-          <TabsContent value="manual" className="space-y-6 mt-6">
-            <div className="flex gap-2">
-              <Button type="button" variant={transactionType === 'expense' ? 'default' : 'outline'} className="flex-1" onClick={() => setTransactionType('expense')}>
-                Pengeluaran
-              </Button>
-              <Button type="button" variant={transactionType === 'income' ? 'default' : 'outline'} className="flex-1" onClick={() => setTransactionType('income')}>
-                Pemasukan
-              </Button>
+          {/* ── Savings Tab ── */}
+          <TabsContent value="tabung" className="space-y-6 mt-6">
+            <div className="p-4 rounded-xl bg-green-50 border border-green-200">
+              <p className="text-sm text-green-700 font-body">Catat penambahan tabungan atau investasi kamu di sini.</p>
             </div>
+            <TransactionForm
+              form={form.form}
+              onAmountChange={form.setAmount}
+              onCategoryChange={form.setCategory}
+              onNoteChange={form.setNote}
+              onTypeChange={form.setType}
+              onDateChange={form.setDate}
+              onSourceWalletChange={form.setSourceWalletId}
+              wallets={wallets}
+              showType={false}
+              showDate={true}
+              showWallet={true}
+            />
+          </TabsContent>
 
-            <div className="space-y-2">
-              <Label>Jumlah</Label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-mono font-semibold text-muted-foreground">Rp</span>
-                <Input
-                  type="text"
-                  placeholder="0"
-                  className="pl-16 text-3xl font-mono font-bold h-16"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
-                />
-              </div>
+          {/* ── Transfer Tab ── */}
+          <TabsContent value="transfer" className="space-y-6 mt-6">
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+              <p className="text-sm text-blue-700 font-body">Transfer uang antar wallet kamu untuk manajemen yang lebih baik.</p>
             </div>
-
-            <div className="space-y-2">
-              <Label>Kategori</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
-                      selectedCategory === category.id ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="text-2xl">{category.emoji}</span>
-                    <span className="text-[10px] font-medium text-center leading-tight">{category.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Catatan (opsional)</Label>
-              <Input placeholder="Makan siang di cafe..." value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tanggal</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-
-            {wallets.length > 0 && (
-              <div className="space-y-2">
-                <Label>Dari wallet mana? (opsional)</Label>
-                <select
-                  value={selectedWalletId ?? ''}
-                  onChange={(e) => setSelectedWalletId(e.target.value || null)}
-                  className="w-full px-3 py-2 rounded-lg border bg-input text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Pilih wallet...</option>
-                  {wallets.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}{w.is_primary ? ' ⭐' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <TransactionForm
+              form={form.form}
+              onAmountChange={form.setAmount}
+              onCategoryChange={form.setCategory}
+              onNoteChange={form.setNote}
+              onTypeChange={form.setType}
+              onDateChange={form.setDate}
+              onSourceWalletChange={form.setSourceWalletId}
+              onDestinationWalletChange={form.setDestinationWalletId}
+              wallets={wallets}
+              showType={false}
+              showDate={true}
+              showWallet={false}
+              sourceWalletLabel="Dari wallet"
+              destinationWalletLabel="Ke wallet"
+            />
           </TabsContent>
         </Tabs>
 
-        {/* Save button — hidden when photo is in idle/preview/analyzing */}
-        {!(activeTab === 'foto' && (photoPhase === 'idle' || photoPhase === 'preview' || photoPhase === 'analyzing')) && (
+        {/* Save button — hidden when photo is in idle/preview/analyzing or AI is waiting for parse */}
+        {!(
+          (activeTab === 'foto' && (photoPhase === 'idle' || photoPhase === 'preview' || photoPhase === 'analyzing')) ||
+          (activeTab === 'ai' && !parsedData)
+        ) && (
           <Button
             onClick={handleSave}
             disabled={isSaving || (activeTab === 'foto' && photoPhase !== 'confirm')}
