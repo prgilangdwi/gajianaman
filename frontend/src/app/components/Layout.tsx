@@ -224,17 +224,17 @@ export function Layout() {
       {/* FAB Button */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-20 right-6 lg:bottom-8 lg:right-8 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-50"
+        className="fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-40 lg:z-50"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         animate={{
           boxShadow: [
-            '0 10px 30px rgba(74, 229, 74, 0.3)',
-            '0 10px 40px rgba(74, 229, 74, 0.55)',
-            '0 10px 30px rgba(74, 229, 74, 0.3)',
+            '0 4px 20px rgba(74, 229, 74, 0.25)',
+            '0 8px 40px rgba(74, 229, 74, 0.4)',
+            '0 4px 20px rgba(74, 229, 74, 0.25)',
           ],
         }}
-        transition={{ duration: 2, repeat: Infinity }}
+        transition={{ duration: 2.5, repeat: Infinity }}
       >
         <Plus className="w-7 h-7 lg:w-8 lg:h-8" />
       </motion.button>
