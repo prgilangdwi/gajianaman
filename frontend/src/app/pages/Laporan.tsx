@@ -119,13 +119,13 @@ export default function Laporan() {
       {/* Health Score Card */}
       <Card className={`border-2 ${getHealthColor(healthScore.status)}`}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Skor Kesehatan Finansial</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Skor Kesehatan Finansial</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-end gap-4">
+          <div className="flex items-end gap-3 sm:gap-4">
             <div>
-              <div className="text-5xl font-bold">{Math.round(healthScore.score)}</div>
-              <p className="text-sm opacity-75">/100</p>
+              <div className="text-4xl sm:text-5xl font-bold">{Math.round(healthScore.score)}</div>
+              <p className="text-xs sm:text-sm opacity-75">/100</p>
             </div>
             <div className="flex-1">
               <p className="text-xl font-semibold mb-2">{getHealthLabel(healthScore.status)}</p>
@@ -141,7 +141,7 @@ export default function Laporan() {
               </div>
             </div>
           </div>
-          <div className="pt-2 text-sm">
+          <div className="text-xs sm:text-sm">
             <p>Tabungan: <span className="font-semibold">{healthScore.savingsRate.toFixed(1)}%</span> dari pemasukan</p>
           </div>
         </CardContent>
@@ -149,7 +149,7 @@ export default function Laporan() {
 
       {/* Summary KPIs */}
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
@@ -194,8 +194,8 @@ export default function Laporan() {
 
       {/* Income vs Expenses Line Chart (6 months) */}
       <Card>
-        <CardHeader>
-          <CardTitle>Income vs Pengeluaran — 6 Bulan</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">Income vs Pengeluaran — 6 Bulan</CardTitle>
         </CardHeader>
         <CardContent>
           {monthlyData.every((m) => m.income === 0 && m.expenses === 0) ? (
@@ -203,8 +203,8 @@ export default function Laporan() {
               Belum ada data transaksi
             </p>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={monthlyData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={monthlyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
                 <YAxis
@@ -240,8 +240,8 @@ export default function Laporan() {
 
       {/* Category Breakdown Bar Chart (3 months) */}
       <Card>
-        <CardHeader>
-          <CardTitle>Breakdown Kategori — 3 Bulan Terakhir</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">Breakdown Kategori — 3 Bulan</CardTitle>
         </CardHeader>
         <CardContent>
           {topCategories.length === 0 ? (
@@ -249,10 +249,10 @@ export default function Laporan() {
               Belum ada data pengeluaran
             </p>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart
                 data={categoryTrend}
-                margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
