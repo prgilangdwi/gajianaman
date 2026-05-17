@@ -34,12 +34,13 @@ async def insert_transaction(
     subcategory: str,
     note: str,
     confidence: str,
-    tx_date: date = None
+    tx_date: date = None,
+    wallet_id: str = None
 ):
     result = await session.execute(
         text("""
-            INSERT INTO transactions (user_id, amount, type, category, subcategory, note, ai_confidence, date)
-            VALUES (:user_id, :amount, :type, :category, :subcategory, :note, :confidence, :date)
+            INSERT INTO transactions (user_id, amount, type, category, subcategory, note, ai_confidence, date, wallet_id)
+            VALUES (:user_id, :amount, :type, :category, :subcategory, :note, :confidence, :date, :wallet_id)
             RETURNING id
         """),
         {
@@ -50,7 +51,8 @@ async def insert_transaction(
             "subcategory": subcategory,
             "note": note,
             "confidence": confidence,
-            "date": tx_date or date.today()
+            "date": tx_date or date.today(),
+            "wallet_id": wallet_id
         }
     )
     await session.commit()

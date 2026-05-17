@@ -15,7 +15,9 @@ from services.categorizer import categorize_transaction
 from services.formatter import (
     build_transaction_confirm,
     fmt_currency,
+    fmt_wallet_list,
 )
+from db.operations import get_wallets, create_wallet, get_wallet_by_name
 
 MONTH_MAP = {
     'jan': 1, 'january': 1, 'januari': 1,
@@ -111,6 +113,17 @@ def parse_amount(raw: str) -> float:
         num = re.sub(r"(ribu|rb|k)$", "", raw).replace(",", ".")
         return float(num) * 1_000
     return float(raw.replace(",", "").replace(".", ""))
+
+
+def parse_wallet_suffix(text: str) -> tuple[str, str | None]:
+    """Returns (cleaned_text, wallet_name_fragment). Removes wallet= or dari= from end of text."""
+    pattern = r'\s+(?:wallet|dari)=(\S+)\s*$'
+    match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+        wallet_frag = match.group(1)
+        cleaned = text[:match.start()].strip()
+        return cleaned, wallet_frag
+    return text, None
 
 
 def parse_backdate(note: str):
@@ -386,6 +399,21 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     note, tx_date = parse_backdate(parts[2])
+    note, wallet_frag = parse_wallet_suffix(note)
+    wallet_id = None
+
+    if wallet_frag:
+        async with AsyncSessionLocal() as session:
+            wallet = await get_wallet_by_name(session, user.id, wallet_frag)
+        if wallet:
+            wallet_id = str(wallet['id'])
+        else:
+            await update.message.reply_text(
+                f"Wallet '{wallet_frag}' gak ketemu nih. "
+                "Cek /wallet untuk lihat daftar walletmu."
+            )
+            return
+
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
     status_msg = await update.message.reply_text("🔍 AI sedang menganalisis transaksi...")
 
@@ -402,6 +430,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             note=note,
             confidence=result["confidence"],
             tx_date=tx_date,
+            wallet_id=wallet_id,
         )
 
     context.user_data["last_tx_id"] = tx_id
@@ -489,6 +518,21 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     note = parts[2]
+    note, wallet_frag = parse_wallet_suffix(note)
+    wallet_id = None
+
+    if wallet_frag:
+        async with AsyncSessionLocal() as session:
+            wallet = await get_wallet_by_name(session, user.id, wallet_frag)
+        if wallet:
+            wallet_id = str(wallet['id'])
+        else:
+            await update.message.reply_text(
+                f"Wallet '{wallet_frag}' gak ketemu nih. "
+                "Cek /wallet untuk lihat daftar walletmu."
+            )
+            return
+
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
 
     result = categorize_transaction(note)
@@ -504,6 +548,7 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
             subcategory=result["subcategory"],
             note=note,
             confidence=result["confidence"],
+            wallet_id=wallet_id,
         )
 
     context.user_data["last_tx_id"] = tx_id
@@ -919,3 +964,44 @@ async def cmd_quickbudget(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text("✅ Operasi dibatalkan.")
+
+
+# ─────────────────────────────────────────
+# /wallet — View and create wallets
+# ─────────────────────────────────────────
+@require_start
+async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    args = context.args or []
+
+    async with AsyncSessionLocal() as session:
+        wallets_raw = await get_wallets(session, user_id)
+
+    if args and args[0].lower() == 'buat' and len(args) >= 2:
+        wallet_name = args[1]
+        initial_balance = float(args[2]) if len(args) >= 3 else 0.0
+        wtype = (
+            'ewallet' if wallet_name.lower() in ['gopay', 'ovo', 'dana', 'shopeepay', 'linkaja']
+            else 'cash' if wallet_name.lower() == 'cash'
+            else 'bank'
+        )
+        async with AsyncSessionLocal() as session:
+            await create_wallet(session, user_id, wallet_name, wtype, len(wallets_raw) == 0, initial_balance)
+        await update.message.reply_text(
+            f"✅ Wallet *{wallet_name}* berhasil ditambahkan!", parse_mode='Markdown'
+        )
+        return
+
+    if not wallets_raw:
+        await update.message.reply_text(
+            "Kamu belum punya wallet nih! Tambah dulu:\n"
+            "/wallet buat BCA 5000000\n\n"
+            "Pilihan: BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana, ShopeePay, Cash"
+        )
+        return
+
+    wallets_with_balance = [{**w, 'balance': float(w.get('initial_balance', 0))} for w in wallets_raw]
+    await update.message.reply_text(
+        fmt_wallet_list(wallets_with_balance),
+        parse_mode='Markdown'
+    )
