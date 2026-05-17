@@ -247,9 +247,9 @@ export default function Goals() {
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Summary row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground">Total Goals</CardTitle>
@@ -288,7 +288,7 @@ export default function Goals() {
 
       {/* Goal cards */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
           {[0, 1, 2].map((i) => (
             <Card key={i}>
               <CardContent className="pt-6 space-y-3">
@@ -310,7 +310,7 @@ export default function Goals() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
           {goals.map((goal, idx) => (
             <GoalCard key={goal.id} goal={goal} index={idx} onRefetch={refetch} />
           ))}
