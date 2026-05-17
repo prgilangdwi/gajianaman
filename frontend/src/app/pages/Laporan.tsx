@@ -23,6 +23,7 @@ import { useInsights } from '@/hooks/data/useInsights';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
 import { exportLaporanToPDF } from '@/lib/pdfExport';
+import { ConfidenceTooltip } from '@/components/ConfidenceTooltip';
 import type { MonthlyPoint, CategoryTrendPoint } from '@/hooks/data/useLaporanData';
 
 interface HealthScore {
@@ -385,18 +386,7 @@ export default function Laporan() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-medium text-sm">{rec.category}</p>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${
-                          rec.confidence === 'high'
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : rec.confidence === 'medium'
-                            ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                            : 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {rec.confidence === 'high' ? '✓ Tinggi' : rec.confidence === 'medium' ? '◐ Sedang' : '○ Rendah'}
-                      </Badge>
+                      <ConfidenceTooltip level={rec.confidence} transactionCount={rec.transactionCount} />
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Pengeluaran rata-rata: {formatRupiah(rec.avgSpending)}

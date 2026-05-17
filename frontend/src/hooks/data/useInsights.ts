@@ -16,6 +16,7 @@ export interface BudgetRecommendation {
   avgSpending: number;
   daysOfHistory: number;
   confidence: 'high' | 'medium' | 'low';
+  transactionCount: number;
 }
 
 export interface SpendingForecast {
@@ -100,6 +101,7 @@ export function useInsights(
           avgSpending: p.avgMonthly,
           daysOfHistory: historyDays,
           confidence,
+          transactionCount: txCount,
         };
       })
       .sort((a, b) => b.avgSpending - a.avgSpending)
