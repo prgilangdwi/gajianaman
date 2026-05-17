@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -30,9 +30,36 @@ interface CategoryTrendPoint {
   [category: string]: number | string;
 }
 
+interface HealthScore {
+  score: number;
+  savingsRate: number;
+  status: 'excellent' | 'good' | 'fair' | 'needs-work';
+}
+
 const TOP_CAT_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ec4899'];
 
-export default function Tren() {
+function calculateHealthScore(monthlyData: MonthlyPoint[]): HealthScore {
+  if (monthlyData.length === 0) return { score: 0, savingsRate: 0, status: 'fair' };
+
+  const totalIncome = monthlyData.reduce((s, m) => s + m.income, 0);
+  const totalExpenses = monthlyData.reduce((s, m) => s + m.expenses, 0);
+  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+
+  let score = 50;
+  if (savingsRate >= 30) score += 30;
+  else if (savingsRate >= 20) score += 20;
+  else if (savingsRate >= 10) score += 10;
+
+  let status: 'excellent' | 'good' | 'fair' | 'needs-work' = 'fair';
+  if (score >= 80) status = 'excellent';
+  else if (score >= 60) status = 'good';
+  else if (score >= 40) status = 'fair';
+  else status = 'needs-work';
+
+  return { score: Math.min(100, score), savingsRate, status };
+}
+
+export default function Laporan() {
   const { user } = useAuth();
   const [monthlyData, setMonthlyData] = useState<MonthlyPoint[]>([]);
   const [categoryTrend, setCategoryTrend] = useState<CategoryTrendPoint[]>([]);
@@ -49,7 +76,6 @@ export default function Tren() {
       const months6 = Array.from({ length: 6 }, (_, i) => subMonths(now, 5 - i));
       const months3 = months6.slice(3);
 
-      // Fetch 6 months of transactions in one query
       const rangeStart = format(startOfMonth(months6[0]), 'yyyy-MM-dd');
       const rangeEnd = format(endOfMonth(months6[5]), 'yyyy-MM-dd');
 
@@ -62,7 +88,6 @@ export default function Tren() {
 
       const txList: Pick<Transaction, 'amount' | 'type' | 'category' | 'date'>[] = txAll ?? [];
 
-      // Build monthly income/expense totals
       const monthly: MonthlyPoint[] = months6.map((d) => {
         const label = format(d, 'MMM', { locale: idLocale });
         const mStr = format(d, 'yyyy-MM');
@@ -76,7 +101,6 @@ export default function Tren() {
         return { month: label, income, expenses };
       });
 
-      // Top 4 expense categories across last 3 months
       const catTotals: Record<string, number> = {};
       months3.forEach((d) => {
         const mStr = format(d, 'yyyy-MM');
@@ -91,7 +115,6 @@ export default function Tren() {
         .slice(0, 4)
         .map(([cat]) => cat);
 
-      // Build category trend for last 3 months
       const catTrend: CategoryTrendPoint[] = months3.map((d) => {
         const label = format(d, 'MMM', { locale: idLocale });
         const mStr = format(d, 'yyyy-MM');
@@ -116,10 +139,11 @@ export default function Tren() {
   const summary = useMemo(() => {
     if (monthlyData.length === 0) return null;
     const maxExpMonth = [...monthlyData].sort((a, b) => b.expenses - a.expenses)[0];
-    const avgSpend =
-      monthlyData.reduce((s, m) => s + m.expenses, 0) / monthlyData.length;
+    const avgSpend = monthlyData.reduce((s, m) => s + m.expenses, 0) / monthlyData.length;
     return { maxExpMonth, avgSpend };
   }, [monthlyData]);
+
+  const healthScore = useMemo(() => calculateHealthScore(monthlyData), [monthlyData]);
 
   const CustomTooltip = ({
     active,
@@ -143,10 +167,28 @@ export default function Tren() {
     );
   };
 
+  const getHealthColor = (status: string) => {
+    switch (status) {
+      case 'excellent': return 'bg-green-50 border-green-200 text-green-900';
+      case 'good': return 'bg-blue-50 border-blue-200 text-blue-900';
+      case 'fair': return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+      default: return 'bg-red-50 border-red-200 text-red-900';
+    }
+  };
+
+  const getHealthLabel = (status: string) => {
+    switch (status) {
+      case 'excellent': return 'Sangat Baik! 🎉';
+      case 'good': return 'Baik 👍';
+      case 'fair': return 'Cukup ⚠️';
+      default: return 'Perlu Perbaikan 📈';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {[0, 1, 2].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <Card key={i}>
             <CardContent className="pt-6">
               <div className="h-48 bg-muted rounded animate-pulse" />
@@ -159,6 +201,37 @@ export default function Tren() {
 
   return (
     <div className="space-y-6">
+      {/* Health Score Card */}
+      <Card className={`border-2 ${getHealthColor(healthScore.status)}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Skor Kesehatan Finansial</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-end gap-4">
+            <div>
+              <div className="text-5xl font-bold">{Math.round(healthScore.score)}</div>
+              <p className="text-sm opacity-75">/100</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-xl font-semibold mb-2">{getHealthLabel(healthScore.status)}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${
+                    healthScore.status === 'excellent' ? 'bg-green-500' :
+                    healthScore.status === 'good' ? 'bg-blue-500' :
+                    healthScore.status === 'fair' ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${healthScore.score}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="pt-2 text-sm">
+            <p>Tabungan: <span className="font-semibold">{healthScore.savingsRate.toFixed(1)}%</span> dari pemasukan</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary KPIs */}
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

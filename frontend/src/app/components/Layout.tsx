@@ -36,7 +36,7 @@ const navItems = [
   { icon: Target,       label: 'Budget',      path: '/budget' },
   { icon: Star,         label: 'Goals',       path: '/goals' },
   { icon: History,      label: 'Riwayat',     path: '/riwayat' },
-  { icon: TrendingUp,   label: 'Tren',        path: '/tren' },
+  { icon: TrendingUp,   label: 'Laporan',     path: '/laporan' },
   { icon: Calendar,     label: 'Kalender',    path: '/kalender' },
   { icon: Users,        label: 'Split Bill',  path: '/split' },
   { icon: Zap,          label: 'Gajian',      path: '/gajian' },

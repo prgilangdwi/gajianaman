@@ -10,7 +10,7 @@ import Pengeluaran from './pages/Pengeluaran';
 import Budget from './pages/Budget';
 import Goals from './pages/Goals';
 import Riwayat from './pages/Riwayat';
-import Tren from './pages/Tren';
+import Laporan from './pages/Laporan';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import LinkTelegram from './pages/LinkTelegram';
@@ -66,7 +66,7 @@ export default function App() {
                 <Route path="/budget" element={<Budget />} />
                 <Route path="/goals" element={<Goals />} />
                 <Route path="/riwayat" element={<Riwayat />} />
-                <Route path="/tren" element={<Tren />} />
+                <Route path="/laporan" element={<Laporan />} />
                 <Route path="/kalender" element={<Kalender />} />
                 <Route path="/split" element={<SplitBill />} />
                 <Route path="/gajian" element={<Gajian />} />
