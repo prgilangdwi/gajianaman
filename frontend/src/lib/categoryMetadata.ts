@@ -3,7 +3,22 @@ export interface CategoryMeta {
   color: string;
 }
 
-export const CATEGORY_META: Record<string, CategoryMeta> = {
+export const CATEGORIES = {
+  FOOD_DINING: 'Food & Dining',
+  FOOD: 'Food',
+  TRANSPORT: 'Transport',
+  GROCERIES: 'Groceries',
+  SHOPPING: 'Shopping',
+  BILLS_UTILITIES: 'Bills & Utilities',
+  BILLS: 'Bills',
+  HEALTH: 'Health',
+  ENTERTAINMENT: 'Entertainment',
+  EDUCATION: 'Education',
+} as const;
+
+export type CategoryKey = typeof CATEGORIES[keyof typeof CATEGORIES];
+
+export const CATEGORY_META: Record<CategoryKey, CategoryMeta> = {
   'Food & Dining': { emoji: '🍔', color: '#f59e0b' },
   'Food': { emoji: '🍔', color: '#f59e0b' },
   'Transport': { emoji: '🚗', color: '#3b82f6' },
