@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
@@ -17,24 +16,9 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
+import { useWalletStats } from '@/hooks/data/useWalletStats';
 import { formatRupiah } from '@/lib/utils';
 import type { CSSProperties } from 'react';
-
-const CATEGORY_META: Record<string, { emoji: string; color: string }> = {
-  'Food & Dining': { emoji: '🍔', color: '#f59e0b' },
-  'Food': { emoji: '🍔', color: '#f59e0b' },
-  'Transport': { emoji: '🚗', color: '#3b82f6' },
-  'Groceries': { emoji: '🛒', color: '#10b981' },
-  'Shopping': { emoji: '🛍️', color: '#ec4899' },
-  'Bills & Utilities': { emoji: '📱', color: '#8b5cf6' },
-  'Bills': { emoji: '📱', color: '#8b5cf6' },
-  'Health': { emoji: '🏥', color: '#ef4444' },
-  'Entertainment': { emoji: '🎬', color: '#f97316' },
-  'Education': { emoji: '📚', color: '#06b6d4' },
-};
-function getCatMeta(cat: string) {
-  return CATEGORY_META[cat] ?? { emoji: '💰', color: '#94a3b8' };
-}
 
 function WalletFilterBar({ wallets, walletId, setWalletId }: {
   wallets: import('@/lib/supabase').Wallet[];
@@ -82,21 +66,7 @@ export default function Pengeluaran() {
     ? transactions
     : transactions.filter((t) => t.wallet_id === walletId);
 
-  const expenses = filteredTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-
-  const categoryData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filteredTransactions
-      .filter((t) => t.type === 'expense')
-      .forEach((t) => {
-        map[t.category] = (map[t.category] ?? 0) + Number(t.amount);
-      });
-    return Object.entries(map)
-      .map(([name, spent]) => ({ name, spent, ...getCatMeta(name) }))
-      .sort((a, b) => b.spent - a.spent);
-  }, [filteredTransactions]);
-
-  const maxSpent = categoryData[0]?.spent ?? 1;
+  const { totalExpenses: expenses, categoryData, maxSpent } = useWalletStats(filteredTransactions);
 
   if (isLoading) {
     return (
