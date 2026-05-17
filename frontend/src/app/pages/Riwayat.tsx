@@ -51,7 +51,7 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
     >
       <option value="all">Semua Wallet</option>
       {wallets.map((w) => (
-        <option key={w.id} value={w.id}>{w.name}</option>
+        <option key={w.id} value={w.id}>{w.name}{w.is_primary ? ' ⭐' : ''}</option>
       ))}
     </select>
   );
