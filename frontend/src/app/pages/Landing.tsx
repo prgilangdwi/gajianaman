@@ -104,32 +104,51 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* 1. Hero */}
-      <section className="max-w-6xl mx-auto px-4 py-20 text-center">
-        <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
-          🇮🇩 Dibuat untuk pekerja Indonesia
-        </Badge>
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-          Udah gajian,<br />
-          <span className="text-primary">tapi duit ke mana?</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10">
-          Dashboard keuangan lengkap. Catat transaksi via Telegram untuk kemudahan sehari-hari.
-          AI yang kategoriin, kamu yang kontrol. Simple banget.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/login">
-            <Button size="lg" className="gap-2 px-8">
-              Coba Gratis <ChevronRight className="w-4 h-4" />
+      {/* 1. Hero with Dynamic Background Video */}
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+        {/* Background Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          poster="/aethera-studio-poster.jpg"
+        >
+          <source src="/aethera-studio.mp4" type="video/mp4" />
+        </video>
+
+        {/* Gradient Overlay for Text Readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background/80" />
+
+        {/* Hero Content */}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-20 text-center">
+          <Badge className="mb-6 bg-primary/90 text-primary-foreground border-primary/50">
+            🇮🇩 Dibuat untuk pekerja Indonesia
+          </Badge>
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-white drop-shadow-lg">
+            Udah gajian,<br />
+            <span className="text-cyan-400">tapi duit ke mana?</span>
+          </h1>
+          <p className="text-lg text-gray-100 max-w-xl mx-auto mb-10 drop-shadow-md">
+            Dashboard keuangan lengkap. Catat transaksi via Telegram untuk kemudahan sehari-hari.
+            AI yang kategoriin, kamu yang kontrol. Simple banget.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/login">
+              <Button size="lg" className="gap-2 px-8 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg">
+                Coba Gratis <ChevronRight className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-white/10 border-white/30 hover:bg-white/20 text-white"
+            >
+              Pelajari Lebih Lanjut
             </Button>
-          </Link>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            Pelajari Lebih Lanjut
-          </Button>
+          </div>
         </div>
       </section>
 
@@ -152,13 +171,28 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 3. Features */}
-      <section className="py-20">
-        <div className="max-w-6xl mx-auto px-4">
+      {/* 3. Features with Animated Background */}
+      <section className="relative py-20 overflow-hidden">
+        {/* Background Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-15 pointer-events-none"
+        >
+          <source src="/nexora-automation.mp4" type="video/mp4" />
+        </video>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-6xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Fitur Unggulan</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map((f) => (
-              <div key={f.title} className="p-6 rounded-2xl border bg-card hover:border-primary/50 transition-colors">
+              <div
+                key={f.title}
+                className="p-6 rounded-2xl border bg-card/95 hover:bg-card hover:border-primary/50 transition-all hover:shadow-lg backdrop-blur-sm"
+              >
                 <div className="text-4xl mb-3">{f.emoji}</div>
                 <h3 className="font-bold mb-1">{f.title}</h3>
                 <p className="text-sm text-muted-foreground">{f.desc}</p>
