@@ -528,3 +528,113 @@ async def get_split_bill_history(session: AsyncSession, user_id: int, limit: int
         {"uid": user_id, "limit": limit}
     )
     return [dict(row._mapping) for row in result.fetchall()]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADMIN OPERATIONS (Section 2: License & Admin Access)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def is_admin(session: AsyncSession, user_id: int) -> bool:
+    """Check if user has admin privileges"""
+    result = await session.execute(
+        text("SELECT is_admin FROM users WHERE user_id = :uid"),
+        {"uid": user_id}
+    )
+    row = result.fetchone()
+    return bool(row[0]) if row else False
+
+
+async def set_admin(session: AsyncSession, user_id: int, is_admin_flag: bool) -> dict:
+    """Grant or revoke admin privileges"""
+    result = await session.execute(
+        text("""
+            UPDATE users SET is_admin = :is_admin
+            WHERE user_id = :uid
+            RETURNING user_id, is_admin, email
+        """),
+        {"uid": user_id, "is_admin": is_admin_flag}
+    )
+    await session.commit()
+    row = result.fetchone()
+    return dict(row._mapping) if row else {}
+
+
+async def set_admin_by_email(session: AsyncSession, email: str, is_admin_flag: bool) -> dict:
+    """Grant or revoke admin privileges by email address"""
+    result = await session.execute(
+        text("""
+            UPDATE users SET is_admin = :is_admin
+            WHERE email = :email
+            RETURNING user_id, is_admin, email
+        """),
+        {"email": email, "is_admin": is_admin_flag}
+    )
+    await session.commit()
+    row = result.fetchone()
+    return dict(row._mapping) if row else {}
+
+
+async def log_admin_action(
+    session: AsyncSession,
+    admin_user_id: int,
+    action: str,
+    affected_user_id: int = None,
+    details: dict = None
+) -> dict:
+    """Log an admin action for audit trail"""
+    result = await session.execute(
+        text("""
+            INSERT INTO admin_audit_log (admin_user_id, action, affected_user_id, details)
+            VALUES (:admin_user_id, :action, :affected_user_id, :details)
+            RETURNING id, admin_user_id, action, affected_user_id, created_at
+        """),
+        {
+            "admin_user_id": admin_user_id,
+            "action": action,
+            "affected_user_id": affected_user_id,
+            "details": json.dumps(details) if details else None
+        }
+    )
+    await session.commit()
+    row = result.fetchone()
+    return dict(row._mapping) if row else {}
+
+
+async def get_admin_audit_log(session: AsyncSession, limit: int = 50, offset: int = 0) -> list:
+    """Retrieve admin audit log"""
+    result = await session.execute(
+        text("""
+            SELECT id, admin_user_id, action, affected_user_id, details, created_at
+            FROM admin_audit_log
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :offset
+        """),
+        {"limit": limit, "offset": offset}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def get_user_by_email(session: AsyncSession, email: str) -> dict | None:
+    """Get user by email address"""
+    result = await session.execute(
+        text("""
+            SELECT user_id, name, email, is_admin, tier, created_at
+            FROM users WHERE email = :email
+        """),
+        {"email": email}
+    )
+    row = result.fetchone()
+    return dict(row._mapping) if row else None
+
+
+async def get_all_admins(session: AsyncSession) -> list:
+    """Get all users with admin privileges"""
+    result = await session.execute(
+        text("""
+            SELECT user_id, name, email, is_admin, created_at
+            FROM users WHERE is_admin = true
+            ORDER BY created_at
+        """)
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
