@@ -99,36 +99,119 @@ Paragraf 3: satu saran praktis yang actionable.`
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Laporan Keuangan — ${monthNames[month-1]} ${year}</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
-    h1 { color: #10b981; font-size: 24px; }
-    h2 { font-size: 16px; color: #555; margin-top: 24px; }
-    .stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-    .stat .label { color: #666; }
-    .stat .value { font-weight: 700; font-family: monospace; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    @media print {
+      body { background: white; }
+      .page { box-shadow: none; margin: 0; padding: 0; }
+    }
+    .page {
+      background: white;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 60px 40px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 3px solid #10b981;
+      padding-bottom: 20px;
+    }
+    h1 { color: #10b981; font-size: 28px; margin-bottom: 8px; }
+    .period { color: #666; font-size: 14px; }
+    h2 { font-size: 16px; color: #333; margin: 32px 0 16px 0; font-weight: 600; }
+    .stats {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .stat:last-child { border-bottom: none; }
+    .stat-label { color: #666; font-size: 14px; }
+    .stat-value { font-weight: 700; font-family: 'Courier New', monospace; font-size: 15px; }
     .income { color: #10b981; }
     .expense { color: #ef4444; }
-    .narrative { background: #f9fafb; border-left: 4px solid #10b981; padding: 16px; margin-top: 24px; border-radius: 4px; line-height: 1.6; white-space: pre-wrap; }
-    .footer { margin-top: 40px; font-size: 12px; color: #aaa; text-align: center; }
+    .neutral { color: #1a1a1a; }
+    .narrative {
+      background: #f0fdf4;
+      border-left: 4px solid #10b981;
+      padding: 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+    .footer {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+    }
+    @media print {
+      body { padding: 0; margin: 0; }
+      .page { margin: 0; box-shadow: none; padding: 0 0 20px 0; }
+    }
   </style>
 </head>
 <body>
-  <h1>📊 Laporan Keuangan</h1>
-  <p style="color:#666">${monthNames[month-1]} ${year} — Gajian Aman</p>
-  <h2>Ringkasan</h2>
-  <div class="stat"><span class="label">Total Pemasukan</span><span class="value income">Rp ${totalIncome.toLocaleString('id-ID')}</span></div>
-  <div class="stat"><span class="label">Total Pengeluaran</span><span class="value expense">Rp ${totalExpense.toLocaleString('id-ID')}</span></div>
-  <div class="stat"><span class="label">Saldo Bersih</span><span class="value">Rp ${(totalIncome - totalExpense).toLocaleString('id-ID')}</span></div>
-  <div class="stat"><span class="label">Jumlah Transaksi</span><span class="value">${txs.length}</span></div>
-  <h2>Analisis AI</h2>
-  <div class="narrative">${narrative}</div>
-  <div class="footer">Dibuat oleh Gajian Aman · ${new Date().toLocaleDateString('id-ID')}</div>
+  <div class="page">
+    <div class="header">
+      <h1>📊 Laporan Keuangan</h1>
+      <p class="period">${monthNames[month-1]} ${year} — Gajian Aman</p>
+    </div>
+
+    <h2>Ringkasan Keuangan</h2>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">💰 Total Pemasukan</span>
+        <span class="stat-value income">Rp ${totalIncome.toLocaleString('id-ID')}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">💸 Total Pengeluaran</span>
+        <span class="stat-value expense">Rp ${totalExpense.toLocaleString('id-ID')}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">💵 Saldo Bersih</span>
+        <span class="stat-value neutral">Rp ${(totalIncome - totalExpense).toLocaleString('id-ID')}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">📝 Jumlah Transaksi</span>
+        <span class="stat-value neutral">${txs.length}</span>
+      </div>
+    </div>
+
+    <h2>💡 Analisis & Saran</h2>
+    <div class="narrative">${narrative}</div>
+
+    <div class="footer">
+      <p>Dibuat oleh Gajian Aman — ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <p style="margin-top: 8px;">Cetak atau simpan laporan ini sebagai PDF menggunakan fitur print browser Anda.</p>
+    </div>
+  </div>
 </body>
 </html>`;
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `inline; filename="laporan-${monthNames[month-1]}-${year}.html"`);
+    res.setHeader('Content-Disposition', `inline; filename="laporan-${monthNames[month-1].toLowerCase()}-${year}.html"`);
     return res.status(200).send(html);
   }
 
