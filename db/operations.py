@@ -842,3 +842,109 @@ async def update_transaction_metadata(
     await session.commit()
     row = result.fetchone()
     return dict(row._mapping) if row else {}
+
+
+# ── Subscription Management ────────────────────────────────────────────────────
+
+async def set_subscription_plan(
+    session: AsyncSession,
+    user_id: int,
+    plan: str,
+    expires_at: str = None
+) -> dict:
+    """Update user's subscription plan and expiry date"""
+    result = await session.execute(
+        text("""
+            UPDATE users
+            SET subscription_plan = :plan,
+                subscription_expires_at = :expires_at
+            WHERE user_id = :user_id
+            RETURNING user_id, subscription_plan, subscription_expires_at
+        """),
+        {"user_id": user_id, "plan": plan, "expires_at": expires_at}
+    )
+    await session.commit()
+    row = result.fetchone()
+    return dict(row._mapping) if row else {}
+
+
+async def confirm_payment(
+    session: AsyncSession,
+    user_id: int,
+    plan: str,
+    period: str,
+    price_paid: float,
+    payment_ref: str,
+    expires_at: str
+) -> dict:
+    """Record a successful payment in subscriptions audit log and update user plan"""
+    result = await session.execute(
+        text("""
+            INSERT INTO subscriptions (user_id, plan, period, price_paid, payment_ref, expires_at, is_active)
+            VALUES (:user_id, :plan, :period, :price_paid, :payment_ref, :expires_at, true)
+            RETURNING id, user_id, plan, expires_at, started_at
+        """),
+        {
+            "user_id": user_id,
+            "plan": plan,
+            "period": period,
+            "price_paid": price_paid,
+            "payment_ref": payment_ref,
+            "expires_at": expires_at
+        }
+    )
+    subscription = dict(result.fetchone()._mapping) if result.fetchone() else None
+
+    if subscription:
+        await set_subscription_plan(session, user_id, plan, expires_at)
+
+    return subscription
+
+
+async def check_subscription_expiry(session: AsyncSession, user_id: int) -> dict:
+    """Check if user's subscription has expired; return plan status"""
+    result = await session.execute(
+        text("""
+            SELECT
+              subscription_plan,
+              subscription_expires_at,
+              CASE
+                WHEN subscription_expires_at IS NULL THEN 'unlimited'
+                WHEN subscription_expires_at > NOW() THEN 'active'
+                ELSE 'expired'
+              END as status,
+              EXTRACT(DAY FROM (subscription_expires_at - NOW())) as days_left
+            FROM users
+            WHERE user_id = :user_id
+        """),
+        {"user_id": user_id}
+    )
+    row = result.fetchone()
+    return dict(row._mapping) if row else {"subscription_plan": "gratis", "status": "active"}
+
+
+async def get_subscription_history(
+    session: AsyncSession,
+    user_id: int,
+    limit: int = 10
+) -> list:
+    """Get payment history for a user"""
+    result = await session.execute(
+        text("""
+            SELECT
+              id,
+              plan,
+              period,
+              price_paid,
+              payment_ref,
+              started_at,
+              expires_at,
+              is_active
+            FROM subscriptions
+            WHERE user_id = :user_id
+            ORDER BY started_at DESC
+            LIMIT :limit
+        """),
+        {"user_id": user_id, "limit": limit}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]

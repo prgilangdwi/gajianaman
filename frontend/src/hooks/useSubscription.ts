@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Mirror of Python PLAN_FEATURES — keep in sync with services/subscription.py
@@ -38,10 +38,10 @@ export interface SubscriptionState {
   plan: PlanName;
   expiresAt: string | null;
   isLoading: boolean;
-  /** Returns true if user can access this feature (always true while MVP_OVERRIDE) */
   canAccess: (feature: string) => boolean;
-  /** Returns raw limit: -1 = unlimited, 0 = blocked, N = capped */
   getLimit: (feature: string) => number | boolean;
+  confirmPayment: (plan: PlanName, period: string, paymentRef: string, priceInRp: number, expiresAt: string) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 export function useSubscription(userId: number | undefined): SubscriptionState {
@@ -49,21 +49,68 @@ export function useSubscription(userId: number | undefined): SubscriptionState {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!userId) { setIsLoading(false); return; }
-    supabase
-      .from('users')
-      .select('subscription_plan, subscription_expires_at')
-      .eq('user_id', userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setPlan((data.subscription_plan as PlanName) ?? 'gratis');
-          setExpiresAt(data.subscription_expires_at ?? null);
-        }
-        setIsLoading(false);
-      });
+  const refresh = useCallback(async () => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('subscription_plan, subscription_expires_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        setPlan((data.subscription_plan as PlanName) ?? 'gratis');
+        setExpiresAt(data.subscription_expires_at ?? null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription:', err);
+    }
+    setIsLoading(false);
   }, [userId]);
+
+  useEffect(() => {
+    refresh();
+  }, [userId, refresh]);
+
+  const confirmPayment = useCallback(
+    async (
+      newPlan: PlanName,
+      period: string,
+      paymentRef: string,
+      priceInRp: number,
+      newExpiresAt: string
+    ) => {
+      if (!userId) throw new Error('User not authenticated');
+
+      const res = await fetch(
+        `/api/subscription?action=confirm&userId=${userId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            plan: newPlan,
+            period,
+            paymentRef,
+            priceInRp,
+            expiresAt: newExpiresAt,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Payment confirmation failed');
+      }
+
+      await refresh();
+    },
+    [userId, refresh]
+  );
 
   const canAccess = (feature: string): boolean => {
     if (MVP_OVERRIDE) return true;
@@ -79,5 +126,5 @@ export function useSubscription(userId: number | undefined): SubscriptionState {
     return features[feature] ?? false;
   };
 
-  return { plan, expiresAt, isLoading, canAccess, getLimit };
+  return { plan, expiresAt, isLoading, canAccess, getLimit, confirmPayment, refresh };
 }

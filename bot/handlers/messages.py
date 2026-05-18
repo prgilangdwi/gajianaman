@@ -3,6 +3,7 @@
 
 import re
 import calendar
+from typing import Optional, Tuple
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
@@ -27,43 +28,112 @@ def _parse_month_year(text: str):
 _AMOUNT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta|mio)?\b", re.IGNORECASE)
 
 
-def detect_natural_transaction(text: str):
-    """
-    Try to parse a plain message as a transaction.
-    Supports: 'beli makan 15000', '15k kopi', 'ojek 7rb', '1.5jt bayar utang',
-              '10mio transfer', '2 juta belanja', '500 rb bensin'.
-    Returns (amount, note) or (None, None).
-    """
-    if text.startswith("/") or len(text) < 4:
-        return None, None
+def _parse_amount_value(text: str) -> Optional[float]:
+    """Extract first amount from text. Returns float or None."""
+    match = _AMOUNT_RE.search(text)
+    if not match:
+        return None
 
-    for match in _AMOUNT_RE.finditer(text):
-        num_str = match.group(1).replace(",", "").replace(".", "")
-        suffix = (match.group(2) or "").lower()
+    num_str = match.group(1).replace(",", "").replace(".", "")
+    suffix = (match.group(2) or "").lower()
 
-        try:
-            raw = float(num_str)
-            if suffix in ("k", "rb", "ribu"):
-                amount = raw * 1_000
-            elif suffix in ("jt", "juta", "mio"):
-                amount = raw * 1_000_000
-            else:
-                amount = raw
+    try:
+        raw = float(num_str)
+        if suffix in ("k", "rb", "ribu"):
+            amount = raw * 1_000
+        elif suffix in ("jt", "juta", "mio"):
+            amount = raw * 1_000_000
+        else:
+            amount = raw
 
-            if amount < 100:
-                continue
+        return amount if amount >= 100 else None
+    except (ValueError, TypeError):
+        return None
 
-            note = (text[: match.start()] + text[match.end() :]).strip()
-            note = re.sub(r"\s+", " ", note).strip()
 
-            if not note:
-                continue
+def _detect_transaction_type(text: str) -> str:
+    """Detect transaction type: expense, income, or transfer."""
+    text_lower = text.lower()
 
-            return amount, note
-        except (ValueError, TypeError):
-            continue
+    # Transfer keywords
+    if any(kw in text_lower for kw in ["transfer", "pindah", "kirim", "dari", "ke", "masuk ke", "menuju"]):
+        if "dari" in text_lower and ("ke" in text_lower or "masuk" in text_lower):
+            return "transfer"
+
+    # Income keywords
+    if any(kw in text_lower for kw in ["masuk", "dapat", "terima", "gaji", "income", "pemasukan", "uang masuk", "dapat transfer"]):
+        return "income"
+
+    # Expense is default
+    return "expense"
+
+
+def _extract_wallets(text: str) -> Tuple[Optional[str], Optional[str]]:
+    """Extract source and destination wallet from text. Returns (source, destination)."""
+    text_lower = text.lower()
+    wallets = ["gopay", "ovo", "dana", "shopeepay", "linkaja", "bca", "bni", "mandiri", "bri", "cimb",
+               "cash", "tunai", "ewallet", "bank", "tabungan", "rekening"]
+
+    found_wallets = []
+    for wallet in wallets:
+        if wallet in text_lower:
+            found_wallets.append(wallet)
+
+    if len(found_wallets) >= 2:
+        # Find order: check for "dari" or prepositions
+        if "dari" in text_lower:
+            dari_idx = text_lower.find("dari")
+            source = None
+            dest = None
+            for w in found_wallets:
+                w_idx = text_lower.find(w)
+                if w_idx < dari_idx:
+                    source = w
+                elif w_idx > dari_idx:
+                    dest = w
+            return source, dest
+        # Return in order found
+        return found_wallets[0], found_wallets[1]
+    elif len(found_wallets) == 1:
+        # Single wallet: could be source or destination depending on transaction type
+        return found_wallets[0], None
 
     return None, None
+
+
+def detect_natural_transaction(text: str) -> Tuple[Optional[float], Optional[str], Optional[str], Optional[str], Optional[str]]:
+    """
+    Parse a plain message as a transaction.
+    Supports: 'beli makan 15000', '15k kopi', 'ojek 7rb', '1.5jt bayar utang',
+              'uang masuk 200k', 'gaji masuk 5 juta',
+              'transfer 100k dari bca ke bni', 'pindah saldo 500k ke ewallet'.
+    Returns (amount, note, tx_type, source_wallet, dest_wallet) or (None, ...).
+    """
+    if text.startswith("/") or len(text) < 4:
+        return None, None, None, None, None
+
+    amount = _parse_amount_value(text)
+    if amount is None:
+        return None, None, None, None, None
+
+    tx_type = _detect_transaction_type(text)
+    source_wallet, dest_wallet = _extract_wallets(text)
+
+    # Remove amount from text to get note
+    note = re.sub(_AMOUNT_RE, "", text).strip()
+    note = re.sub(r"\s+", " ", note).strip()
+
+    # Remove wallet mentions from note for cleaner display
+    for wallet in ["gopay", "ovo", "dana", "shopeepay", "linkaja", "bca", "bni", "mandiri", "bri", "cimb", "cash", "tunai", "bank", "tabungan", "rekening"]:
+        note = re.sub(rf"\b{wallet}\b", "", note, flags=re.IGNORECASE)
+
+    note = re.sub(r"\s+", " ", note).strip()
+    note = re.sub(r"^(dari|ke|pakai|dengan|via|lewat)\s+", "", note, flags=re.IGNORECASE).strip()
+
+    if not note:
+        note = "Transaksi"
+
+    return amount, note, tx_type, source_wallet, dest_wallet
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -230,49 +300,96 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         return
 
-    amount, note = detect_natural_transaction(text)
+    amount, note, tx_type, source_wallet, dest_wallet = detect_natural_transaction(text)
 
     if amount is None:
         await update.message.reply_text(
             "💬 Tidak mengerti maksudmu.\n\n"
             "Untuk catat transaksi:\n"
-            "• `/add 15000 beli kopi`\n"
-            "• Atau langsung: `beli kopi 15000`\n\n"
+            "• *Pengeluaran:* `beli kopi 15000` atau `/add 15000 beli kopi`\n"
+            "• *Pemasukan:* `uang masuk 200k` atau `/income 200k gaji`\n"
+            "• *Transfer:* `transfer 100k dari bca ke bni`\n\n"
             "Ketik /help untuk panduan lengkap.",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
 
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
+    wallet_str = ""
+    if source_wallet and dest_wallet:
+        wallet_str = f" dari {source_wallet.upper()} ke {dest_wallet.upper()}"
+    elif source_wallet:
+        wallet_str = f" ({source_wallet.upper()})"
+
     status_msg = await update.message.reply_text(
-        f"🔍 Mendeteksi: *{note}* — {fmt_currency(amount)}\nAI sedang menganalisis...",
+        f"🔍 Mendeteksi: *{note}* — {fmt_currency(amount)}{wallet_str}\nAI sedang menganalisis...",
         parse_mode=ParseMode.MARKDOWN,
     )
 
-    result = categorize_transaction(note)
+    # For expense and income, categorize. For transfer, skip categorization
+    if tx_type in ("expense", "income"):
+        result = categorize_transaction(note)
+        result["type"] = tx_type  # Override with detected type
+    else:  # transfer
+        result = {
+            "type": "transfer",
+            "category": "Transfer",
+            "subcategory": None,
+            "confidence": "high",
+            "reason": "Transfer between wallets"
+        }
 
     async with AsyncSessionLocal() as session:
-        tx_id = await db.insert_transaction(
-            session=session,
-            user_id=user_id,
-            amount=amount,
-            tx_type=result["type"],
-            category=result["category"],
-            subcategory=result["subcategory"],
-            note=note,
-            confidence=result["confidence"],
-        )
+        if tx_type == "transfer" and source_wallet and dest_wallet:
+            # For transfers, we need wallet IDs. For now, store wallet names in note
+            full_note = f"{note} [{source_wallet} → {dest_wallet}]"
+            tx_id = await db.insert_transaction(
+                session=session,
+                user_id=user_id,
+                amount=amount,
+                tx_type="transfer",
+                category="Transfer",
+                subcategory=None,
+                note=full_note,
+                confidence="high",
+            )
+        else:
+            tx_id = await db.insert_transaction(
+                session=session,
+                user_id=user_id,
+                amount=amount,
+                tx_type=result["type"],
+                category=result["category"],
+                subcategory=result["subcategory"],
+                note=note,
+                confidence=result["confidence"],
+            )
 
     context.user_data["last_tx_id"] = tx_id
 
-    msg = build_transaction_confirm(amount, note, result)
+    # Build confirmation message
+    type_icon = {"expense": "🔴", "income": "💚", "transfer": "🔄"}[result["type"]]
+    type_label = {"expense": "Pengeluaran", "income": "Pemasukan", "transfer": "Transfer"}[result["type"]]
+
+    if result["type"] == "transfer":
+        msg = (
+            f"📋 *Konfirmasi Transaksi*\n\n"
+            f"{type_icon} *Jenis:* {type_label}\n"
+            f"💰 *Jumlah:* {fmt_currency(amount)}\n"
+            f"📤 *Dari:* {source_wallet.upper() if source_wallet else 'Cash'}\n"
+            f"📥 *Ke:* {dest_wallet.upper() if dest_wallet else '?'}\n"
+            f"📝 *Catatan:* {note}\n\n"
+            f"_Apakah data ini benar?_"
+        )
+    else:
+        msg = build_transaction_confirm(amount, note, result)
 
     try:
         await status_msg.delete()
     except Exception:
         pass
 
-    if result["confidence"] == "low":
+    if result["confidence"] == "low" and result["type"] != "transfer":
         await update.message.reply_text(
             msg + "\n\n⚠️ _Confidence rendah. Pilih kategori yang tepat:_",
             parse_mode=ParseMode.MARKDOWN,

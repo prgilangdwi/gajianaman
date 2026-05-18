@@ -2276,3 +2276,55 @@ def get_splitbill_handler() -> ConversationHandler:
         fallbacks=[CommandHandler('cancel', splitbill_cancel)],
         per_message=False,
     )
+
+
+# ─────────────────────────────────────────
+# /subscribe — View and manage subscription
+# ─────────────────────────────────────────
+@require_start
+async def cmd_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    async with AsyncSessionLocal() as session:
+        sub_status = await db.check_subscription_expiry(session, user_id)
+
+    plan = sub_status.get('subscription_plan', 'gratis')
+    status = sub_status.get('status', 'active')
+    days_left = sub_status.get('days_left')
+
+    plan_icon = {'gratis': '⚡', 'starter': '⭐', 'pro': '👑'}[plan]
+    plan_label = {'gratis': 'Gratis', 'starter': 'Starter', 'pro': 'Pro'}[plan]
+
+    status_text = (
+        f"🕐 *Aktif sampai {int(days_left)} hari lagi*" if days_left and status == 'active'
+        else "🔴 *Sudah kadaluarsa*" if status == 'expired'
+        else "♾️ *Tanpa batas waktu*"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("💎 Lihat Pricing", callback_data="sub:pricing"),
+            InlineKeyboardButton("📜 Riwayat", callback_data="sub:history"),
+        ],
+        [InlineKeyboardButton("🌐 Upgrade di Web", callback_data="menu:dashboard")],
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    ])
+
+    await update.message.reply_text(
+        f"💳 *Subscription Kamu*\n\n"
+        f"{plan_icon} Plan: *{plan_label}*\n"
+        f"{status_text}\n\n"
+        f"💰 *Paket Starter* — Rp 9.900/bulan\n"
+        f"• Budget unlimited kategori\n"
+        f"• Wallet (max 3)\n"
+        f"• AI scan struk\n"
+        f"• Download CSV\n\n"
+        f"👑 *Paket Pro* — Rp 19.900/bulan\n"
+        f"• Semua fitur Starter\n"
+        f"• Wallet unlimited\n"
+        f"• AI Budget Recommendation\n"
+        f"• Priority support\n\n"
+        f"Upgrade sekarang di web dashboard untuk membuka fitur premium!",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=keyboard,
+    )

@@ -15,14 +15,21 @@ from services.formatter import fmt_currency
 
 def _build_confirm_text(result: dict) -> str:
     amount_str = fmt_currency(float(result["amount"]))
-    tx_type = "Pengeluaran" if result["type"] == "expense" else "Pemasukan"
+    tx_type_map = {"expense": "Pengeluaran", "income": "Pemasukan", "transfer": "Transfer"}
+    tx_type = tx_type_map.get(result["type"], "Pengeluaran")
     confidence_icon = {"high": "🟢", "medium": "🟡", "low": "🔴"}.get(result["confidence"], "⚪")
+
+    wallet_line = ""
+    if result.get("wallet"):
+        wallet_line = f"💳 *Kantong/Wallet:* {result['wallet']}\n"
+
     return (
         f"📸 *Hasil Analisis Foto*\n\n"
         f"💰 Jumlah: *{amount_str}*\n"
         f"📂 Kategori: *{result['category']}*\n"
         f"📝 Catatan: *{result.get('note', '-')}*\n"
         f"📅 Tipe: *{tx_type}*\n"
+        f"{wallet_line}"
         f"{confidence_icon} Confidence: _{result['confidence']}_\n\n"
         f"_Konfirmasi transaksi ini?_"
     )

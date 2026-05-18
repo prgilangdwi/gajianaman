@@ -1129,6 +1129,63 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]),
         )
 
+    # ── Subscription callbacks ─────────────────────────
+    elif data == "sub:pricing":
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Lihat di Web", callback_data="menu:dashboard")],
+            [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+        ])
+        await query.edit_message_text(
+            "💳 *Paket Subscription*\n\n"
+            "*Gratis* — Rp 0/bulan\n"
+            "• Catat transaksi unlimited\n"
+            "• Dashboard dasar\n"
+            "• Budget 3 kategori\n\n"
+            "*Starter* — Rp 9.900/bulan\n"
+            "• Semua fitur Gratis\n"
+            "• Wallet (maks 3)\n"
+            "• Budget unlimited\n"
+            "• AI scan struk\n"
+            "• Download CSV\n\n"
+            "*Pro* — Rp 19.900/bulan\n"
+            "• Semua fitur Starter\n"
+            "• Wallet unlimited\n"
+            "• AI Budget Recommendation\n"
+            "• Priority support\n\n"
+            "Upgrade sekarang di web dashboard untuk akses penuh!",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=keyboard,
+        )
+
+    elif data == "sub:history":
+        user_id = update.effective_user.id
+        async with AsyncSessionLocal() as session:
+            history = await db.get_subscription_history(session, user_id, limit=5)
+
+        if not history:
+            await query.edit_message_text(
+                "📜 *Riwayat Subscription*\n\nBelum ada pembayaran yang tercatat.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+                ]),
+            )
+            return
+
+        lines = ["📜 *Riwayat Pembayaran*\n"]
+        for sub in history:
+            plan_label = {'gratis': 'Gratis', 'starter': 'Starter', 'pro': 'Pro'}[sub['plan']]
+            period_label = {'monthly': '1 bulan', '3month': '3 bulan', '6month': '6 bulan', 'yearly': '1 tahun'}[sub['period']]
+            date_str = datetime.fromisoformat(sub['started_at']).strftime("%d %b %Y")
+            lines.append(f"✅ {plan_label} ({period_label})\n   Tanggal: {date_str}\n   Ref: {sub['payment_ref']}\n")
+
+        await query.edit_message_text(
+            "\n".join(lines),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+            ]),
+        )
+
     # ── Split bill callbacks ───────────────────────────
     elif data.startswith('copy_split_') or data.startswith('record_split_'):
         await handle_split_callbacks(update, context)

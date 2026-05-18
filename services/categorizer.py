@@ -53,22 +53,27 @@ Return this exact format:
 
 IMAGE_PARSE_PROMPT = """Analyze this image and extract financial transaction information.
 
-This could be: a store receipt (struk), bank transfer screenshot, e-wallet payment (GoPay, OVO, DANA, ShopeePay), food delivery order, invoice, or any payment confirmation.
+This could be: a store receipt (struk), bank transfer screenshot, e-wallet payment (GoPay, OVO, DANA, ShopeePay), food delivery order, invoice, ATM receipt, or any payment confirmation.
 
 Return ONLY valid JSON (no markdown, no explanation):
 {
   "amount": <number in IDR — the TOTAL/GRAND TOTAL amount paid>,
-  "type": "expense",
+  "type": "expense|income|transfer",
   "category": "<one category from list>",
   "subcategory": "<specific subcategory>",
-  "note": "<brief description in Indonesian, max 40 chars>",
+  "note": "<brief merchant/description in Indonesian, max 40 chars>",
   "confidence": "<high|medium|low>",
-  "raw_text": "<key text — merchant name or transaction description, max 60 chars>"
+  "raw_text": "<key text — merchant name or transaction description, max 60 chars>",
+  "wallet": "<detected e-wallet or bank, e.g. GoPay, BCA, OVO, DANA, BNI, etc. or null if cash>"
 }
 
 Valid categories: Food & Dining, Groceries, Transport, Shopping, Health, Entertainment, Bills & Utilities, Education, Personal Care, Dining Out, Salary, Freelance, Investment Return, Other Income, Savings, Investment
 
-Use "income" for type only if this is clearly a received payment/transfer to the user.
+Rules:
+- "type": expense for payments made, income for received payments/transfers, transfer for inter-bank/wallet transfers
+- "wallet": extract if visible (GoPay, OVO, DANA, ShopeePay, BCA, BNI, Mandiri, BRI, Cash, etc.)
+- For bank transfers, check if it's a transfer (to another account) vs payment (to merchant)
+- For food delivery screenshots (GrabFood, GojekFood, etc.), extract merchant name in "note"
 
 If no amount can be determined or image is unclear:
 {"error": "Tidak dapat membaca informasi transaksi dari gambar ini"}"""
@@ -128,6 +133,7 @@ def parse_image_transaction(image_b64: str, media_type: str = "image/jpeg") -> d
         result.setdefault("note", "Transaksi dari foto")
         result.setdefault("confidence", "low")
         result.setdefault("raw_text", "")
+        result.setdefault("wallet", None)
 
         return result
 
