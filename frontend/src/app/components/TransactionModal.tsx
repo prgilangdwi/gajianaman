@@ -24,7 +24,7 @@ const categories = [
   { id: 'Education', emoji: '📚', label: 'Education', color: '#06b6d4' },
 ];
 
-type PhotoPhase = 'idle' | 'preview' | 'analyzing' | 'confirm';
+type PhotoPhase = 'idle' | 'preview' | 'analyzing' | 'confirm' | 'error';
 
 interface ParsedTx {
   type: 'expense' | 'income';
@@ -68,6 +68,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [photoMediaType, setPhotoMediaType] = useState<string>('image/jpeg');
   const [photoResult, setPhotoResult] = useState<PhotoResult | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load tag suggestions from previous transactions
@@ -156,6 +157,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const handleAnalyzePhoto = async () => {
     if (!photoBase64) return;
     setPhotoPhase('analyzing');
+    setPhotoError(null);
 
     try {
       const res = await fetch('/api/parse-image', {
@@ -166,8 +168,8 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
       const data = await res.json();
 
       if (data.error) {
-        toast.error(data.error);
-        setPhotoPhase('preview');
+        setPhotoError(data.error);
+        setPhotoPhase('error');
         return;
       }
 
@@ -179,9 +181,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
         type: data.type ?? 'expense',
       });
       setPhotoPhase('confirm');
-    } catch {
-      toast.error('Gagal menghubungi server. Coba lagi.');
-      setPhotoPhase('preview');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Gagal menghubungi server';
+      setPhotoError(errorMsg);
+      setPhotoPhase('error');
     }
   };
 
@@ -190,6 +193,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     setPhotoPreviewUrl(null);
     setPhotoBase64(null);
     setPhotoResult(null);
+    setPhotoError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -356,7 +360,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               onChange={handleFileSelect}
             />
 
-            {/* IDLE — pick photo */}
+            {/* IDLE — pick photo with tips */}
             {photoPhase === 'idle' && (
               <div className="flex flex-col items-center gap-4 py-6">
                 <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -366,6 +370,17 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   <p className="font-semibold tracking-tight">Upload foto struk atau bukti bayar</p>
                   <p className="text-sm text-muted-foreground font-body">Struk belanja, screenshot transfer, e-wallet, GoFood, dll.</p>
                 </div>
+
+                {/* Tips for better parsing */}
+                <div className="w-full p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <p className="text-xs font-semibold text-blue-900 mb-2">💡 Tips untuk hasil terbaik:</p>
+                  <ul className="text-xs text-blue-800 space-y-1 font-body">
+                    <li>• Foto jelas dan tidak blur</li>
+                    <li>• Jumlah uang terlihat jelas di struk</li>
+                    <li>• Cahaya cukup, hindari silau/bayangan</li>
+                  </ul>
+                </div>
+
                 <div className="flex gap-3 w-full">
                   <Button
                     variant="outline"
@@ -397,20 +412,24 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
             {/* PREVIEW — show image, ask to analyze */}
             {(photoPhase === 'preview' || photoPhase === 'analyzing') && photoPreviewUrl && (
               <div className="space-y-4">
-                <div className="relative rounded-xl overflow-hidden border border-border">
-                  <img src={photoPreviewUrl} alt="Preview" className="w-full max-h-48 object-contain bg-muted" />
+                <div className="relative rounded-xl overflow-hidden border border-border bg-muted">
+                  <img src={photoPreviewUrl} alt="Preview" className="w-full max-h-48 object-contain" />
                   {photoPhase === 'preview' && (
                     <button
                       onClick={resetPhoto}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                      title="Pilih foto lain"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   )}
                   {photoPhase === 'analyzing' && (
-                    <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center gap-2">
+                    <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
                       <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                      <p className="text-sm font-semibold">Menganalisis foto...</p>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold">Menganalisis foto...</p>
+                        <p className="text-xs text-muted-foreground mt-1">Sedang membaca struk</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -418,7 +437,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                 {photoPhase === 'preview' && (
                   <Button
                     onClick={handleAnalyzePhoto}
-                    className="w-full h-11 bg-primary hover:bg-primary-dark"
+                    className="w-full h-11 bg-primary hover:bg-primary-dark gap-2"
                   >
                     🔍 Analisis Foto
                   </Button>
@@ -429,50 +448,70 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
             {/* CONFIRM — show extracted data, allow editing */}
             {photoPhase === 'confirm' && photoResult && (
               <div className="space-y-4">
-                {/* Thumbnail + confidence badge */}
-                <div className="flex items-center gap-3">
-                  {photoPreviewUrl && (
-                    <img src={photoPreviewUrl} alt="Preview" className="w-14 h-14 rounded-xl object-cover border border-border flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                      <p className="font-semibold text-sm truncate">{photoResult.raw_text || 'Transaksi terdeteksi'}</p>
+                {/* Success header with thumbnail + confidence */}
+                <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
+                  <div className="flex items-start gap-3">
+                    {photoPreviewUrl && (
+                      <img src={photoPreviewUrl} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-primary/30 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                        <p className="font-semibold text-sm text-primary">Transaksi terdeteksi</p>
+                      </div>
+                      <p className={`text-xs font-medium ${
+                        photoResult.confidence === 'high' ? 'text-green-600' :
+                        photoResult.confidence === 'medium' ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        Akurasi {confidenceLabel[photoResult.confidence]}
+                      </p>
+                      {photoResult.raw_text && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">"{photoResult.raw_text}"</p>
+                      )}
                     </div>
-                    <p className={`text-xs mt-0.5 ${confidenceColor[photoResult.confidence]}`}>
-                      Akurasi {confidenceLabel[photoResult.confidence]}
-                      {photoResult.confidence === 'low' && ' — periksa data di bawah'}
-                    </p>
                   </div>
-                  <button onClick={resetPhoto} className="text-muted-foreground hover:text-foreground flex-shrink-0">
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
 
+                {/* Warning for low confidence */}
                 {photoResult.confidence === 'low' && (
-                  <div className="flex gap-2 p-3 rounded-xl bg-yellow-50 border border-yellow-200">
+                  <div className="flex gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
                     <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-700 font-body leading-relaxed">Akurasi rendah — mohon periksa dan edit data sebelum menyimpan.</p>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-yellow-900 mb-0.5">Akurasi rendah</p>
+                      <p className="text-xs text-yellow-700 font-body">Mohon periksa semua data di bawah sebelum menyimpan</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Medium confidence info */}
+                {photoResult.confidence === 'medium' && (
+                  <div className="flex gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 font-body">Harap verifikasi jumlah dan kategori sudah benar</p>
                   </div>
                 )}
 
                 {/* Editable fields using TransactionForm */}
-                <TransactionForm
-                  form={form.form}
-                  onAmountChange={form.setAmount}
-                  onCategoryChange={form.setCategory}
-                  onNoteChange={form.setNote}
-                  onTypeChange={form.setType}
-                  onDateChange={form.setDate}
-                  onSourceWalletChange={form.setSourceWalletId}
-                  onAddTag={form.addTag}
-                  onRemoveTag={form.removeTag}
-                  wallets={wallets}
-                  tagSuggestions={allUserTags}
-                  showType={true}
-                  showDate={false}
-                  showWallet={true}
-                />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Edit Data</p>
+                  <TransactionForm
+                    form={form.form}
+                    onAmountChange={form.setAmount}
+                    onCategoryChange={form.setCategory}
+                    onNoteChange={form.setNote}
+                    onTypeChange={form.setType}
+                    onDateChange={form.setDate}
+                    onSourceWalletChange={form.setSourceWalletId}
+                    onAddTag={form.addTag}
+                    onRemoveTag={form.removeTag}
+                    wallets={wallets}
+                    tagSuggestions={allUserTags}
+                    showType={true}
+                    showDate={false}
+                    showWallet={true}
+                  />
+                </div>
 
                 <Button
                   variant="outline"
@@ -480,6 +519,59 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   onClick={resetPhoto}
                 >
                   ← Pilih Foto Lain
+                </Button>
+              </div>
+            )}
+
+            {/* ERROR — parsing failed, offer options */}
+            {photoPhase === 'error' && (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center border border-red-200">
+                    <AlertCircle className="w-7 h-7 text-red-500" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="font-semibold text-red-900">Gagal membaca struk</p>
+                    <p className="text-xs text-red-700 font-body">{photoError || 'Coba lagi dengan foto yang lebih jelas'}</p>
+                  </div>
+                </div>
+
+                {/* Retry tips */}
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <p className="text-xs font-semibold text-blue-900 mb-2">Coba cara ini:</p>
+                  <ul className="text-xs text-blue-800 space-y-1 font-body">
+                    <li>✓ Ambil ulang dengan cahaya lebih terang</li>
+                    <li>✓ Pastikan jumlah uang terlihat dengan jelas</li>
+                    <li>✓ Hindari sudut atau teks yang miring</li>
+                  </ul>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setPhotoPhase('preview')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    ← Kembali
+                  </Button>
+                  <Button
+                    onClick={handleAnalyzePhoto}
+                    className="flex-1 gap-2 bg-primary hover:bg-primary-dark"
+                  >
+                    🔄 Coba Lagi
+                  </Button>
+                </div>
+
+                {/* Fallback to manual entry */}
+                <Button
+                  onClick={() => {
+                    resetPhoto();
+                    setActiveTab('ai');
+                  }}
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                >
+                  Masuk manual saja
                 </Button>
               </div>
             )}
