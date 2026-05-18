@@ -31,6 +31,7 @@ import Forecasting from './pages/Forecasting';
 import CategoryBrowser from './pages/CategoryBrowser';
 import CategoryDetail from './pages/CategoryDetail';
 import Profile from './pages/Profile';
+import Onboarding from './pages/Onboarding';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/link-telegram" element={<LinkTelegram />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/split/:token" element={<SplitBillShare />} />
 
               <Route
