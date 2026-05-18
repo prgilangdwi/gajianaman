@@ -80,7 +80,6 @@ export default function Laporan() {
     year,
   );
   const health = useFinancialHealth(transactions, budgets, month, year);
-  const healthScore = useFinancialHealthScore(transactions, budgets, month, year);
   const [exporting, setExporting] = useState(false);
   const [monthlyReportOpen, setMonthlyReportOpen] = useState(false);
 
