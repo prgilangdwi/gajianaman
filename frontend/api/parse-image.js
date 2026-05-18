@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const IMAGE_PARSE_PROMPT = `Analyze this image and extract financial transaction information.
 
@@ -7,17 +7,20 @@ This could be: a store receipt (struk), bank transfer screenshot, e-wallet payme
 Return ONLY valid JSON (no markdown, no explanation):
 {
   "amount": <number in IDR — the TOTAL/GRAND TOTAL amount paid>,
-  "type": "expense",
+  "type": "expense|income|transfer",
   "category": "<one category from list>",
   "subcategory": "<specific subcategory>",
-  "note": "<brief description in Indonesian, max 40 chars>",
+  "note": "<brief merchant/description in Indonesian, max 40 chars>",
   "confidence": "<high|medium|low>",
-  "raw_text": "<key text — merchant name or transaction description, max 60 chars>"
+  "raw_text": "<key text — merchant name or transaction description, max 60 chars>",
+  "wallet": "<detected e-wallet or bank, e.g. GoPay, BCA, OVO, DANA, BNI, etc. or null if cash>"
 }
 
 Valid categories: Food & Dining, Groceries, Transport, Shopping, Health, Entertainment, Bills & Utilities, Education, Personal Care, Dining Out, Salary, Freelance, Investment Return, Other Income, Savings, Investment
 
-Use "income" for type only if this is clearly a received payment/transfer to the user.
+Rules:
+- "type": expense for payments made, income for received payments/transfers, transfer for inter-bank/wallet transfers
+- "wallet": extract if visible (GoPay, OVO, DANA, ShopeePay, BCA, BNI, Mandiri, BRI, Cash, etc.)
 
 If no amount can be determined or image is unclear:
 {"error": "Tidak dapat membaca informasi transaksi dari gambar ini"}`;
@@ -32,34 +35,28 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'imageBase64 is required' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
   try {
-    const client = new Anthropic({ apiKey });
+    const client = new GoogleGenerativeAI(apiKey);
+    const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType ?? 'image/jpeg',
-              data: imageBase64,
-            },
-          },
-          { type: 'text', text: IMAGE_PARSE_PROMPT },
-        ],
-      }],
-    });
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
 
-    let raw = response.content[0].text.trim();
+    const response = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: mediaType ?? 'image/jpeg',
+          data: imageBase64,
+        },
+      },
+      IMAGE_PARSE_PROMPT,
+    ]);
+
+    let raw = response.response.text().trim();
 
     // Strip markdown fences if model wraps in ```json
     if (raw.includes('```')) {

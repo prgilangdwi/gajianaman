@@ -1,14 +1,17 @@
 # services/categorizer.py
-# Uses Claude Haiku for fast, cheap transaction categorization
+# Uses Claude Haiku for text categorization, Gemini Flash for image parsing
 
 import anthropic
+import google.generativeai as genai
 import json
 import os
+import base64
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 SYSTEM_PROMPT = """You are a personal finance categorization assistant for Indonesian users.
 
@@ -82,7 +85,7 @@ If no amount can be determined or image is unclear:
 def parse_image_transaction(image_b64: str, media_type: str = "image/jpeg") -> dict:
     """
     Extract transaction info from a receipt/payment screenshot image.
-    Uses Claude Haiku vision — cheapest vision model.
+    Uses Gemini Flash vision — fast, cheap vision model.
 
     Args:
         image_b64: Base64-encoded image bytes
@@ -93,26 +96,19 @@ def parse_image_transaction(image_b64: str, media_type: str = "image/jpeg") -> d
         OR {"error": "..."} if image unreadable
     """
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": image_b64,
-                        },
-                    },
-                    {"type": "text", "text": IMAGE_PARSE_PROMPT},
-                ],
-            }],
-        )
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
-        raw = response.content[0].text.strip()
+        image_data = base64.b64decode(image_b64)
+
+        response = model.generate_content([
+            {
+                "mime_type": media_type,
+                "data": image_data,
+            },
+            IMAGE_PARSE_PROMPT,
+        ])
+
+        raw = response.text.strip()
 
         if "```" in raw:
             for part in raw.split("```"):
@@ -148,15 +144,15 @@ def categorize_transaction(note: str) -> dict:
     """
     Categorize a transaction note using Claude Haiku.
     Synchronous — call from bot handlers directly.
-    
+
     Args:
         note: Raw transaction description, e.g. "beli jajan di warung"
-    
+
     Returns:
         dict with keys: category, subcategory, type, confidence, reason
     """
     try:
-        response = client.messages.create(
+        response = anthropic_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=256,
             system=SYSTEM_PROMPT,
