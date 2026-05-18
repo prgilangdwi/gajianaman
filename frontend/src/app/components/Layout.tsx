@@ -29,6 +29,7 @@ import {
   Sparkles,
   Layers,
   Settings,
+  FileText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TransactionModal } from './TransactionModal';
@@ -50,7 +51,7 @@ const navItemsGrouped = {
     { icon: History, label: 'Riwayat', path: '/riwayat' },
   ],
   analitik: [
-    { icon: TrendingUp, label: 'Laporan', path: '/laporan' },
+    { icon: FileText, label: 'Laporan', path: '/laporan' },
     { icon: Percent, label: 'Pola Waktu', path: '/spending-patterns' },
     { icon: BarChart3, label: 'Prakiraan', path: '/forecasting' },
     { icon: TrendingUp, label: 'Tren', path: '/tren' },
