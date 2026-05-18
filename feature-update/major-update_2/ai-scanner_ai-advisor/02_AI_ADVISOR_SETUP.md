@@ -21,13 +21,13 @@ query yang butuh reasoning mendalam.
 ### Python Backend — `.env`
 ```env
 # Sudah ada — tidak perlu tambahan apapun
-ANTHROPIC_API_KEY=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
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
 ```
 
 ### React Frontend — `frontend/.env`
 ```env
 # BARU — diperlukan oleh Vercel serverless (server-side, tidak expose ke client)
-ANTHROPIC_API_KEY=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
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
 SUPABASE_SERVICE_ROLE_KEY=...    ← ambil dari Supabase → Project Settings → API → service_role
 SUPABASE_URL=...                 ← sama dengan VITE_SUPABASE_URL tapi tanpa prefix VITE_
 ```

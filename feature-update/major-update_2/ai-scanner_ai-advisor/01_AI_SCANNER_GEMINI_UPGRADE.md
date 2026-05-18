@@ -26,10 +26,10 @@ Gemini 2.5 Flash  →  confidence >= 0.80?  →  YES → return hasil
 ### Python Backend — `.env`
 ```env
 # Sudah ada — tetap dipakai sebagai fallback scanner + AI Advisor
-ANTHROPIC_API_KEY=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
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
 
 # BARU — tambahkan baris ini
-GEMINI_API_KEY=AIzaSyC8d3EKjjHAW4ck5_Ffz6fhRXNYL2RpQSQ
+GEMINI_API_KEY=<your-gemini-api-key>
 ```
 
 ### React Frontend — `frontend/.env`
@@ -39,8 +39,8 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 
 # BARU — untuk Vercel serverless (parse-image.js)
-ANTHROPIC_API_KEY=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
-GEMINI_API_KEY=AIzaSyC8d3EKjjHAW4ck5_Ffz6fhRXNYL2RpQSQ
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+GEMINI_API_KEY=<your-gemini-api-key>
 ```
 
 > **Vercel Dashboard:** Settings → Environment Variables → tambahkan `GEMINI_API_KEY`
