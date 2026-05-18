@@ -130,18 +130,34 @@ export default function Riwayat() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Filters */}
+      {/* KPI Summary at Top */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+              <ArrowUpRight className="w-4 h-4 text-green-500" /> Pemasukan
+            </p>
+            <div className="font-['DM_Mono'] font-bold text-xl sm:text-2xl text-green-600">
+              <PrivacyAmount value={formatRupiah(totalIncome)} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+              <ArrowDownRight className="w-4 h-4" /> Pengeluaran
+            </p>
+            <div className="font-['DM_Mono'] font-bold text-xl sm:text-2xl">
+              <PrivacyAmount value={formatRupiah(totalExpense)} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters - Reordered: Wallet & Month first, then Type, then Search */}
       <div className="flex flex-col gap-2 sm:gap-3">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari catatan atau kategori…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 sm:h-10 text-sm"
-            />
-          </div>
+          <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
           <Select
             value={typeFilter}
             onValueChange={(v) => setTypeFilter(v as FilterType)}
@@ -155,7 +171,31 @@ export default function Riwayat() {
               <SelectItem value="expense">Pengeluaran</SelectItem>
             </SelectContent>
           </Select>
-          <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari catatan atau kategori…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9 sm:h-10 text-sm"
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={downloading} className="gap-2">
+                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleDownload('csv')}>
+                📊 CSV bulan ini
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDownload('pdf')}>
+                📄 PDF bulan ini
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Tag Filter */}
@@ -192,22 +232,6 @@ export default function Riwayat() {
             )}
           </div>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" disabled={downloading} className="gap-2">
-              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Download
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleDownload('csv')}>
-              📊 CSV bulan ini
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDownload('pdf')}>
-              📄 PDF summary bulan ini
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Transaction List */}
@@ -308,35 +332,6 @@ export default function Riwayat() {
         </CardContent>
       </Card>
 
-      {/* Footer summary */}
-      {!isLoading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
-                <ArrowUpRight className="w-4 h-4 text-green-500" /> Total Pemasukan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-['DM_Mono'] font-bold text-lg text-green-600">
-                <PrivacyAmount value={formatRupiah(totalIncome)} />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
-                <ArrowDownRight className="w-4 h-4 text-muted-foreground" /> Total Pengeluaran
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-['DM_Mono'] font-bold text-lg">
-                <PrivacyAmount value={formatRupiah(totalExpense)} />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
