@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2, Sparkles } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import {
@@ -68,12 +68,14 @@ export default function Laporan() {
   );
   const [exporting, setExporting] = useState(false);
 
+  const monthName = useMemo(
+    () => new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1)),
+    [year, month],
+  );
+
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(
-        new Date(year, month - 1),
-      );
       await exportLaporanToPDF('laporan-content', {
         filename: `Laporan-Keuangan-${monthName}.pdf`,
         title: `Laporan Keuangan — ${monthName}`,
@@ -151,95 +153,137 @@ export default function Laporan() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Export Button */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Laporan Keuangan</h1>
-        <Button
-          onClick={handleExportPDF}
-          disabled={exporting}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          {exporting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          {exporting ? 'Mengunduh…' : 'Unduh PDF'}
-        </Button>
+      {/* Premium Header */}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">📊 Analytics & Insights</h1>
+            <p className="text-sm text-muted-foreground mt-1">Analisis mendalam untuk pemahaman finansial yang lebih baik</p>
+          </div>
+          <Button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            variant="outline"
+            size="sm"
+            className="gap-2 flex-shrink-0"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {exporting ? 'Mengunduh…' : 'Unduh PDF'}
+          </Button>
+        </div>
+        {/* Period Badge */}
+        <div className="inline-block">
+          <Badge variant="secondary" className="text-xs font-medium">
+            {monthName}
+          </Badge>
+        </div>
       </div>
 
       {/* Content wrapper for PDF export */}
       <div id="laporan-content" className="space-y-6">
-      {/* Health Score Card */}
-      <Card className={`border-2 ${getHealthColor(healthScore.status)}`}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg">Skor Kesehatan Finansial</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-end gap-3 sm:gap-4">
+      {/* Premium Health Score Card */}
+      <Card className={`border-l-4 ${
+        healthScore.status === 'excellent' ? 'border-l-green-500 bg-gradient-to-br from-green-50/50' :
+        healthScore.status === 'good' ? 'border-l-blue-500 bg-gradient-to-br from-blue-50/50' :
+        healthScore.status === 'fair' ? 'border-l-yellow-500 bg-gradient-to-br from-yellow-50/50' :
+        'border-l-red-500 bg-gradient-to-br from-red-50/50'
+      }`}>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-4xl sm:text-5xl font-bold">{Math.round(healthScore.score)}</div>
-              <p className="text-xs sm:text-sm opacity-75">/100</p>
+              <CardTitle className="text-lg">💚 Skor Kesehatan Finansial</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">{getHealthLabel(healthScore.status)}</p>
             </div>
-            <div className="flex-1">
-              <p className="text-xl font-semibold mb-2">{getHealthLabel(healthScore.status)}</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    healthScore.status === 'excellent' ? 'bg-green-500' :
-                    healthScore.status === 'good' ? 'bg-blue-500' :
-                    healthScore.status === 'fair' ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${healthScore.score}%` }}
-                />
-              </div>
+            <div className="text-right">
+              <div className="text-5xl font-bold">{Math.round(healthScore.score)}</div>
+              <p className="text-xs text-muted-foreground">/100</p>
             </div>
           </div>
-          <div className="text-xs sm:text-sm">
-            <p>Tabungan: <span className="font-semibold">{healthScore.savingsRate.toFixed(1)}%</span> dari pemasukan</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Progres</span>
+              <span className="font-semibold">{healthScore.score.toFixed(0)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-2.5 rounded-full transition-all duration-500 ${
+                  healthScore.status === 'excellent' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
+                  healthScore.status === 'good' ? 'bg-gradient-to-r from-blue-500 to-cyan-600' :
+                  healthScore.status === 'fair' ? 'bg-gradient-to-r from-yellow-500 to-amber-600' :
+                  'bg-gradient-to-r from-red-500 to-rose-600'
+                }`}
+                style={{ width: `${healthScore.score}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Key Metric */}
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Tingkat Tabungan</p>
+              <p className="text-2xl font-bold">{healthScore.savingsRate.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">dari pemasukan</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground mb-1">Rekomendasi</p>
+              <p className="text-sm font-medium">
+                {healthScore.savingsRate >= 30 ? '✅ Optimal' : healthScore.savingsRate >= 20 ? '👍 Bagus' : healthScore.savingsRate >= 10 ? '⚠️ Perlu ditingkatkan' : '📈 Target minimal 10%'}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Summary KPIs */}
+      {/* Summary KPIs — Premium Style */}
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Highest Expense Month */}
+          <Card className="border-l-4 border-l-red-500">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
-                <TrendingDown className="w-4 h-4" /> Bulan Pengeluaran Terbesar
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Pengeluaran Puncak
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="font-bold text-xl">{summary.maxExpMonth.month}</div>
-              <p className="font-['DM_Mono'] text-sm text-muted-foreground">
+            <CardContent className="space-y-1">
+              <div className="text-2xl font-bold">{summary.maxExpMonth.month}</div>
+              <div className="font-['DM_Mono'] text-lg font-semibold text-red-600">
                 {formatRupiah(summary.maxExpMonth.expenses)}
-              </p>
+              </div>
+              <p className="text-xs text-muted-foreground">Bulan dengan pengeluaran tertinggi</p>
             </CardContent>
           </Card>
-          <Card>
+
+          {/* Average Spending */}
+          <Card className="border-l-4 border-l-amber-500">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-1">
-                <TrendingUp className="w-4 h-4" /> Rata-rata Pengeluaran
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Rata-Rata Bulanan
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="font-['DM_Mono'] font-bold text-xl">
+            <CardContent className="space-y-1">
+              <div className="font-['DM_Mono'] font-bold text-2xl text-amber-600">
                 {formatRupiah(Math.round(summary.avgSpend))}
               </div>
-              <p className="text-xs text-muted-foreground">per bulan (6 bln)</p>
+              <p className="text-xs text-muted-foreground">Rata-rata 6 bulan terakhir</p>
             </CardContent>
           </Card>
-          <Card>
+
+          {/* Top Category */}
+          <Card className="border-l-4 border-l-purple-500">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Kategori Dominan
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="font-bold text-xl truncate">
+            <CardContent className="space-y-1">
+              <div className="text-2xl font-bold truncate text-purple-600">
                 {topCategories[0] ?? '—'}
               </div>
               <p className="text-xs text-muted-foreground">3 bulan terakhir</p>
@@ -248,10 +292,64 @@ export default function Laporan() {
         </div>
       )}
 
+      {/* Quick Insights — AI-Powered Summary */}
+      {hasEnoughData && (
+        <Card className="border-l-4 border-l-cyan-500 bg-gradient-to-br from-cyan-50/40">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-cyan-600" /> Insight Cepat
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {patterns.length > 0 && (
+              <div className="p-3 rounded-lg bg-white/60 border border-cyan-200/50">
+                <p className="text-sm font-medium mb-1">📈 Tren Pengeluaran</p>
+                <p className="text-sm text-muted-foreground">
+                  {patterns[0].trend === 'up'
+                    ? `${patterns[0].category} naik ${Math.abs(patterns[0].changePercent)}% — cek apakah ini perlu dioptimalkan.`
+                    : patterns[0].trend === 'down'
+                    ? `Pengeluaran ${patterns[0].category} menurun ${Math.abs(patterns[0].changePercent)}% 🎉 — pertahankan momentum!`
+                    : `Pengeluaran ${patterns[0].category} stabil — monitor terus.`
+                  }
+                </p>
+              </div>
+            )}
+            <div className="p-3 rounded-lg bg-white/60 border border-cyan-200/50">
+              <p className="text-sm font-medium mb-1">💰 Kesehatan Finansial</p>
+              <p className="text-sm text-muted-foreground">
+                {healthScore.savingsRate >= 30
+                  ? `Tabungan Anda ${healthScore.savingsRate.toFixed(1)}% — excellent! Pertahankan disiplin ini.`
+                  : healthScore.savingsRate >= 20
+                  ? `Tabungan Anda ${healthScore.savingsRate.toFixed(1)}% — bagus, coba tingkatkan jadi 25%+.`
+                  : `Tabungan Anda ${healthScore.savingsRate.toFixed(1)}% — target minimum 10% untuk keamanan finansial.`
+                }
+              </p>
+            </div>
+            {forecast && (
+              <div className="p-3 rounded-lg bg-white/60 border border-cyan-200/50">
+                <p className="text-sm font-medium mb-1">🎯 Proyeksi Bulan</p>
+                <p className="text-sm text-muted-foreground">
+                  Dengan kecepatan pengeluaran {formatRupiah(forecast.dailyAverage)}/hari, bulan ini kemungkinan akan habis {formatRupiah(forecast.projectedMonthEnd)}.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Section Divider */}
+      <div className="pt-2">
+        <h2 className="text-lg font-semibold text-foreground/70">📈 Tren & Analisis Terperinci</h2>
+        <p className="text-xs text-muted-foreground">Pemahaman mendalam tentang pola keuangan Anda</p>
+      </div>
+
       {/* Income vs Expenses Line Chart (6 months) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg">Income vs Pengeluaran — 6 Bulan</CardTitle>
+          <div>
+            <CardTitle className="text-base sm:text-lg">Pemasukan vs Pengeluaran</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Tren 6 bulan terakhir untuk melihat pola earnings dan spending</p>
+          </div>
         </CardHeader>
         <CardContent>
           {monthlyData.every((m) => m.income === 0 && m.expenses === 0) ? (
@@ -306,7 +404,10 @@ export default function Laporan() {
       {/* Category Breakdown Bar Chart (3 months) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg">Breakdown Kategori — 3 Bulan</CardTitle>
+          <div>
+            <CardTitle className="text-base sm:text-lg">Distribusi Pengeluaran per Kategori</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Identifikasi kategori mana yang paling menggerus budget Anda</p>
+          </div>
         </CardHeader>
         <CardContent>
           {topCategories.length === 0 ? (
@@ -348,9 +449,12 @@ export default function Laporan() {
       {hasEnoughData && patterns.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" /> Tren Pengeluaran — 3 Bulan Terakhir
-            </CardTitle>
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" /> Tren Pengeluaran per Kategori
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Kategori mana yang naik atau turun dalam 3 bulan terakhir?</p>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -384,12 +488,14 @@ export default function Laporan() {
       {hasEnoughData && budgetRecommendations.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Zap className="w-5 h-5" /> Rekomendasi Anggaran
-            </CardTitle>
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-500" /> Saran Budget Optimal
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Berdasarkan data historis + buffer keamanan 15% untuk fluctuasi</p>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-4">Berdasarkan data historis + buffer 15%</p>
             <div className="space-y-3">
               {budgetRecommendations.map((rec) => (
                 <div key={rec.category} className="flex items-start justify-between p-3 rounded-lg border border-border/50">
@@ -417,9 +523,12 @@ export default function Laporan() {
       {hasEnoughData && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Target className="w-5 h-5" /> Proyeksi Akhir Bulan
-            </CardTitle>
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Target className="w-5 h-5 text-indigo-500" /> Proyeksi Pengeluaran Akhir Bulan
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Estimasi berapa banyak Anda akan mengeluarkan sampai akhir bulan</p>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
