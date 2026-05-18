@@ -41,6 +41,7 @@ import { usePrivacy } from '@/hooks/usePrivacy';
 const navItemsGrouped = {
   top: [
     { icon: Home, label: 'Overview', path: '/overview' },
+    { icon: Zap, label: 'Gajian', path: '/gajian' },
   ],
   keuangan: [
     { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
@@ -52,11 +53,10 @@ const navItemsGrouped = {
     { icon: TrendingUp, label: 'Laporan', path: '/laporan' },
     { icon: Percent, label: 'Pola Waktu', path: '/spending-patterns' },
     { icon: BarChart3, label: 'Prakiraan', path: '/forecasting' },
-    { icon: BarChart3, label: 'Tren', path: '/spending-patterns' },
+    { icon: TrendingUp, label: 'Tren', path: '/tren' },
   ],
   alat: [
     { icon: Layers, label: 'Kategori', path: '/categories' },
-    { icon: Zap, label: 'Gajian', path: '/gajian' },
     { icon: Wallet, label: 'Dompet', path: '/wallet' },
     { icon: Calendar, label: 'Kalender', path: '/kalender' },
     { icon: Sparkles, label: 'Asisten', path: '/asisten' },

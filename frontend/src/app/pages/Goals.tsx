@@ -25,6 +25,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useGoalProgress } from '@/hooks/data/useGoalProgress';
 import { formatRupiah } from '@/lib/utils';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { Goal } from '@/lib/supabase';
@@ -444,7 +445,7 @@ export default function Goals() {
                         >
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="month" />
-                          <YAxis />
+                          <YAxis tickFormatter={createCompactAxisFormatter()} />
                           <Tooltip formatter={(value: any) => formatRupiah(value)} />
                           <Legend />
                           <Line

@@ -5,6 +5,7 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCategoryIntelligence } from '@/hooks/data/useCategoryIntelligence';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 
 export default function CategoryDetail() {
   const { category: encodedCategory } = useParams<{ category: string }>();
@@ -197,7 +198,7 @@ export default function CategoryDetail() {
             <LineChart data={trendChart}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
-              <YAxis />
+              <YAxis tickFormatter={createCompactAxisFormatter()} />
               <Tooltip formatter={(value) => `Rp${value.toLocaleString('id-ID')}`} />
               <Legend />
               <Line type="monotone" dataKey="spending" stroke="#3b82f6" name="Pengeluaran" />
@@ -216,7 +217,7 @@ export default function CategoryDetail() {
                 <BarChart data={merchantChart}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
+                  <YAxis tickFormatter={createCompactAxisFormatter()} />
                   <Tooltip formatter={(value) => `Rp${value.toLocaleString('id-ID')}`} />
                   <Bar dataKey="amount" fill="#3b82f6" />
                 </BarChart>

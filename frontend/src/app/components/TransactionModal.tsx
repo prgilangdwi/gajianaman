@@ -23,11 +23,12 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
+import { useCategories } from '@/hooks/useCategories';
 import { useTransactionForm } from '@/hooks/useTransactionForm';
 import { TransactionForm } from './TransactionForm';
 import { COPY } from '@/lib/copy';
 
-const categories = [
+const defaultCategories = [
   { id: 'Food & Dining', emoji: '🍔', label: 'Food', color: '#f59e0b' },
   { id: 'Transport', emoji: '🚗', label: 'Transport', color: '#3b82f6' },
   { id: 'Groceries', emoji: '🛒', label: 'Groceries', color: '#4AE54A' },
@@ -69,7 +70,18 @@ interface TransactionModalProps {
 export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalProps) {
   const { user } = useAuth();
   const { wallets } = useWallets(user?.userId);
+  const { categories: dbCategories, isLoading: categoriesLoading } = useCategories('expense');
   const form = useTransactionForm();
+
+  // Convert database categories to display format
+  const displayCategories = dbCategories.length > 0
+    ? dbCategories.map((cat) => ({
+        id: cat.name,
+        emoji: cat.icon || '📦',
+        label: cat.name,
+        color: cat.color,
+      }))
+    : defaultCategories;
 
   // Transaction type tab
   const [transactionType, setTransactionType] = useState<TransactionType>('pengeluaran');
@@ -395,7 +407,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       <div className="space-y-1 text-sm">
                         <p><span className="text-muted-foreground font-body">Tipe:</span> <span className="font-medium capitalize">{form.form.type}</span></p>
                         <p><span className="text-muted-foreground font-body">Jumlah:</span> <span className="font-mono font-semibold">Rp {Number(form.form.amount).toLocaleString('id-ID')}</span></p>
-                        <p><span className="text-muted-foreground font-body">Kategori:</span> <span className="font-medium">{categories.find((c) => c.id === form.form.category)?.emoji} {form.form.category}</span></p>
+                        <p><span className="text-muted-foreground font-body">Kategori:</span> <span className="font-medium">{displayCategories.find((c) => c.id === form.form.category)?.emoji} {form.form.category}</span></p>
                       </div>
                     </div>
                     <TransactionForm
@@ -413,6 +425,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       showType={false}
                       showDate={true}
                       showWallet={true}
+                      expenseCategories={displayCategories}
                     />
                     <Button
                       variant="outline"
@@ -568,6 +581,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       showType={true}
                       showDate={false}
                       showWallet={true}
+                      expenseCategories={displayCategories}
                     />
 
                     <Button
@@ -645,7 +659,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       onChange={(e) => setManualCategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      {categories.map((cat) => (
+                      {displayCategories.map((cat) => (
                         <option key={cat.id} value={cat.id}>{cat.emoji} {cat.id}</option>
                       ))}
                     </select>
@@ -742,6 +756,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       showType={false}
                       showDate={true}
                       showWallet={true}
+                      incomeCategories={displayCategories}
                     />
                     <Button
                       variant="outline"
@@ -853,6 +868,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       showType={true}
                       showDate={false}
                       showWallet={true}
+                      incomeCategories={displayCategories}
                     />
                     <Button
                       variant="outline"
@@ -990,6 +1006,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               showWallet={false}
               sourceWalletLabel="Dari wallet"
               destinationWalletLabel="Ke wallet"
+              expenseCategories={displayCategories}
             />
           </TabsContent>
         </Tabs>

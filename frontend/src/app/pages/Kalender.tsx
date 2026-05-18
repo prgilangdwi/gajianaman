@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
+import { useAuth } from '@/hooks/useAuth';
+import { useRecurringBills } from '@/hooks/useRecurringBills';
 import { formatRupiah } from '@/lib/utils';
+import { AlertCircle, Check } from 'lucide-react';
 import type { Transaction } from '@/lib/supabase';
 
 const DAY_HEADERS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -20,9 +23,11 @@ interface DayTransactions {
 }
 
 export default function Kalender() {
+  const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { walletId } = useWalletFilter();
   const { transactions, isLoading } = useTransactions(month, year);
+  const { recurringBills = [] } = useRecurringBills();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const filtered = useMemo(
@@ -47,6 +52,30 @@ export default function Kalender() {
     });
     return map;
   }, [byDate]);
+
+  // Calculate bill due dates for this month
+  const billDueDates = useMemo(() => {
+    const dueDates: Record<string, string[]> = {};
+    recurringBills.forEach((bill) => {
+      if (!bill.next_due_date) return;
+      const dueDate = new Date(bill.next_due_date);
+      // Only show bills due in the current month
+      if (dueDate.getMonth() === month - 1 && dueDate.getFullYear() === year) {
+        const dateStr = dueDate.toISOString().split('T')[0];
+        if (!dueDates[dateStr]) dueDates[dateStr] = [];
+        dueDates[dateStr].push(bill.description || 'Tagihan');
+      }
+    });
+    return dueDates;
+  }, [recurringBills, month, year]);
+
+  // Payday indicator (if user has set a payday_date in Gajian settings)
+  // This would be user.payday_date from user settings
+  const paydayDate = useMemo(() => {
+    if (!user?.payday_date) return null;
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(user.payday_date).padStart(2, '0')}`;
+    return dateStr;
+  }, [user?.payday_date, month, year]);
 
   // Build calendar grid
   const firstDay = new Date(year, month - 1, 1);
@@ -90,6 +119,9 @@ export default function Kalender() {
               if (!day) return <div key={i} />;
               const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const expense = expenseByDate[dateStr] ?? 0;
+              const hasTransactions = !!byDate[dateStr];
+              const bills = billDueDates[dateStr] || [];
+              const isPayday = paydayDate === dateStr;
               const isSelected = selectedDate === dateStr;
               const isToday = new Date().toISOString().split('T')[0] === dateStr;
               return (
@@ -101,12 +133,33 @@ export default function Kalender() {
                     ${getHeatColor(expense)}
                     ${isSelected ? 'border-primary' : 'border-transparent'}
                     ${isToday ? 'ring-2 ring-primary/50' : ''}
+                    ${isPayday ? 'ring-2 ring-green-500/50' : ''}
                     hover:border-primary/50
                   `}
                 >
-                  <span className={`text-sm sm:text-xs font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
-                    {day}
-                  </span>
+                  <div className="flex items-start justify-between">
+                    <span className={`text-sm sm:text-xs font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>
+                      {day}
+                    </span>
+                    {/* Indicators badge */}
+                    {(isPayday || bills.length > 0 || hasTransactions) && (
+                      <div className="flex gap-0.5">
+                        {isPayday && (
+                          <div className="w-3 h-3 rounded-full bg-green-500 flex items-center justify-center" title="Hari Gajian">
+                            <Check className="w-2 h-2 text-white" />
+                          </div>
+                        )}
+                        {bills.length > 0 && (
+                          <div className="w-3 h-3 rounded-full bg-orange-500 flex items-center justify-center" title={`${bills.length} tagihan`}>
+                            <AlertCircle className="w-2 h-2 text-white" />
+                          </div>
+                        )}
+                        {hasTransactions && !isPayday && !bills.length && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" title="Ada transaksi" />
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {expense > 0 && (
                     <p className="text-[10px] sm:text-[9px] font-mono text-muted-foreground leading-tight mt-0.5 truncate">
                       {formatRupiah(expense).replace('Rp ', '')}
@@ -154,11 +207,24 @@ export default function Kalender() {
       )}
 
       {/* Legend */}
-      <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border" /> Tidak ada</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100" /> {'<'} Rp 100rb</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100" /> Rp 100–500rb</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100" /> {'>'} Rp 500rb</span>
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground">Heat Map (Pengeluaran):</p>
+          <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border" /> Tidak ada</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100" /> {'<'} Rp 100rb</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100" /> Rp 100–500rb</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100" /> {'>'} Rp 500rb</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground">Indikator:</p>
+          <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-500" /> Hari Gajian</span>
+            <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500" /> Tagihan Jatuh</span>
+            <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Ada Transaksi</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { Progress } from '../components/ui/progress';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { PrivacyAmount } from '../components/PrivacyAmount';
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, AlertTriangle, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, AlertTriangle, Download, Zap } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions';
 import { useBudgets } from '@/hooks/useBudgets';
@@ -13,8 +13,12 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
+import { useRecurringBills } from '@/hooks/useRecurringBills';
+import { GajianSetupReminder } from '../components/GajianSetupReminder';
+import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah } from '@/lib/utils';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { format, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -147,6 +151,7 @@ export default function Overview() {
   const { transactions: recentTx } = useRecentTransactions(10);
   const { budgets } = useBudgets(month, year);
   const { goals } = useGoals();
+  const { recurringBills, isLoading: recurringLoading } = useRecurringBills();
 
   const filteredTransactions = walletId === 'all'
     ? transactions
@@ -190,6 +195,24 @@ export default function Overview() {
 
   const displayIncome = walletId === 'all' ? income : filteredIncome;
   const displayExpenses = walletId === 'all' ? expenses : filteredExpenses;
+
+  // Today summary
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayTransactions = filteredTransactions.filter((t) => t.date === todayStr);
+  const todayExpenses = todayTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  const todayIncome = todayTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+
+  const todayByCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    todayTransactions.filter((t) => t.type === 'expense').forEach((t) => {
+      map[t.category] = (map[t.category] ?? 0) + Number(t.amount);
+    });
+    return Object.entries(map)
+      .map(([name, spent]) => ({ name, spent, ...getCategoryMeta(name) }))
+      .sort((a, b) => b.spent - a.spent);
+  }, [todayTransactions]);
+
+  const topCategoryToday = todayByCategory[0];
 
   // Quick insight
   const getQuickInsight = () => {
@@ -236,6 +259,74 @@ export default function Overview() {
       {wallets.length > 0 && (
         <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
       )}
+
+      {/* Ringkasan Hari Ini */}
+      {todayTransactions.length > 0 && (
+        <Card className="bg-gradient-to-r from-primary/5 via-primary/5 to-transparent border-primary/20">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <CardTitle className="text-lg">Ringkasan Hari Ini</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
+              <div className="stat-card">
+                <p className="stat-label">Pengeluaran</p>
+                <p className="stat-value">
+                  <PrivacyAmount value={formatRupiah(todayExpenses)} />
+                </p>
+              </div>
+              <div className="stat-card">
+                <p className="stat-label">Pemasukan</p>
+                <p className="stat-value text-success">
+                  <PrivacyAmount value={formatRupiah(todayIncome)} />
+                </p>
+              </div>
+              <div className="stat-card">
+                <p className="stat-label">Transaksi</p>
+                <p className="stat-value">{todayTransactions.length}</p>
+              </div>
+              {topCategoryToday && (
+                <div className="stat-card">
+                  <p className="stat-label">Top Kategori</p>
+                  <p className="text-lg sm:text-xl">{topCategoryToday.emoji}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Today */}
+            {todayTransactions.slice(0, 3).length > 0 && (
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaksi Hari Ini</p>
+                <div className="space-y-1.5">
+                  {todayTransactions.slice(0, 3).map((tx) => {
+                    const meta = getCategoryMeta(tx.category);
+                    return (
+                      <div key={tx.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md transition-colors">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-base flex-shrink-0">{meta.emoji}</span>
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-medium truncate">{tx.note || tx.category}</p>
+                            <p className="text-[10px] text-muted-foreground">{format(new Date(tx.date), 'HH:mm') || tx.date}</p>
+                          </div>
+                        </div>
+                        <p className={`font-['DM_Mono'] font-semibold text-xs sm:text-sm flex-shrink-0 ml-2 ${tx.type === 'income' ? 'text-success' : 'text-foreground'}`}>
+                          {tx.type === 'income' ? '+' : '-'}<PrivacyAmount value={formatRupiah(Number(tx.amount))} />
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Gajian Setup Reminder */}
+      <GajianSetupReminder />
 
       {/* Three Main KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -302,6 +393,9 @@ export default function Overview() {
         </div>
       )}
 
+      {/* Upcoming Bills */}
+      <UpcomingBillsWidget recurringBills={recurringBills} isLoading={recurringLoading} />
+
       {/* Spending Trend */}
       <Card>
         <CardHeader>
@@ -318,7 +412,7 @@ export default function Overview() {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `${val / 1000}K`} />
+                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={createCompactAxisFormatter()} />
                 <Tooltip formatter={(value: number) => [formatRupiah(value), 'Pengeluaran']} />
                 <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2} fill="url(#colorAmount)" />
               </AreaChart>

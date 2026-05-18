@@ -254,3 +254,40 @@
     background: var(--progress-background, var(--primary));
   }
 }
+
+@layer components {
+  .priority-high {
+    @apply font-bold text-lg px-6 py-5 rounded-lg border-l-4 border-l-primary;
+    background: var(--card);
+    color: var(--foreground);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .priority-high-accent {
+    @apply font-bold text-lg px-6 py-5 rounded-lg border-l-4 border-l-primary;
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .priority-medium {
+    @apply font-semibold text-base;
+    color: var(--foreground);
+  }
+
+  .priority-low {
+    @apply font-normal text-sm;
+    color: var(--muted-foreground);
+  }
+
+  .stat-card {
+    @apply flex flex-col gap-1 p-4 rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold text-foreground;
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+}

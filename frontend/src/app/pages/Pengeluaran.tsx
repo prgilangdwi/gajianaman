@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
@@ -17,7 +18,10 @@ import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useWalletStats } from '@/hooks/data/useWalletStats';
+import { useCategoryTransactions } from '@/hooks/useCategoryTransactions';
 import { formatRupiah } from '@/lib/utils';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
+import { CategoryDetailModal } from '../components/CategoryDetailModal';
 import type { CSSProperties } from 'react';
 
 const categoryEmojis: Record<string, string> = {
@@ -78,6 +82,8 @@ export default function Pengeluaran() {
   const { walletId, setWalletId } = useWalletFilter();
   const { wallets = [] } = useWallets(user?.userId);
   const { transactions = [], isLoading, error } = useTransactions(month, year);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Guard against undefined data
   const filteredTransactions = walletId === 'all'
@@ -85,6 +91,19 @@ export default function Pengeluaran() {
     : (transactions ?? []).filter((t) => t.wallet_id === walletId);
 
   const { totalExpenses: expenses = 0, categoryData = [], maxSpent = 1 } = useWalletStats(filteredTransactions);
+
+  // Fetch selected category transactions
+  const { stats: categoryStats, isLoading: categoryLoading } = useCategoryTransactions(
+    selectedCategory || '',
+    month,
+    year,
+    expenses
+  );
+
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setIsModalOpen(true);
+  };
 
   // Error guard
   if (error) {
@@ -182,7 +201,7 @@ export default function Pengeluaran() {
                   type="number"
                   stroke="#94a3b8"
                   fontSize={11}
-                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`}
+                  tickFormatter={createCompactAxisFormatter()}
                 />
                 <YAxis
                   type="category"
@@ -222,7 +241,11 @@ export default function Pengeluaran() {
               {categoryData.map((cat) => {
                 const pct = (cat.spent / maxSpent) * 100;
                 return (
-                  <div key={cat.name} className="space-y-2">
+                  <div
+                    key={cat.name}
+                    className="space-y-2 cursor-pointer p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    onClick={() => handleCategoryClick(cat.name)}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-lg sm:text-xl">{cat.emoji}</span>
@@ -250,6 +273,21 @@ export default function Pengeluaran() {
           )}
         </CardContent>
       </Card>
+
+      {/* Category Detail Modal */}
+      {selectedCategory && (
+        <CategoryDetailModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedCategory(null);
+          }}
+          category={selectedCategory}
+          stats={categoryStats}
+          isLoading={categoryLoading}
+          totalSpending={expenses}
+        />
+      )}
     </div>
   );
 }

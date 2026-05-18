@@ -47,18 +47,45 @@ export interface Goal {
   created_at: string;
 }
 
+export interface CategoryGroup {
+  id: string;
+  user_id?: number;
+  name: string;
+  icon?: string;
+  color?: string;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface Category {
+  id: string;
+  user_id?: number;
+  parent_group_id?: string;
+  name: string;
+  type: 'expense' | 'income' | 'transfer';
+  icon?: string;
+  color?: string;
+  is_default: boolean;
+  created_at: string;
+}
+
 export interface RecurringTransaction {
   id: string;
-  category: string;
+  user_id: number;
+  category?: string;
   amount: number;
-  dayOfMonth: number;
-  frequency: 'monthly' | 'weekly' | 'biweekly' | 'yearly';
-  confidence: 'high' | 'medium' | 'low';
-  transactionCount: number;
-  lastOccurrence: string;
-  nextExpected: string;
-  isConfirmed: boolean;
-  note?: string;
+  type: 'expense' | 'income';
+  description?: string;
+  due_date_of_month?: number;
+  frequency: 'weekly' | 'monthly' | 'yearly' | 'custom';
+  frequency_interval: number;
+  wallet_id?: string;
+  is_active: boolean;
+  reminder_enabled: boolean;
+  reminder_days_before: number;
+  created_at: string;
+  last_occurrence?: string;
+  next_due_date?: string;
 }
 
 export interface User {
@@ -72,6 +99,9 @@ export interface User {
   email?: string;
   google_id?: string;
   payday_date?: number;
+  gajian_setup_complete?: boolean;
+  gajian_salary?: number;
+  gajian_wallet_id?: string;
   risk_profile?: Record<string, unknown>;
   ai_budget_recommendation?: Record<string, unknown>;
   subscription_plan?: 'gratis' | 'starter' | 'pro';

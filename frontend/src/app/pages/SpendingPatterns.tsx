@@ -4,6 +4,7 @@ import { Calendar, TrendingUp, AlertCircle } from 'lucide-react';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useSpendingPatterns } from '@/hooks/data/useSpendingPatterns';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 
 export default function SpendingPatterns() {
   const { month, year } = useMonthFilter();
@@ -93,7 +94,7 @@ export default function SpendingPatterns() {
             <BarChart data={weeklyChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="week" />
-              <YAxis />
+              <YAxis tickFormatter={createCompactAxisFormatter()} />
               <Tooltip formatter={(value) => `Rp${value.toLocaleString('id-ID')}`} />
               <Legend />
               <Bar dataKey="spending" fill="#3b82f6" name="Total Minggu" />
@@ -141,7 +142,7 @@ export default function SpendingPatterns() {
             <LineChart data={dailyChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="day" />
-              <YAxis />
+              <YAxis tickFormatter={createCompactAxisFormatter()} />
               <Tooltip formatter={(value) => `Rp${value.toLocaleString('id-ID')}`} />
               <Legend />
               <Line type="monotone" dataKey="spending" stroke="#ef4444" name="Pengeluaran" />

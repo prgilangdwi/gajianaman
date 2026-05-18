@@ -4,6 +4,7 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useGoals } from '@/hooks/useGoals';
 import { useGoalProgress } from '@/hooks/data/useGoalProgress';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 
 export default function GoalProgress() {
   const { month, year } = useMonthFilter();
@@ -128,7 +129,7 @@ export default function GoalProgress() {
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
+                <YAxis tickFormatter={createCompactAxisFormatter()} />
                 <Tooltip formatter={(value) => `Rp${value.toLocaleString('id-ID')}`} />
                 <Legend />
                 <Line

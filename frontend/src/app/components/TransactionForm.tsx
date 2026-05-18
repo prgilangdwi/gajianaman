@@ -3,9 +3,9 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { TagInput } from './TagInput';
 import type { TransactionFormState } from '@/hooks/useTransactionForm';
-import type { Wallet } from '@/lib/supabase';
+import type { Wallet, Category } from '@/lib/supabase';
 
-const categories = [
+const defaultExpenseCategories = [
   { id: 'Food & Dining', emoji: '🍔', label: 'Food', color: '#f59e0b' },
   { id: 'Transport', emoji: '🚗', label: 'Transport', color: '#3b82f6' },
   { id: 'Groceries', emoji: '🛒', label: 'Groceries', color: '#4AE54A' },
@@ -16,11 +16,18 @@ const categories = [
   { id: 'Education', emoji: '📚', label: 'Education', color: '#06b6d4' },
 ];
 
-const savingsCategories = [
+const defaultSavingsCategories = [
   { id: 'Savings', emoji: '🏦', label: 'Savings', color: '#10b981' },
   { id: 'Investment', emoji: '📈', label: 'Investment', color: '#3b82f6' },
   { id: 'Emergency Fund', emoji: '🚨', label: 'Emergency', color: '#f59e0b' },
 ];
+
+interface DisplayCategory {
+  id: string;
+  emoji: string;
+  label: string;
+  color?: string;
+}
 
 interface TransactionFormProps {
   form: TransactionFormState;
@@ -40,6 +47,9 @@ interface TransactionFormProps {
   showWallet?: boolean;
   sourceWalletLabel?: string;
   destinationWalletLabel?: string;
+  expenseCategories?: DisplayCategory[];
+  incomeCategories?: DisplayCategory[];
+  savingsCategories?: DisplayCategory[];
 }
 
 export function TransactionForm({
@@ -60,10 +70,13 @@ export function TransactionForm({
   showWallet = false,
   sourceWalletLabel = 'Dari wallet (opsional)',
   destinationWalletLabel = 'Ke wallet',
+  expenseCategories = defaultExpenseCategories,
+  incomeCategories = defaultExpenseCategories,
+  savingsCategories = defaultSavingsCategories,
 }: TransactionFormProps) {
   const isSavingsType = form.type === 'savings';
   const isTransferType = form.type === 'transfer';
-  const visibleCategories = isSavingsType ? savingsCategories : categories;
+  const visibleCategories = isSavingsType ? savingsCategories : (form.type === 'income' ? incomeCategories : expenseCategories);
 
   return (
     <div className="space-y-6">

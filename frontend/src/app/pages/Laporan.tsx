@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '../components/ui/collapsible';
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2, Sparkles, ChevronDown, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2, Sparkles, ChevronDown, Award, Calendar, BarChart3, Wallet } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import {
@@ -26,12 +26,16 @@ import { useLaporanData } from '@/hooks/data/useLaporanData';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useInsights } from '@/hooks/data/useInsights';
 import { useFinancialHealth } from '@/hooks/data/useFinancialHealth';
+import { useFinancialHealthScore } from '@/hooks/data/useFinancialHealthScore';
 import { useBudgets } from '@/hooks/useBudgets';
+import { useWallets } from '@/hooks/useWallets';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
+import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { exportLaporanToPDF } from '@/lib/pdfExport';
 import { ConfidenceTooltip } from '@/components/ConfidenceTooltip';
 import { SpendingComparison } from '@/components/SpendingComparison';
+import { FinancialHealthGauge } from '@/app/components/FinancialHealthGauge';
 import type { MonthlyPoint, CategoryTrendPoint } from '@/hooks/data/useLaporanData';
 
 interface HealthScore {
@@ -69,12 +73,14 @@ export default function Laporan() {
   const { monthlyData, categoryTrend, topCategories, isLoading } = useLaporanData(user?.userId);
   const { transactions, loading: txLoading } = useTransactions(month, year);
   const { budgets, loading: budgetLoading } = useBudgets(month, year);
+  const { wallets = [], loading: walletsLoading } = useWallets(user?.userId);
   const { patterns, budgetRecommendations, forecast, hasEnoughData } = useInsights(
     transactions,
     month,
     year,
   );
   const health = useFinancialHealth(transactions, budgets, month, year);
+  const healthScore = useFinancialHealthScore(transactions, budgets, month, year);
   const [exporting, setExporting] = useState(false);
   const [monthlyReportOpen, setMonthlyReportOpen] = useState(false);
 
@@ -106,6 +112,79 @@ export default function Laporan() {
   }, [monthlyData]);
 
   const healthScore = useMemo(() => calculateHealthScore(monthlyData), [monthlyData]);
+
+  const ringkasanCepat = useMemo(() => {
+    const monthTransactions = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return d.getMonth() === month - 1 && d.getFullYear() === year && t.type === 'expense';
+    });
+
+    if (monthTransactions.length === 0) {
+      return {
+        avgDailySpending: 0,
+        busiestDay: '—',
+        totalTransactions: 0,
+        daysWithoutSpending: 30,
+        spendingConsistency: 0,
+        topWallet: '—',
+      };
+    }
+
+    // Daily spending totals
+    const dailySpending: Record<string, { total: number; date: string }> = {};
+    monthTransactions.forEach((t) => {
+      const dateStr = new Date(t.date).toISOString().split('T')[0];
+      if (!dailySpending[dateStr]) {
+        dailySpending[dateStr] = { total: 0, date: dateStr };
+      }
+      dailySpending[dateStr].total += Number(t.amount);
+    });
+
+    const dailyValues = Object.values(dailySpending);
+    const totalSpending = dailyValues.reduce((sum, d) => sum + d.total, 0);
+    const avgDailySpending = totalSpending / 30; // Assume 30-day month
+
+    // Busiest day
+    const busiestDayData = dailyValues.reduce((max, curr) =>
+      curr.total > max.total ? curr : max
+    );
+    const busiestDayName = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(
+      new Date(busiestDayData.date)
+    );
+
+    // Days without spending
+    const daysWithSpending = new Set(dailyValues.map(d => d.date.split('-')[2]));
+    const daysWithoutSpending = 30 - daysWithSpending.size;
+
+    // Spending consistency (lower coefficient of variation = more consistent)
+    const mean = dailyValues.reduce((sum, d) => sum + d.total, 0) / dailyValues.length;
+    const variance = dailyValues.reduce((sum, d) => sum + Math.pow(d.total - mean, 2), 0) / dailyValues.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = mean > 0 ? stdDev / mean : 0;
+    const spendingConsistency = Math.max(0, 100 - cv * 50);
+
+    // Top wallet
+    const walletSpending: Record<string, number> = {};
+    monthTransactions.forEach((t) => {
+      if (t.wallet_id) {
+        const wallet = wallets.find(w => w.id === t.wallet_id);
+        const walletName = wallet?.name || 'Unknown';
+        walletSpending[walletName] = (walletSpending[walletName] || 0) + Number(t.amount);
+      }
+    });
+    const topWallet = Object.entries(walletSpending).length > 0
+      ? Object.entries(walletSpending).sort((a, b) => b[1] - a[1])[0][0]
+      : '—';
+
+    return {
+      avgDailySpending,
+      busiestDay: busiestDayName,
+      totalTransactions: monthTransactions.length,
+      daysWithoutSpending,
+      spendingConsistency: Math.round(spendingConsistency),
+      topWallet,
+    };
+  }, [transactions, month, year, wallets]);
 
   const CustomTooltip = ({
     active,
@@ -195,6 +274,90 @@ export default function Laporan() {
 
       {/* Content wrapper for PDF export */}
       <div id="laporan-content" className="space-y-6">
+      {/* Ringkasan Cepat (Quick Summary) */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground/80">⚡ Ringkasan Cepat</h2>
+        <p className="text-xs text-muted-foreground">Snapshot kinerja finansial Anda bulan ini</p>
+      </div>
+
+      {ringkasanCepat && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Average Daily Spending */}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground mb-2">Rata-rata per hari</p>
+              <p className="font-['DM_Mono'] font-bold text-xl text-blue-600">
+                {formatRupiah(Math.round(ringkasanCepat.avgDailySpending))}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">dari {ringkasanCepat.totalTransactions} transaksi</p>
+            </CardContent>
+          </Card>
+
+          {/* Busiest Day */}
+          <Card className="border-l-4 border-l-red-500">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground mb-2">Hari terboros</p>
+              <p className="font-semibold text-xl text-red-600 capitalize">
+                {ringkasanCepat.busiestDay}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Paling banyak pengeluaran</p>
+            </CardContent>
+          </Card>
+
+          {/* Total Transactions */}
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground mb-2">Total transaksi</p>
+              <p className="font-bold text-2xl text-purple-600">
+                {ringkasanCepat.totalTransactions}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">transaksi bulan ini</p>
+            </CardContent>
+          </Card>
+
+          {/* Days Without Spending */}
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground mb-2">Hari tanpa pengeluaran</p>
+              <p className="font-bold text-2xl text-green-600">
+                {ringkasanCepat.daysWithoutSpending}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">dari 30 hari</p>
+            </CardContent>
+          </Card>
+
+          {/* Spending Consistency */}
+          <Card className="border-l-4 border-l-amber-500">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground mb-2">Konsistensi pengeluaran</p>
+              <p className="font-bold text-xl text-amber-600">
+                {ringkasanCepat.spendingConsistency}%
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Semakin tinggi, semakin konsisten</p>
+            </CardContent>
+          </Card>
+
+          {/* Top Wallet */}
+          <Card className="border-l-4 border-l-indigo-500">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground mb-2">Dompet utama</p>
+              <p className="font-semibold text-lg text-indigo-600 truncate">
+                {ringkasanCepat.topWallet}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Pengeluaran terbanyak</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Financial Health Gauge */}
+      <div className="space-y-3 pt-2">
+        <h2 className="text-lg font-semibold text-foreground/80">💚 Skor Kesehatan Finansial</h2>
+        <p className="text-xs text-muted-foreground">Penilaian komprehensif terhadap kesehatan keuangan Anda</p>
+      </div>
+
+      <FinancialHealthGauge score={healthScore} />
+
       {/* Premium Health Score Card */}
       <Card className={`border-l-4 ${
         healthScore.status === 'excellent' ? 'border-l-green-500 bg-gradient-to-br from-green-50/50' :
@@ -374,7 +537,7 @@ export default function Laporan() {
                 <YAxis
                   stroke="#94a3b8"
                   fontSize={11}
-                  tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}M`}
+                  tickFormatter={createCompactAxisFormatter()}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
@@ -435,7 +598,7 @@ export default function Laporan() {
                 <YAxis
                   stroke="#94a3b8"
                   fontSize={11}
-                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`}
+                  tickFormatter={createCompactAxisFormatter()}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />

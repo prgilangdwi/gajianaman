@@ -26,6 +26,7 @@ import Gajian from './pages/Gajian';
 import SplitBill from './pages/SplitBill';
 import SplitBillShare from './pages/SplitBillShare';
 import SpendingPatterns from './pages/SpendingPatterns';
+import Tren from './pages/Tren';
 import Forecasting from './pages/Forecasting';
 import CategoryBrowser from './pages/CategoryBrowser';
 import CategoryDetail from './pages/CategoryDetail';
@@ -84,6 +85,7 @@ export default function App() {
                 <Route path="/recurring" element={<Recurring />} />
                 <Route path="/budget-recommendations" element={<BudgetRecommendations />} />
                 <Route path="/spending-patterns" element={<SpendingPatterns />} />
+                <Route path="/tren" element={<Tren />} />
                 <Route path="/forecasting" element={<Forecasting />} />
                 <Route path="/categories" element={<CategoryBrowser />} />
                 <Route path="/category/:category" element={<CategoryDetail />} />
