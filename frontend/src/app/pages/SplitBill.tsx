@@ -105,30 +105,54 @@ export default function SplitBill() {
     if (!user) return;
     const finalParticipants = splitAmounts();
 
-    setSaving(true);
-    const { data, error } = await supabase.from('split_bills').insert({
-      user_id: user.userId,
-      session_name: sessionName,
-      total_amount: totalNum,
-      participants: finalParticipants,
-    }).select('share_token').single();
-
-    setSaving(false);
-
-    if (error || !data) {
-      toast.error('Gagal menyimpan split bill');
+    // Validation
+    if (!sessionName.trim()) {
+      toast.error('Nama sesi tidak boleh kosong');
+      return;
+    }
+    if (totalNum === 0) {
+      toast.error('Masukkan jumlah total');
+      return;
+    }
+    if (finalParticipants.length === 0) {
+      toast.error('Tambahkan minimal 1 peserta');
+      return;
+    }
+    if (finalParticipants.some((p) => p.amount === 0)) {
+      toast.error('Setiap peserta harus memiliki nominal');
       return;
     }
 
-    setResult({
-      shareToken: data.share_token,
-      shareUrl: `${APP_URL}/split/${data.share_token}`,
-      participants: finalParticipants,
-      sessionName,
-      totalAmount: totalNum,
-    });
-    setStep(4);
-    toast.success(COPY.success.splitBillCreated);
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.from('split_bills').insert({
+        user_id: user.userId,
+        session_name: sessionName,
+        total_amount: totalNum,
+        participants: finalParticipants,
+      }).select('share_token').single();
+
+      if (error || !data) {
+        console.error('Split bill error:', error);
+        toast.error('Gagal menyimpan split bill. Coba lagi ya.');
+        return;
+      }
+
+      setResult({
+        shareToken: data.share_token,
+        shareUrl: `${APP_URL}/split/${data.share_token}`,
+        participants: finalParticipants,
+        sessionName,
+        totalAmount: totalNum,
+      });
+      setStep(4);
+      toast.success(COPY.success.splitBillCreated);
+    } catch (err) {
+      console.error('Split bill exception:', err);
+      toast.error('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCopyLink = async () => {
