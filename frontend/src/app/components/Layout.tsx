@@ -51,7 +51,7 @@ const navItems = [
   { icon: Layers,       label: 'Kategori',     path: '/categories' },
   { icon: AlertCircle,  label: 'Smart Alerts', path: '/smart-alerts' },
   { icon: Repeat2,      label: 'Berulang',    path: '/recurring' },
-  { icon: Lightbulb,    label: 'Budget Tips', path: '/budget-recommendations' },
+  { icon: Lightbulb,    label: 'Asisten', path: '/budget-recommendations' },
   { icon: Calendar,     label: 'Kalender',    path: '/kalender' },
   { icon: Users,        label: 'Split Bill',  path: '/split' },
   { icon: Zap,          label: 'Gajian',      path: '/gajian' },

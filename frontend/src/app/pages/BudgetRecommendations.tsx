@@ -44,9 +44,27 @@ export default function BudgetRecommendations() {
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Lightbulb className="w-8 h-8 text-yellow-500" />
-          Rekomendasi Budget
+          Asisten Keuangan Cerdas
         </h1>
-        <p className="text-gray-600 mt-1">Saran perubahan budget berdasarkan pola pengeluaran</p>
+        <p className="text-muted-foreground mt-1">AI-powered insights untuk optimasi budget Anda</p>
+      </div>
+
+      {/* AI Companion Introduction */}
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg border border-primary/20 p-6">
+        <div className="flex gap-4">
+          <div className="text-3xl">🤖</div>
+          <div className="flex-1">
+            <h2 className="font-semibold mb-2">Halo! Saya Asisten Keuangan Anda</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Saya telah menganalisis pola pengeluaran Anda untuk memberikan rekomendasi budget yang lebih bijak. Setiap saran dirancang untuk membantu Anda mencapai target keuangan dengan lebih efisien.
+            </p>
+            {potentialSavings > 0 && (
+              <p className="text-sm font-medium text-green-600">
+                💰 Dengan menerapkan rekomendasi ini, Anda berpotensi menghemat Rp{potentialSavings.toLocaleString('id-ID')} bulan ini!
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -95,7 +113,7 @@ export default function BudgetRecommendations() {
       {/* Recommendations List */}
       {recommendations.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Rekomendasi Rinci</h2>
+          <h2 className="text-lg font-semibold">📋 Saran Perubahan Budget</h2>
 
           {recommendations.map((rec) => (
             <div
