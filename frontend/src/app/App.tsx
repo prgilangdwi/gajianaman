@@ -30,6 +30,7 @@ import SpendingPatterns from './pages/SpendingPatterns';
 import Forecasting from './pages/Forecasting';
 import CategoryBrowser from './pages/CategoryBrowser';
 import CategoryDetail from './pages/CategoryDetail';
+import Profile from './pages/Profile';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -90,6 +91,7 @@ export default function App() {
                 <Route path="/gajian" element={<Gajian />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/langganan" element={<Langganan />} />
+                <Route path="/profile" element={<Profile />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

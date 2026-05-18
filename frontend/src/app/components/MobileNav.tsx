@@ -34,7 +34,7 @@ export function MobileNav({
     analytics: navItems.slice(4, 12),    // Goal Progress, Riwayat, Laporan, Monthly Report, Spending Patterns, Forecasting, Categories, Smart Alerts
     tools: navItems.slice(12, 15),       // Recurring, Budget Tips, Kalender
     features: navItems.slice(15, 17),    // Split Bill, Gajian
-    account: navItems.slice(17, 19),     // Dompet, Langganan
+    account: navItems.slice(17, 20),     // Dompet, Langganan, Profil
   };
 
   return (

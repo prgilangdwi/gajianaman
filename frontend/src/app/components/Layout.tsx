@@ -28,6 +28,7 @@ import {
   Percent,
   Sparkles,
   Layers,
+  Settings,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TransactionModal } from './TransactionModal';
@@ -57,6 +58,7 @@ const navItems = [
   { icon: Zap,          label: 'Gajian',      path: '/gajian' },
   { icon: Wallet,       label: 'Dompet',      path: '/wallet' },
   { icon: Crown,        label: 'Langganan',   path: '/langganan' },
+  { icon: Settings,     label: 'Profil',      path: '/profile' },
 ];
 
 export function Layout() {
