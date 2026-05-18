@@ -240,7 +240,7 @@ export function Layout() {
       {/* FAB Button */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-[88px] lg:bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center z-40 lg:z-50 hover:shadow-2xl"
+        className="fixed bottom-[88px] lg:bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center z-40 lg:z-50 hover:shadow-2xl transition-all group"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         animate={{
@@ -251,8 +251,14 @@ export function Layout() {
           ],
         }}
         transition={{ duration: 2.5, repeat: Infinity }}
+        title="Tambah Transaksi"
+        aria-label="Tambah Transaksi Baru"
       >
         <Plus className="w-7 h-7 lg:w-8 lg:h-8" />
+        {/* Tooltip on hover */}
+        <span className="absolute bottom-full mb-3 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          Tambah Transaksi
+        </span>
       </motion.button>
 
       {/* Mobile Bottom Navigation */}
