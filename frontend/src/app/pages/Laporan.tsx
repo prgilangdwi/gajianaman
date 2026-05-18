@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2, Sparkles } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '../components/ui/collapsible';
+import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Zap, Target, Download, Loader2, Sparkles, ChevronDown, Award } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import {
@@ -20,6 +25,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLaporanData } from '@/hooks/data/useLaporanData';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useInsights } from '@/hooks/data/useInsights';
+import { useFinancialHealth } from '@/hooks/data/useFinancialHealth';
+import { useBudgets } from '@/hooks/useBudgets';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { formatRupiah } from '@/lib/utils';
 import { exportLaporanToPDF } from '@/lib/pdfExport';
@@ -60,13 +67,16 @@ export default function Laporan() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { monthlyData, categoryTrend, topCategories, isLoading } = useLaporanData(user?.userId);
-  const { transactions } = useTransactions(month, year);
+  const { transactions, loading: txLoading } = useTransactions(month, year);
+  const { budgets, loading: budgetLoading } = useBudgets(month, year);
   const { patterns, budgetRecommendations, forecast, hasEnoughData } = useInsights(
     transactions,
     month,
     year,
   );
+  const health = useFinancialHealth(transactions, budgets, month, year);
   const [exporting, setExporting] = useState(false);
+  const [monthlyReportOpen, setMonthlyReportOpen] = useState(false);
 
   const monthName = useMemo(
     () => new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1)),
@@ -562,6 +572,140 @@ export default function Laporan() {
             <p className="text-xs text-muted-foreground">Mulai catat transaksi Anda agar kami bisa memberikan rekomendasi yang lebih akurat.</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Laporan Bulanan Section (merged from MonthlyReport) */}
+      {!txLoading && !budgetLoading && (
+        <Collapsible open={monthlyReportOpen} onOpenChange={setMonthlyReportOpen} className="space-y-4">
+          <Card>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-6 py-4 h-auto hover:bg-muted"
+              >
+                <div className="flex items-center gap-2 text-base font-semibold">
+                  <Award className="w-5 h-5" />
+                  Laporan Bulanan
+                </div>
+                <ChevronDown
+                  className={`w-5 h-5 transition-transform ${monthlyReportOpen ? 'rotate-180' : ''}`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <CardContent className="space-y-6 pt-6 border-t">
+                {/* Health Score Summary */}
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Award className="w-5 h-5" /> Skor Kesehatan Finansial
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-3xl font-bold text-blue-900">{Math.round(health.score)}</p>
+                        <p className="text-sm text-blue-700 mt-1">{health.scoreGrade}</p>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-muted-foreground">Tabungan:</span> <span className="font-semibold">{health.savingsRate.toFixed(1)}%</span></p>
+                        <p><span className="text-muted-foreground">Konsistensi:</span> <span className="font-semibold">{health.spendingConsistency}%</span></p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Key Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-semibold text-muted-foreground">Pemasukan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-lg font-bold text-green-600">
+                        {formatRupiah(
+                          transactions
+                            .filter((t) => {
+                              const d = new Date(t.date);
+                              return d.getMonth() === month - 1 && d.getFullYear() === year && t.type === 'income';
+                            })
+                            .reduce((sum, t) => sum + Number(t.amount), 0)
+                        )}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-semibold text-muted-foreground">Pengeluaran</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-lg font-bold text-red-600">
+                        {formatRupiah(
+                          transactions
+                            .filter((t) => {
+                              const d = new Date(t.date);
+                              return d.getMonth() === month - 1 && d.getFullYear() === year && t.type === 'expense';
+                            })
+                            .reduce((sum, t) => sum + Number(t.amount), 0)
+                        )}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-semibold text-muted-foreground">Kepatuhan Budget</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-lg font-bold text-blue-600">{health.budgetAdherence}%</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Over/Under Budget Categories */}
+                {(health.overBudgetCategories.length > 0 || health.underBudgetCategories.length > 0) && (
+                  <div className="space-y-3">
+                    {health.overBudgetCategories.length > 0 && (
+                      <Card className="bg-orange-50 border-orange-200">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2 text-orange-900">
+                            <AlertCircle className="w-4 h-4" /> Kategori Melebihi Budget
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-1 text-sm">
+                            {health.overBudgetCategories.map((cat) => (
+                              <li key={cat} className="text-orange-800">• {cat}</li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {health.underBudgetCategories.length > 0 && (
+                      <Card className="bg-green-50 border-green-200">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2 text-green-900">
+                            <CheckCircle className="w-4 h-4" /> Kategori Terjaga Budget
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-1 text-sm">
+                            {health.underBudgetCategories.map((cat) => (
+                              <li key={cat} className="text-green-800">✓ {cat}</li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
       </div>
     </div>

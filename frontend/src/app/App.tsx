@@ -9,13 +9,12 @@ import Overview from './pages/Overview';
 import Pengeluaran from './pages/Pengeluaran';
 import Budget from './pages/Budget';
 import Goals from './pages/Goals';
-import GoalProgress from './pages/GoalProgress';
 import Riwayat from './pages/Riwayat';
 import Laporan from './pages/Laporan';
 import SmartAlerts from './pages/SmartAlerts';
 import Recurring from './pages/Recurring';
 import BudgetRecommendations from './pages/BudgetRecommendations';
-import MonthlyReport from './pages/MonthlyReport';
+import Asisten from './pages/Asisten';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import LinkTelegram from './pages/LinkTelegram';
@@ -77,13 +76,13 @@ export default function App() {
                 <Route path="/pengeluaran" element={<Pengeluaran />} />
                 <Route path="/budget" element={<Budget />} />
                 <Route path="/goals" element={<Goals />} />
-                <Route path="/goal-progress" element={<GoalProgress />} />
+                <Route path="/goal-progress" element={<Navigate to="/goals" replace />} />
                 <Route path="/riwayat" element={<Riwayat />} />
                 <Route path="/laporan" element={<Laporan />} />
+                <Route path="/monthly-report" element={<Navigate to="/laporan" replace />} />
                 <Route path="/smart-alerts" element={<SmartAlerts />} />
                 <Route path="/recurring" element={<Recurring />} />
                 <Route path="/budget-recommendations" element={<BudgetRecommendations />} />
-                <Route path="/monthly-report" element={<MonthlyReport />} />
                 <Route path="/spending-patterns" element={<SpendingPatterns />} />
                 <Route path="/forecasting" element={<Forecasting />} />
                 <Route path="/categories" element={<CategoryBrowser />} />
@@ -93,6 +92,7 @@ export default function App() {
                 <Route path="/gajian" element={<Gajian />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/langganan" element={<Langganan />} />
+                <Route path="/asisten" element={<Asisten />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
 

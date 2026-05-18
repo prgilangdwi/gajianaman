@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
-import { TrendingDown } from 'lucide-react';
+import { TrendingDown, AlertCircle } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -19,6 +19,23 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWalletStats } from '@/hooks/data/useWalletStats';
 import { formatRupiah } from '@/lib/utils';
 import type { CSSProperties } from 'react';
+
+const categoryEmojis: Record<string, string> = {
+  'Food & Dining': '🍔',
+  'Transport': '🚗',
+  'Groceries': '🛒',
+  'Shopping': '🛍️',
+  'Bills & Utilities': '📱',
+  'Health': '🏥',
+  'Entertainment': '🎬',
+  'Education': '📚',
+};
+
+function getCatMeta(name: string) {
+  return {
+    emoji: categoryEmojis[name] || '📦',
+  };
+}
 
 function WalletFilterBar({ wallets, walletId, setWalletId }: {
   wallets: import('@/lib/supabase').Wallet[];
@@ -59,14 +76,28 @@ export default function Pengeluaran() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { walletId, setWalletId } = useWalletFilter();
-  const { wallets } = useWallets(user?.userId);
-  const { transactions, isLoading } = useTransactions(month, year);
+  const { wallets = [] } = useWallets(user?.userId);
+  const { transactions = [], isLoading, error } = useTransactions(month, year);
 
+  // Guard against undefined data
   const filteredTransactions = walletId === 'all'
-    ? transactions
-    : transactions.filter((t) => t.wallet_id === walletId);
+    ? (transactions ?? [])
+    : (transactions ?? []).filter((t) => t.wallet_id === walletId);
 
-  const { totalExpenses: expenses, categoryData, maxSpent } = useWalletStats(filteredTransactions);
+  const { totalExpenses: expenses = 0, categoryData = [], maxSpent = 1 } = useWalletStats(filteredTransactions);
+
+  // Error guard
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
+        <div className="text-center space-y-2">
+          <p className="text-lg font-semibold text-destructive">Gagal memuat data</p>
+          <p className="text-sm text-muted-foreground">{error.message || 'Coba muat ulang halaman'}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

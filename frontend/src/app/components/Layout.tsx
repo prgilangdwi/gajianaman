@@ -38,27 +38,43 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { usePrivacy } from '@/hooks/usePrivacy';
 
+const navItemsGrouped = {
+  top: [
+    { icon: Home, label: 'Overview', path: '/overview' },
+  ],
+  keuangan: [
+    { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
+    { icon: Target, label: 'Budget', path: '/budget' },
+    { icon: Star, label: 'Goals', path: '/goals' },
+    { icon: History, label: 'Riwayat', path: '/riwayat' },
+  ],
+  analitik: [
+    { icon: TrendingUp, label: 'Laporan', path: '/laporan' },
+    { icon: Percent, label: 'Pola Waktu', path: '/spending-patterns' },
+    { icon: BarChart3, label: 'Prakiraan', path: '/forecasting' },
+    { icon: BarChart3, label: 'Tren', path: '/spending-patterns' },
+  ],
+  alat: [
+    { icon: Layers, label: 'Kategori', path: '/categories' },
+    { icon: Zap, label: 'Gajian', path: '/gajian' },
+    { icon: Wallet, label: 'Dompet', path: '/wallet' },
+    { icon: Calendar, label: 'Kalender', path: '/kalender' },
+    { icon: Sparkles, label: 'Asisten', path: '/asisten' },
+  ],
+  lainnya: [
+    { icon: Repeat2, label: 'Berulang', path: '/recurring' },
+    { icon: Crown, label: 'Langganan', path: '/langganan' },
+    { icon: Settings, label: 'Profil', path: '/profile' },
+  ],
+};
+
+// Flatten for mobile navigation
 const navItems = [
-  { icon: Home,         label: 'Overview',    path: '/overview' },
-  { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
-  { icon: Target,       label: 'Budget',      path: '/budget' },
-  { icon: Star,         label: 'Goals',       path: '/goals' },
-  { icon: TrendingUp,   label: 'Goal Progress', path: '/goal-progress' },
-  { icon: History,      label: 'Riwayat',     path: '/riwayat' },
-  { icon: TrendingUp,   label: 'Laporan',     path: '/laporan' },
-  { icon: BarChart3,    label: 'Report Bulanan', path: '/monthly-report' },
-  { icon: Percent,      label: 'Pola Waktu',    path: '/spending-patterns' },
-  { icon: Sparkles,     label: 'Prakiraan',    path: '/forecasting' },
-  { icon: Layers,       label: 'Kategori',     path: '/categories' },
-  { icon: AlertCircle,  label: 'Smart Alerts', path: '/smart-alerts' },
-  { icon: Repeat2,      label: 'Berulang',    path: '/recurring' },
-  { icon: Lightbulb,    label: 'Asisten', path: '/budget-recommendations' },
-  { icon: Calendar,     label: 'Kalender',    path: '/kalender' },
-  { icon: Users,        label: 'Split Bill',  path: '/split' },
-  { icon: Zap,          label: 'Gajian',      path: '/gajian' },
-  { icon: Wallet,       label: 'Dompet',      path: '/wallet' },
-  { icon: Crown,        label: 'Langganan',   path: '/langganan' },
-  { icon: Settings,     label: 'Profil',      path: '/profile' },
+  ...navItemsGrouped.top,
+  ...navItemsGrouped.keuangan,
+  ...navItemsGrouped.analitik,
+  ...navItemsGrouped.alat,
+  ...navItemsGrouped.lainnya,
 ];
 
 export function Layout() {
@@ -75,29 +91,34 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-[260px] lg:flex-col bg-sidebar">
-        <div className="flex flex-col gap-y-6 px-6 py-8 h-full">
-          <div className="flex items-center gap-3">
-            <GajianAmanMark className="w-10 h-10" />
-            <div className="flex flex-col">
-              <h1 className="font-extrabold tracking-tight text-sidebar-foreground">Gajian Aman</h1>
-              <p className="text-xs text-sidebar-foreground/60 font-body">Safe Paycheck</p>
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-[260px] lg:flex-col bg-sidebar overflow-hidden">
+        <div className="flex flex-col h-full">
+          {/* Header - Non-scrolling */}
+          <div className="shrink-0 space-y-6 px-6 py-8">
+            <div className="flex items-center gap-3">
+              <GajianAmanMark className="w-10 h-10" />
+              <div className="flex flex-col">
+                <h1 className="font-extrabold tracking-tight text-sidebar-foreground">Gajian Aman</h1>
+                <p className="text-xs text-sidebar-foreground/60 font-body">Safe Paycheck</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/30">
+              <Avatar>
+                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm text-sidebar-foreground">Halo, {user?.name ?? 'User'} 👋</p>
+                <p className="text-xs text-sidebar-foreground/60">ID: {user?.userId}</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/30">
-            <Avatar>
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
-              <AvatarFallback>{userInitials}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm text-sidebar-foreground">Halo, {user?.name ?? 'User'} 👋</p>
-              <p className="text-xs text-sidebar-foreground/60">ID: {user?.userId}</p>
-            </div>
-          </div>
-
-          <nav className="flex-1 space-y-1">
-            {navItems.map((item) => {
+          {/* Nav - Scrollable */}
+          <nav className="sidebar-nav flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-1">
+            {/* Top group */}
+            {navItemsGrouped.top.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
               return (
@@ -115,9 +136,105 @@ export function Layout() {
                 </Link>
               );
             })}
+
+            {/* KEUANGAN Group */}
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 mt-5 mb-2">
+              KEUANGAN
+            </p>
+            {navItemsGrouped.keuangan.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors relative ${
+                    isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-semibold text-sm">{item.label}</span>
+                </Link>
+              );
+            })}
+
+            {/* ANALITIK Group */}
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 mt-5 mb-2">
+              ANALITIK
+            </p>
+            {navItemsGrouped.analitik.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors relative ${
+                    isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-semibold text-sm">{item.label}</span>
+                </Link>
+              );
+            })}
+
+            {/* ALAT Group */}
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 mt-5 mb-2">
+              ALAT
+            </p>
+            {navItemsGrouped.alat.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors relative ${
+                    isActive
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-semibold text-sm">{item.label}</span>
+                </Link>
+              );
+            })}
+
+            {/* LAINNYA Divider */}
+            <hr className="border-border my-2 mx-3" />
+
+            {/* LAINNYA Group - De-emphasized */}
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 mt-5 mb-2">
+              LAINNYA
+            </p>
+            {navItemsGrouped.lainnya.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors relative text-xs ${
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-foreground'
+                      : 'text-muted-foreground hover:bg-sidebar-accent/50'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="space-y-3 border-t border-sidebar-border pt-4">
+          {/* Footer - Non-scrolling */}
+          <div className="shrink-0 space-y-3 border-t border-sidebar-border pt-3 pb-4 px-3">
             <p className="text-xs text-sidebar-foreground/50 text-center">
               Powered by Claude · Supabase
             </p>
@@ -242,7 +359,7 @@ export function Layout() {
       {/* FAB Button */}
       <motion.button
         onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-[88px] lg:bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center z-40 lg:z-50 hover:shadow-2xl transition-all group"
+        className="fixed bottom-6 z-50 right-6 max-sm:right-auto max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:bottom-[88px] w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center hover:shadow-2xl transition-all group"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         animate={{

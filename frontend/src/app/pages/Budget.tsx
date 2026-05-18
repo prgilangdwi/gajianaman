@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../components/ui/dialog';
-import { Edit, Plus, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Edit, Plus, CheckCircle, AlertCircle, AlertTriangle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBudgets, upsertBudget } from '@/hooks/useBudgets';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -67,6 +67,9 @@ export default function Budget() {
   const [editCategory, setEditCategory] = useState('');
   const [editAmount, setEditAmount] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+  const [aiTips, setAiTips] = useState<string[]>([]);
+  const [tipsLoading, setTipsLoading] = useState(false);
 
   const spendingMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -141,6 +144,46 @@ export default function Budget() {
     }
   };
 
+  const handleGetAITips = async () => {
+    if (showTips) {
+      setShowTips(false);
+      return;
+    }
+
+    setShowTips(true);
+    setTipsLoading(true);
+
+    try {
+      const budgetSummary = budgetRows
+        .filter((r) => r.hasEntry)
+        .map((r) => `${r.category}: Rp${r.budget} (terpakai ${r.pct.toFixed(0)}%)`)
+        .join(', ');
+
+      const response = await fetch('/api/budget-tips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          budgetData: budgetSummary,
+          totalBudget,
+          totalUsed,
+          month,
+          year,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to get tips');
+
+      const data = await response.json();
+      setAiTips(data.tips || []);
+    } catch (error) {
+      toast.error('Gagal memuat saran AI');
+      setAiTips([]);
+      console.error('Error:', error);
+    } finally {
+      setTipsLoading(false);
+    }
+  };
+
   const isLoading = budgetsLoading || txLoading;
 
   if (isLoading) {
@@ -199,13 +242,24 @@ export default function Budget() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Budget per Kategori</CardTitle>
-          <Button
-            size="sm"
-            onClick={() => openEdit('', 0)}
-            className="gap-1"
-          >
-            <Plus className="w-4 h-4" /> Tambah Budget
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={showTips ? 'default' : 'outline'}
+              onClick={handleGetAITips}
+              disabled={tipsLoading}
+              className="gap-1"
+            >
+              <Sparkles className="w-4 h-4" /> Saran AI
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => openEdit('', 0)}
+              className="gap-1"
+            >
+              <Plus className="w-4 h-4" /> Tambah Budget
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {budgetRows.length === 0 ? (
@@ -279,6 +333,36 @@ export default function Budget() {
           )}
         </CardContent>
       </Card>
+
+      {/* AI Budget Tips Panel */}
+      {showTips && (
+        <Card className="bg-amber-50 border-amber-200">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-600" />
+              Saran AI untuk Anggaran Anda
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {tipsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="animate-spin">⏳</div>
+              </div>
+            ) : aiTips.length > 0 ? (
+              <ul className="space-y-3">
+                {aiTips.map((tip, idx) => (
+                  <li key={idx} className="flex gap-3">
+                    <span className="text-amber-600 font-bold flex-shrink-0">{idx + 1}.</span>
+                    <span className="text-sm text-amber-900">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-amber-800">Tidak ada saran AI tersedia saat ini.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Budget Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -12,12 +12,21 @@ import {
 } from '../components/ui/dialog';
 import { Progress } from '../components/ui/progress';
 import { Badge } from '../components/ui/badge';
-import { Plus, Target, Trophy, Calendar } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '../components/ui/collapsible';
+import { Plus, Target, Trophy, Calendar, ChevronDown, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGoals, addGoal, updateGoalSaved } from '@/hooks/useGoals';
 import { useAuth } from '@/hooks/useAuth';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useMonthFilter } from '@/hooks/useMonthFilter';
+import { useGoalProgress } from '@/hooks/data/useGoalProgress';
 import { formatRupiah } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { Goal } from '@/lib/supabase';
 
 const GOAL_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444'];
@@ -210,7 +219,11 @@ function GoalCard({
 export default function Goals() {
   const { user } = useAuth();
   const { goals, isLoading, refetch } = useGoals();
+  const { month, year } = useMonthFilter();
+  const { transactions, loading: transLoading } = useTransactions(month, year);
+  const goalProgress = useGoalProgress(goals, transactions, month, year);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   const [name, setName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -315,6 +328,141 @@ export default function Goals() {
             <GoalCard key={goal.id} goal={goal} index={idx} onRefetch={refetch} />
           ))}
         </div>
+      )}
+
+      {/* Progress Detail Section */}
+      {goals.length > 0 && !transLoading && (
+        <Collapsible open={progressOpen} onOpenChange={setProgressOpen} className="space-y-4">
+          <Card>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-6 py-4 h-auto hover:bg-muted"
+              >
+                <div className="flex items-center gap-2 text-base font-semibold">
+                  <TrendingUp className="w-5 h-5" />
+                  Lihat Progres Detail
+                </div>
+                <ChevronDown
+                  className={`w-5 h-5 transition-transform ${progressOpen ? 'rotate-180' : ''}`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <CardContent className="space-y-6 pt-6 border-t">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-muted-foreground">Total Target</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">
+                        <PrivacyAmount value={formatRupiah(goalProgress.totalSavingsTarget)} />
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{goalProgress.goals.length} tujuan</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-muted-foreground">Total Tersimpan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-green-600">
+                        <PrivacyAmount value={formatRupiah(goalProgress.totalSaved)} />
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{goalProgress.totalProgress}% tercapai</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-muted-foreground">Rata-rata/Bulan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-blue-600">
+                        <PrivacyAmount value={formatRupiah(goalProgress.avgMonthlyRate)} />
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">3 bulan terakhir</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-muted-foreground">Status</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex gap-3 mt-2">
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-green-700">{goalProgress.goalsOnTrack}</p>
+                          <p className="text-xs text-muted-foreground">Tepat</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-yellow-700">{goalProgress.goalsAtRisk}</p>
+                          <p className="text-xs text-muted-foreground">Risiko</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-red-700">{goalProgress.goalsDelayed}</p>
+                          <p className="text-xs text-muted-foreground">Terlambat</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Overall Progress */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Progress Keseluruhan</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>{goalProgress.totalProgress}%</span>
+                    </div>
+                    <Progress value={goalProgress.totalProgress} className="h-3" />
+                    <p className="text-xs text-muted-foreground">
+                      <PrivacyAmount value={formatRupiah(goalProgress.totalSaved)} /> dari <PrivacyAmount value={formatRupiah(goalProgress.totalSavingsTarget)} />
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Trend Chart */}
+                {goalProgress.goals.length > 0 && goalProgress.goals[0].monthlyHistory && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Tren Tabungan Bulanan</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <LineChart
+                          data={goalProgress.goals[0].monthlyHistory.map((amount, idx) => ({
+                            month: ['3 bln lalu', '2 bln lalu', '1 bln lalu'][idx] || 'Bulan ini',
+                            savings: amount,
+                          }))}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip formatter={(value: any) => formatRupiah(value)} />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="savings"
+                            stroke="#10b981"
+                            dot={{ fill: '#10b981' }}
+                            name="Tabungan"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       )}
 
       {/* Add Goal Dialog */}
