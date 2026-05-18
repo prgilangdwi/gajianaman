@@ -300,16 +300,16 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   className="w-full bg-primary hover:bg-primary-dark"
                 >
                   {isParsingAI ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Parsing...</>
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sedang diproses...</>
                   ) : (
-                    <><Zap className="w-4 h-4 mr-2" />Parse dengan AI</>
+                    <><Zap className="w-4 h-4 mr-2" />Mengunyah dengan AI</>
                   )}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-2">
-                  <p className="text-sm font-semibold text-primary">Hasil Parsing:</p>
+                  <p className="text-sm font-semibold text-primary">Hasil Analisis:</p>
                   <div className="space-y-1 text-sm">
                     <p><span className="text-muted-foreground font-body">Tipe:</span> <span className="font-medium capitalize">{form.form.type}</span></p>
                     <p><span className="text-muted-foreground font-body">Jumlah:</span> <span className="font-mono font-semibold">Rp {Number(form.form.amount).toLocaleString('id-ID')}</span></p>

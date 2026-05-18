@@ -91,9 +91,9 @@ export default function SplitBill() {
         });
         const data = await res.json();
         if (data.amount) setTotalAmount(String(data.amount));
-        toast.success('Total berhasil di-parse dari struk!');
+        toast.success('Total berhasil dianalisis dari struk!');
       } catch {
-        toast.error('Gagal parse struk. Input manual ya.');
+        toast.error('Gagal menganalisis struk. Silakan input manual.');
       } finally {
         setUploadingReceipt(false);
       }
@@ -213,9 +213,9 @@ export default function SplitBill() {
             <label className="cursor-pointer">
               <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors">
                 {uploadingReceipt ? (
-                  <><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" /><p className="text-sm">Parsing struk...</p></>
+                  <><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" /><p className="text-sm">Sedang dianalisis...</p></>
                 ) : (
-                  <><p className="text-2xl mb-1">📸</p><p className="text-sm font-medium">Upload struk / bukti bayar</p><p className="text-xs text-muted-foreground">AI akan parse total otomatis</p></>
+                  <><p className="text-2xl mb-1">📸</p><p className="text-sm font-medium">Upload struk / bukti bayar</p><p className="text-xs text-muted-foreground">AI akan membaca total otomatis</p></>
                 )}
               </div>
               <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
