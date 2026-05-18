@@ -21,6 +21,13 @@ import {
   Wallet,
   Crown,
   Zap,
+  AlertCircle,
+  Repeat2,
+  Lightbulb,
+  BarChart3,
+  Percent,
+  Sparkles,
+  Layers,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TransactionModal } from './TransactionModal';
@@ -35,8 +42,16 @@ const navItems = [
   { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
   { icon: Target,       label: 'Budget',      path: '/budget' },
   { icon: Star,         label: 'Goals',       path: '/goals' },
+  { icon: TrendingUp,   label: 'Goal Progress', path: '/goal-progress' },
   { icon: History,      label: 'Riwayat',     path: '/riwayat' },
   { icon: TrendingUp,   label: 'Laporan',     path: '/laporan' },
+  { icon: BarChart3,    label: 'Report Bulanan', path: '/monthly-report' },
+  { icon: Percent,      label: 'Pola Waktu',    path: '/spending-patterns' },
+  { icon: Sparkles,     label: 'Prakiraan',    path: '/forecasting' },
+  { icon: Layers,       label: 'Kategori',     path: '/categories' },
+  { icon: AlertCircle,  label: 'Smart Alerts', path: '/smart-alerts' },
+  { icon: Repeat2,      label: 'Berulang',    path: '/recurring' },
+  { icon: Lightbulb,    label: 'Budget Tips', path: '/budget-recommendations' },
   { icon: Calendar,     label: 'Kalender',    path: '/kalender' },
   { icon: Users,        label: 'Split Bill',  path: '/split' },
   { icon: Zap,          label: 'Gajian',      path: '/gajian' },
@@ -118,31 +133,32 @@ export function Layout() {
 
       {/* Mobile Top Bar */}
       <header className="lg:hidden sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
+        <div className="flex h-14 items-center justify-between px-3">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
+              className="h-9 w-9"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            <div className="flex items-center gap-2">
-              <GajianAmanMark className="w-8 h-8" variant="dark" />
-              <h1 className="font-bold tracking-tight">Gajian Aman</h1>
+            <div className="flex items-center gap-1">
+              <GajianAmanMark className="w-6 h-6" variant="dark" />
+              <h1 className="font-bold tracking-tight text-sm sm:text-base">Gajian Aman</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="text-sm font-medium bg-transparent border-none focus:outline-none"
+              className="text-xs sm:text-sm font-medium bg-transparent border-none focus:outline-none"
             >
               {monthOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <Avatar className="w-8 h-8">
+            <Avatar className="w-7 h-7">
               <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
               <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
@@ -214,7 +230,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="px-3 py-4 lg:p-8 pb-24 lg:pb-8">
+        <main className="px-2 py-3 sm:px-4 sm:py-4 lg:p-8 pb-24 lg:pb-8">
           <div className="max-w-[1200px] mx-auto">
             <Outlet />
           </div>
@@ -241,7 +257,7 @@ export function Layout() {
 
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="flex items-center justify-around px-1">
+        <div className="flex items-center justify-around px-0.5 py-1">
           {navItems.slice(0, 5).map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -249,12 +265,12 @@ export function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-lg transition-colors flex-1 min-h-[56px] ${
+                className={`flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-lg transition-colors flex-1 min-h-[52px] ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <Icon className="w-4 h-4" />
+                <span className="text-[9px] font-medium leading-tight text-center line-clamp-2">{item.label}</span>
               </Link>
             );
           })}

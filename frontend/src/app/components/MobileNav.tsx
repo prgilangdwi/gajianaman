@@ -30,9 +30,11 @@ export function MobileNav({
 
   // Group nav items into sections
   const sections = {
-    primary: navItems.slice(0, 4),     // Overview, Pengeluaran, Budget, Goals
-    tools: navItems.slice(4, 8),       // Riwayat, Tren, Kalender, SplitBill
-    account: navItems.slice(8, 11),    // Gajian, Dompet, Langganan
+    primary: navItems.slice(0, 4),       // Overview, Pengeluaran, Budget, Goals
+    analytics: navItems.slice(4, 12),    // Goal Progress, Riwayat, Laporan, Monthly Report, Spending Patterns, Forecasting, Categories, Smart Alerts
+    tools: navItems.slice(12, 15),       // Recurring, Budget Tips, Kalender
+    features: navItems.slice(15, 17),    // Split Bill, Gajian
+    account: navItems.slice(17, 19),     // Dompet, Langganan
   };
 
   return (
@@ -85,10 +87,58 @@ export function MobileNav({
           })}
         </div>
 
+        {/* Analytics Section */}
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-2">ANALYTICS</p>
+          {sections.analytics.map((item) => {
+            const isActive = currentPath === item.path;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={onNavigate}
+                className={`flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-lg transition-colors text-sm ${
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                }`}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* Tools Section */}
         <div className="space-y-1">
           <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-2">TOOLS</p>
           {sections.tools.map((item) => {
+            const isActive = currentPath === item.path;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={onNavigate}
+                className={`flex items-center gap-3 px-3 py-3 min-h-[48px] rounded-lg transition-colors text-sm ${
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                }`}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Features Section */}
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-sidebar-foreground/50 px-2 py-2">FEATURES</p>
+          {sections.features.map((item) => {
             const isActive = currentPath === item.path;
             const Icon = item.icon;
             return (

@@ -27,10 +27,32 @@ export interface SpendingForecast {
   dailyAverage: number;
 }
 
+export interface BudgetVelocity {
+  category: string;
+  monthlyBudget: number;
+  currentSpent: number;
+  percentUsed: number;
+  daysRemaining: number;
+  projectedETA: number;
+  riskLevel: 'critical' | 'warning' | 'safe';
+}
+
+export interface AnomalyScore {
+  category: string;
+  currentSpent: number;
+  expectedSpend: number;
+  deviation: number;
+  deviationPercent: number;
+  severity: 'critical' | 'warning' | 'none';
+  reason: string;
+}
+
 export interface InsightsData {
   patterns: SpendingPattern[];
   budgetRecommendations: BudgetRecommendation[];
   forecast: SpendingForecast;
+  velocities: BudgetVelocity[];
+  anomalies: AnomalyScore[];
   hasEnoughData: boolean;
 }
 
@@ -131,10 +153,77 @@ export function useInsights(
       dailyAverage: Math.round(dailyAverage),
     };
 
+    // ─── Budget Velocity: How fast through each budget ───────────────────────
+    const velocities: BudgetVelocity[] = budgetRecommendations.map((rec) => {
+      const budget = rec.recommendedAmount;
+      const percentUsed = budget > 0 ? (rec.avgSpending / budget) * 100 : 0;
+      const dailyBudgetRemaining = daysRemaining > 0 ? (budget - rec.avgSpending) / daysRemaining : 0;
+      const projectedETA = Math.max(dayOfMonth, Math.ceil(budget / (dailyAverage || 1)));
+
+      let riskLevel: 'critical' | 'warning' | 'safe' = 'safe';
+      if (percentUsed > 90) riskLevel = 'critical';
+      else if (percentUsed > 70) riskLevel = 'warning';
+
+      return {
+        category: rec.category,
+        monthlyBudget: budget,
+        currentSpent: rec.avgSpending,
+        percentUsed: Math.round(percentUsed),
+        daysRemaining,
+        projectedETA,
+        riskLevel,
+      };
+    });
+
+    // ─── Anomaly Detection: Spending deviations ────────────────────────────
+    const anomalies: AnomalyScore[] = patterns
+      .map((pattern) => {
+        const expectedDailySpend = pattern.avgMonthly / daysInMonth;
+        const expectedToDate = expectedDailySpend * dayOfMonth;
+        const actualToDate = transactions
+          .filter((t) => {
+            const d = new Date(t.date);
+            return (
+              d.getMonth() === currentMonth &&
+              d.getFullYear() === currentYear &&
+              t.category === pattern.category &&
+              t.type === 'expense'
+            );
+          })
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+
+        const deviation = actualToDate - expectedToDate;
+        const deviationPercent = expectedToDate > 0 ? (deviation / expectedToDate) * 100 : 0;
+
+        let severity: 'critical' | 'warning' | 'none' = 'none';
+        let reason = 'On track';
+        if (deviationPercent > 30) {
+          severity = 'critical';
+          reason = 'Spending 30%+ above historical pace';
+        } else if (deviationPercent > 15) {
+          severity = 'warning';
+          reason = 'Spending 15%+ above historical pace';
+        }
+
+        return {
+          category: pattern.category,
+          currentSpent: actualToDate,
+          expectedSpend: Math.round(expectedToDate),
+          deviation: Math.round(deviation),
+          deviationPercent: Math.round(deviationPercent),
+          severity,
+          reason,
+        };
+      })
+      .filter((a) => a.severity !== 'none')
+      .sort((a, b) => b.deviationPercent - a.deviationPercent);
+
     return {
       patterns: patterns.sort((a, b) => b.lastMonth - a.lastMonth),
       budgetRecommendations,
       forecast,
+      velocities,
+      anomalies,
       hasEnoughData: transactions.filter((t) => t.type === 'expense').length >= 10,
     };
   }, [transactions, currentMonth, currentYear]);

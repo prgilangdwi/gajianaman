@@ -47,6 +47,20 @@ export interface Goal {
   created_at: string;
 }
 
+export interface RecurringTransaction {
+  id: string;
+  category: string;
+  amount: number;
+  dayOfMonth: number;
+  frequency: 'monthly' | 'weekly' | 'biweekly' | 'yearly';
+  confidence: 'high' | 'medium' | 'low';
+  transactionCount: number;
+  lastOccurrence: string;
+  nextExpected: string;
+  isConfirmed: boolean;
+  note?: string;
+}
+
 export interface User {
   user_id: number;
   name?: string;

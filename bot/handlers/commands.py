@@ -1327,6 +1327,804 @@ async def cmd_trends(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, parse_mode='Markdown')
 
 
+async def cmd_smart_alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show budget anomalies and velocity warnings."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+        daysInMonth = calendar.monthrange(current_year, current_month)[1]
+        dayOfMonth = now.day
+
+        # Get current month transactions
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        # Filter to current month expenses
+        current_expenses = [
+            t for t in txs
+            if t.type == "expense"
+            and datetime.fromisoformat(t.date).month == current_month
+            and datetime.fromisoformat(t.date).year == current_year
+        ]
+
+        if len(current_expenses) < 5:
+            await update.message.reply_text(
+                "⚠️ Perlu minimal 5 transaksi bulan ini untuk analisis alerts."
+            )
+            return
+
+        # Get last 3 months data for pattern detection
+        all_txs = [t for t in txs if t.type == "expense"]
+
+        # Calculate category patterns
+        category_spending = {}
+        for i in range(3):
+            m = (current_month - i - 1 + 12) % 12 + 1
+            y = current_year - (1 if current_month - i - 1 < 0 else 0)
+            for tx in all_txs:
+                tx_date = datetime.fromisoformat(tx.date)
+                if tx_date.month == m and tx_date.year == y:
+                    cat = tx.category or "Other"
+                    if cat not in category_spending:
+                        category_spending[cat] = [0, 0, 0]
+                    category_spending[cat][i] += float(tx.amount)
+
+        # Detect anomalies
+        anomalies = []
+        for cat, amounts in category_spending.items():
+            hist_amounts = [a for a in amounts[1:] if a > 0]
+            if not hist_amounts:
+                continue
+
+            expected_daily = sum(hist_amounts) / len(hist_amounts) / daysInMonth
+            expected_to_date = expected_daily * dayOfMonth
+
+            current_cat_spend = sum(
+                float(t.amount)
+                for t in current_expenses
+                if t.category == cat
+            )
+
+            if expected_to_date > 0:
+                deviation = ((current_cat_spend - expected_to_date) / expected_to_date) * 100
+                if deviation > 15:
+                    anomalies.append({
+                        'category': cat,
+                        'current': current_cat_spend,
+                        'expected': expected_to_date,
+                        'deviation': deviation,
+                    })
+
+        # Build message
+        if not anomalies:
+            msg = "✅ *Smart Alerts*\n\nSemua baik! Tidak ada anomali pengeluaran terdeteksi."
+        else:
+            msg = "⚠️ *Smart Alerts — Anomali Terdeteksi*\n\n"
+            anomalies.sort(key=lambda x: x['deviation'], reverse=True)
+
+            for anom in anomalies[:5]:  # Show top 5
+                cat = anom['category']
+                current = int(anom['current'])
+                expected = int(anom['expected'])
+                dev = int(anom['deviation'])
+
+                severity = "🔴 KRITIS" if dev > 30 else "🟡 PERINGATAN"
+                msg += (
+                    f"{severity} — *{cat}*\n"
+                    f"Saat ini: {fmt_currency(current)}\n"
+                    f"Ekspektasi: {fmt_currency(expected)}\n"
+                    f"Penyimpangan: +{dev}%\n\n"
+                )
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_recurring(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show detected recurring transactions (subscriptions, rent, etc)."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        # Get last 6 months of transactions
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=500,
+        )
+
+        expenses = [t for t in txs if t.type == "expense"]
+        if len(expenses) < 10:
+            await update.message.reply_text(
+                "⚠️ Perlu minimal 10 transaksi untuk deteksi transaksi berulang."
+            )
+            return
+
+        # Group by category and amount
+        groups = {}
+        for tx in expenses:
+            # Round to nearest 10k to catch approximate amounts
+            rounded_amount = int(int(float(tx.amount)) / 10000) * 10000
+            key = f"{tx.category}|{rounded_amount}"
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(tx)
+
+        # Detect recurring
+        recurring_list = []
+        for key, txs_in_group in groups.items():
+            if len(txs_in_group) < 2:
+                continue
+
+            # Check if same day of month
+            days = [int(tx.date.split('-')[2]) for tx in txs_in_group]
+            day_freq = {}
+            for d in days:
+                day_freq[d] = day_freq.get(d, 0) + 1
+
+            most_common = max(day_freq.values())
+            if most_common / len(txs_in_group) >= 0.6:  # 60% match
+                cat, amt = key.split('|')
+                amount = int(amt)
+                recurring_list.append({
+                    'category': cat,
+                    'amount': amount,
+                    'count': len(txs_in_group),
+                    'day': max(day_freq, key=day_freq.get),
+                })
+
+        if not recurring_list:
+            msg = (
+                "🔄 *Transaksi Berulang*\n\n"
+                "Tidak ada transaksi berulang terdeteksi.\n"
+                "Saat ini sistem membutuhkan minimal 2 transaksi serupa untuk deteksi."
+            )
+        else:
+            recurring_list.sort(key=lambda x: x['amount'], reverse=True)
+            total_recurring = sum(r['amount'] for r in recurring_list)
+
+            msg = (
+                "🔄 *Transaksi Berulang — Terdeteksi*\n\n"
+                f"Total: {fmt_currency(total_recurring)}/bulan\n"
+                f"Jumlah: {len(recurring_list)} pengeluaran\n\n"
+            )
+
+            for r in recurring_list[:10]:  # Top 10
+                msg += (
+                    f"• *{r['category']}*\n"
+                    f"  {fmt_currency(r['amount'])} — "
+                    f"hari {r['day']} ({r['count']}x terdeteksi)\n"
+                )
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_budget_tips(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Provide smart budget recommendations based on spending patterns."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        # Get last 3 months of transactions
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=500,
+        )
+
+        expenses = [t for t in txs if t.type == "expense"]
+        if len(expenses) < 10:
+            await update.message.reply_text(
+                "⚠️ Perlu minimal 10 transaksi untuk saran budget."
+            )
+            return
+
+        # Calculate category spending patterns (last 3 months)
+        category_spending = {}
+        for i in range(3):
+            m = (current_month - i - 1 + 12) % 12 + 1
+            y = current_year - (1 if current_month - i - 1 < 0 else 0)
+            for tx in expenses:
+                tx_date = datetime.fromisoformat(tx.date)
+                if tx_date.month == m and tx_date.year == y:
+                    cat = tx.category or "Other"
+                    if cat not in category_spending:
+                        category_spending[cat] = [0, 0, 0]
+                    category_spending[cat][i] += float(tx.amount)
+
+        # Generate recommendations based on spending trends
+        recommendations = []
+        for cat, [current, prev1, prev2] in category_spending.items():
+            valid = [v for v in [current, prev1, prev2] if v > 0]
+            if not valid:
+                continue
+
+            avg = sum(valid) / len(valid)
+
+            if current > avg * 1.15:
+                # Overspending
+                suggested = int(avg * 1.2)
+                overage = int((current / avg - 1) * 100)
+                rec = {
+                    'category': cat,
+                    'suggested': suggested,
+                    'reason': f'Pengeluaran naik {overage}% dari rata-rata 3 bulan',
+                }
+                recommendations.append(rec)
+
+        if not recommendations:
+            msg = (
+                "✅ *Smart Budget Tips*\n\n"
+                "Pengeluaran Anda stabil dan sesuai pola historis. Bagus!"
+            )
+        else:
+            recommendations.sort(key=lambda x: x['suggested'], reverse=True)
+
+            msg = (
+                "💡 *Smart Budget Tips*\n\n"
+                f"Rekomendasi berdasarkan pola 3 bulan terakhir:\n\n"
+            )
+
+            for rec in recommendations[:5]:  # Top 5
+                msg += (
+                    f"📈 *{rec['category']}*\n"
+                    f"Saran: {fmt_currency(rec['suggested'])}\n"
+                    f"{rec['reason']}\n\n"
+                )
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show financial health score and monthly report."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        # Get current month data
+        current_txs = [
+            t for t in txs
+            if datetime.fromisoformat(t.date).month == current_month
+            and datetime.fromisoformat(t.date).year == current_year
+        ]
+
+        if len(current_txs) < 5:
+            await update.message.reply_text(
+                "⚠️ Perlu minimal 5 transaksi untuk laporan kesehatan finansial."
+            )
+            return
+
+        # Calculate metrics
+        expenses = sum(
+            float(t.amount) for t in current_txs if t.type == "expense"
+        )
+        income = sum(
+            float(t.amount) for t in current_txs if t.type == "income"
+        )
+
+        savings_rate = ((income - expenses) / income * 100) if income > 0 else 0
+
+        # Analyze spending consistency (last 3 months)
+        monthly_expenses = [0, 0, 0]
+        for i in range(3):
+            m = (current_month - i - 1 + 12) % 12 + 1
+            y = current_year - (1 if current_month - i - 1 < 0 else 0)
+            monthly_expenses[i] = sum(
+                float(t.amount)
+                for t in txs
+                if t.type == "expense"
+                and datetime.fromisoformat(t.date).month == m
+                and datetime.fromisoformat(t.date).year == y
+            )
+
+        # Calculate health score (simple version)
+        score = 50
+        score += max(0, min(20, (savings_rate / 30) * 20))  # Savings: 20 pts
+        score += 15 if savings_rate > 0 else 0  # Positive savings: 15 pts
+        score += 15 if all(e > 0 for e in monthly_expenses[1:]) else 0  # Consistency: 15 pts
+
+        # Determine grade
+        if score >= 85:
+            grade = "A+"
+            emoji = "🟢"
+        elif score >= 75:
+            grade = "A"
+            emoji = "🟢"
+        elif score >= 65:
+            grade = "B"
+            emoji = "🟡"
+        elif score >= 50:
+            grade = "C"
+            emoji = "🟡"
+        else:
+            grade = "D"
+            emoji = "🔴"
+
+        msg = (
+            f"{emoji} *Kesehatan Finansial Anda*\n\n"
+            f"*Skor:* {score}/100 (Grade: {grade})\n\n"
+            f"📊 *Metrik Bulan Ini:*\n"
+            f"Pemasukan: {fmt_currency(int(income))}\n"
+            f"Pengeluaran: {fmt_currency(int(expenses))}\n"
+            f"Tabungan: {fmt_currency(int(income - expenses))} ({savings_rate:.1f}%)\n\n"
+        )
+
+        if savings_rate >= 20:
+            msg += "✅ Luar biasa! Tabungan Anda sangat baik\n"
+        elif savings_rate >= 10:
+            msg += "👍 Bagus! Terus pertahankan tabungan\n"
+        elif savings_rate > 0:
+            msg += "⚠️ Coba tingkatkan tabungan Anda\n"
+        else:
+            msg += "🔴 Pengeluaran melebihi pemasukan!\n"
+
+        msg += "\n📱 Lihat laporan lengkap di dashboard → Report Bulanan"
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_spending_patterns(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show daily and weekly spending patterns."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        # Get current month expenses only
+        expenses = [
+            t for t in txs
+            if t.type == "expense"
+            and datetime.fromisoformat(t.date).month == current_month
+            and datetime.fromisoformat(t.date).year == current_year
+        ]
+
+        if len(expenses) < 3:
+            await update.message.reply_text(
+                "⚠️ Perlu minimal 3 transaksi untuk analisis pola pengeluaran."
+            )
+            return
+
+        # Calculate daily patterns
+        daily_data = {}
+        for tx in expenses:
+            day = datetime.fromisoformat(tx.date).day
+            if day not in daily_data:
+                daily_data[day] = {"spending": 0, "count": 0}
+            daily_data[day]["spending"] += float(tx.amount)
+            daily_data[day]["count"] += 1
+
+        # Calculate weekly patterns
+        weekly_data = {}
+        for day in range(1, 6):
+            start = (day - 1) * 7 + 1
+            end = min(day * 7, 31)
+            total = sum(
+                daily_data.get(d, {}).get("spending", 0)
+                for d in range(start, end + 1)
+            )
+            weekly_data[day] = total
+
+        total_spending = sum(d["spending"] for d in daily_data.values())
+        avg_daily = total_spending / len(daily_data) if daily_data else 0
+
+        # Find peak day
+        peak_day = max(daily_data.items(), key=lambda x: x[1]["spending"])[0]
+        peak_amount = daily_data[peak_day]["spending"]
+
+        # Find highest and lowest week
+        highest_week = max(weekly_data.items(), key=lambda x: x[1])[0]
+        lowest_week = min(weekly_data.items(), key=lambda x: x[1])[0]
+
+        msg = "📊 *Pola Pengeluaran Waktu*\n\n"
+        msg += f"💰 *Ringkasan:*\n"
+        msg += f"Total: {fmt_currency(int(total_spending))}\n"
+        msg += f"Rata-rata/hari: {fmt_currency(int(avg_daily))}\n"
+        msg += f"Hari puncak: Hari ke-{peak_day} ({fmt_currency(int(peak_amount))})\n\n"
+
+        msg += f"📈 *Pola Mingguan:*\n"
+        for week, amount in sorted(weekly_data.items()):
+            pct = (amount / total_spending * 100) if total_spending > 0 else 0
+            bar_length = int(pct / 5)
+            bar = "█" * bar_length
+            msg += f"Minggu {week}: {bar} {pct:.0f}%\n"
+
+        msg += f"\n🔍 *Insight:*\n"
+        if peak_amount > avg_daily * 1.5:
+            pct_above = ((peak_amount / avg_daily - 1) * 100)
+            msg += f"💥 Hari puncak {pct_above:.0f}% lebih tinggi dari rata-rata\n"
+
+        week_diff = (
+            (weekly_data[highest_week] - weekly_data[lowest_week]) / weekly_data[lowest_week] * 100
+            if weekly_data[lowest_week] > 0
+            else 0
+        )
+        if week_diff > 30:
+            msg += f"📈 Variasi minggu cukup tinggi ({week_diff:.0f}%)\n"
+
+        msg += "\n📱 Lihat detail lengkap di dashboard → Pola Waktu"
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_forecast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show expense forecast for next month based on 3-month history."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        # Get 3-month history
+        monthly_totals = [0, 0, 0]
+        category_totals = {}
+
+        for i in range(3):
+            hist_month = (current_month - i - 1 + 12) % 12 + 1
+            hist_year = current_year - (1 if current_month - i - 1 < 0 else 0)
+
+            month_expenses = [
+                t
+                for t in txs
+                if t.type == "expense"
+                and datetime.fromisoformat(t.date).month == hist_month
+                and datetime.fromisoformat(t.date).year == hist_year
+            ]
+
+            monthly_total = sum(float(t.amount) for t in month_expenses)
+            monthly_totals[i] = monthly_total
+
+            for tx in month_expenses:
+                cat = tx.category
+                if cat not in category_totals:
+                    category_totals[cat] = [0, 0, 0]
+                category_totals[cat][i] += float(tx.amount)
+
+        if sum(monthly_totals) < 50000:
+            await update.message.reply_text(
+                "⚠️ Perlu minimal 3 bulan data untuk prakiraan akurat."
+            )
+            return
+
+        # Simple linear trend
+        avg_slope = (monthly_totals[2] - monthly_totals[0]) / 2 if monthly_totals[0] > 0 else 0
+        avg_monthly = sum(monthly_totals) / 3
+        next_month_forecast = avg_monthly + avg_slope
+
+        # Category trends
+        top_categories = sorted(
+            category_totals.items(),
+            key=lambda x: sum(x[1]) / 3,
+            reverse=True,
+        )[:3]
+
+        # Current month so far
+        current_expenses = [
+            t
+            for t in txs
+            if t.type == "expense"
+            and datetime.fromisoformat(t.date).month == current_month
+            and datetime.fromisoformat(t.date).year == current_year
+        ]
+        current_total = sum(float(t.amount) for t in current_expenses)
+        current_day = now.day
+        projected_total = (current_total / current_day) * 31 if current_day > 0 else 0
+        variance = projected_total - next_month_forecast
+
+        msg = "📊 *Prakiraan Pengeluaran Bulan Depan*\n\n"
+        msg += f"💰 *Target:* {fmt_currency(int(next_month_forecast))}\n"
+        msg += f"Rata-rata 3 bulan: {fmt_currency(int(avg_monthly))}\n\n"
+
+        msg += f"📈 *Bulan Ini (proyeksi):*\n"
+        msg += f"Total saat ini: {fmt_currency(int(current_total))}\n"
+        msg += f"Proyeksi akhir bulan: {fmt_currency(int(projected_total))}\n"
+
+        if variance > 0:
+            pct = (variance / next_month_forecast * 100) if next_month_forecast > 0 else 0
+            msg += f"⚠️ Diprediksi {pct:.0f}% LEBIH TINGGI dari target\n"
+        else:
+            pct = (abs(variance) / next_month_forecast * 100) if next_month_forecast > 0 else 0
+            msg += f"✅ Diprediksi {pct:.0f}% LEBIH RENDAH dari target\n"
+
+        msg += f"\n🏆 *Top 3 Kategori (rata-rata):*\n"
+        for cat, values in top_categories:
+            avg = sum(values) / 3
+            msg += f"  • {cat}: {fmt_currency(int(avg))}\n"
+
+        msg += "\n📱 Lihat detail prakiraan di dashboard → Prakiraan"
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_category_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show category-level analysis with merchant breakdown."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        txs = await db.list_transactions(
+            session,
+            user_id=user.id,
+            limit=1000,
+        )
+
+        budgets = await db.list_budgets(
+            session,
+            user_id=user.id,
+        )
+
+        # Get current month expenses by category
+        current_expenses = [
+            t
+            for t in txs
+            if t.type == "expense"
+            and datetime.fromisoformat(t.date).month == current_month
+            and datetime.fromisoformat(t.date).year == current_year
+        ]
+
+        category_totals: dict = {}
+        category_variance: dict = {}
+
+        for tx in current_expenses:
+            cat = tx.category
+            if cat not in category_totals:
+                category_totals[cat] = 0
+            category_totals[cat] += float(tx.amount)
+
+        # Get budgets for current month
+        for budget in budgets:
+            if budget.month == current_month and budget.year == current_year:
+                cat = budget.category
+                if cat in category_totals:
+                    variance = category_totals[cat] - float(budget.amount)
+                    category_variance[cat] = (variance, float(budget.amount))
+
+        # Find categories with most variance
+        if not category_variance:
+            await update.message.reply_text(
+                "📊 Belum ada budget yang tersimpan untuk kategori. Gunakan /budget untuk set budget."
+            )
+            return
+
+        sorted_variance = sorted(
+            category_variance.items(),
+            key=lambda x: abs(x[1][0]),
+            reverse=True,
+        )
+
+        msg = "📊 *Analisis Kategori Bulan Ini*\n\n"
+
+        # Top 3 highest variance
+        msg += "*Top Kategori (Variance):*\n"
+        for cat, (variance, budget_amt) in sorted_variance[:3]:
+            status = "⚠️ Over" if variance > 0 else "✅ Under"
+            pct = (abs(variance) / budget_amt * 100) if budget_amt > 0 else 0
+            msg += f"{status} *{cat}*: {pct:.0f}%\n"
+
+        msg += "\n"
+
+        # Highest spending category
+        if category_totals:
+            top_cat = max(category_totals.items(), key=lambda x: x[1])
+            msg += f"💰 *Kategori Terbesar:* {top_cat[0]} ({fmt_currency(int(top_cat[1]))})\n\n"
+
+        msg += "📱 Lihat detail & merchant di dashboard → Kategori Pengeluaran"
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
+async def cmd_goal_progress(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show goal progress tracking with milestones and projections."""
+    user = update.effective_user
+    if not user:
+        return
+
+    async with AsyncSessionLocal() as session:
+        db_user = await db.get_user(session, user.id)
+        if not db_user:
+            await update.message.reply_text(
+                "User belum terdaftar. Ketik /start untuk mulai."
+            )
+            return
+
+        # Get goals and transactions
+        goals = await db.list_goals(session, user_id=user.id)
+        if not goals:
+            await update.message.reply_text(
+                "📌 Belum ada tujuan tabungan. Gunakan /goal untuk buat tujuan baru."
+            )
+            return
+
+        txs = await db.list_transactions(session, user_id=user.id, limit=500)
+
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+
+        # Calculate monthly contributions for last 3 months
+        monthly_contributions = {}
+        for i in range(3):
+            hist_month = (current_month - i - 1) % 12 + 1
+            hist_year = current_year - (1 if current_month - i - 1 <= 0 else 0)
+            month_key = f"{hist_year}-{str(hist_month).zfill(2)}"
+
+            month_savings = sum(
+                float(t.amount)
+                for t in txs
+                if t.type in ["expense", "saving"]
+                and t.category in ["Savings", "Investment"]
+                and datetime.fromisoformat(t.date).month == hist_month
+                and datetime.fromisoformat(t.date).year == hist_year
+            )
+            monthly_contributions[month_key] = month_savings
+
+        recent_months = [
+            f"{current_year}-{str(current_month).zfill(2)}",
+            f"{current_year if current_month > 1 else current_year - 1}-{str((current_month - 2) % 12 + 1).zfill(2)}",
+            f"{current_year if current_month > 2 else current_year - 1}-{str((current_month - 3) % 12 + 1).zfill(2)}",
+        ]
+        recent_months.reverse()
+
+        monthly_history = [
+            monthly_contributions.get(key, 0) for key in recent_months
+        ]
+        avg_monthly_rate = (
+            sum(monthly_history) // len(monthly_history)
+            if monthly_history
+            else 0
+        )
+
+        # Analyze goals
+        total_target = sum(float(g.target_amount or 0) for g in goals)
+        total_saved = sum(float(g.saved_amount or 0) for g in goals)
+        total_progress = (
+            int((total_saved / total_target) * 100) if total_target > 0 else 0
+        )
+
+        goals_on_track = 0
+        top_goal = None
+        top_progress = 0
+
+        for goal in goals:
+            saved = float(goal.saved_amount or 0)
+            target = float(goal.target_amount or 0)
+            progress = (saved / target) * 100 if target > 0 else 0
+
+            if progress > top_progress:
+                top_progress = progress
+                top_goal = goal
+
+            deadline = datetime.fromisoformat(goal.deadline) if goal.deadline else None
+            if deadline:
+                remaining = target - saved
+                months_to_deadline = max(
+                    1,
+                    int(
+                        (deadline.timestamp() - now.timestamp()) / (30 * 24 * 60 * 60)
+                    ),
+                )
+                if avg_monthly_rate > 0:
+                    required_rate = remaining / months_to_deadline
+                    if required_rate <= avg_monthly_rate:
+                        goals_on_track += 1
+
+        msg = "🎯 *Progress Tujuan Tabungan*\n\n"
+        msg += f"💰 *Total Target:* {fmt_currency(int(total_target))}\n"
+        msg += f"✅ *Total Tersimpan:* {fmt_currency(int(total_saved))}\n"
+        msg += f"📈 *Progress:* {total_progress}%\n"
+        msg += f"💚 *Tepat Waktu:* {goals_on_track}/{len(goals)} goals\n\n"
+
+        if avg_monthly_rate > 0:
+            msg += f"📊 *Rata-rata Tabungan/Bulan:* {fmt_currency(int(avg_monthly_rate))}\n"
+            msg += f"🏆 *Proyeksi Tercapai:* ~{int(avg_monthly_rate * 12 / 1000)}k per tahun\n\n"
+
+        if top_goal:
+            msg += f"⭐ *Tujuan Terbesar:* {top_goal.name}\n"
+            saved = float(top_goal.saved_amount or 0)
+            target = float(top_goal.target_amount or 0)
+            msg += f"   Progress: {int((saved / target) * 100)}% ({fmt_currency(int(saved))}/{fmt_currency(int(target))})\n\n"
+
+        msg += "📱 Lihat detail milestone & proyeksi di dashboard → Goal Progress"
+
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+
 # ── /splitbill ConversationHandler ───────────────────────────────────────────
 
 SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)

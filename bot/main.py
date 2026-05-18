@@ -17,6 +17,8 @@ from bot.handlers.commands import (
     cmd_start, cmd_add, cmd_income, cmd_summary, cmd_history,
     cmd_budget, cmd_goal, cmd_help, cmd_delete, cmd_stats, cmd_cancel,
     cmd_tutorial, cmd_quickbudget, cmd_commands, cmd_wallet, cmd_insights, cmd_notify, cmd_csv, cmd_trends,
+    cmd_smart_alerts, cmd_recurring, cmd_budget_tips, cmd_health, cmd_spending_patterns, cmd_forecast,
+    cmd_category_analysis, cmd_goal_progress,
     get_splitbill_handler,
 )
 from bot.handlers.callbacks import handle_callback
@@ -80,6 +82,14 @@ def main():
     app.add_handler(CommandHandler("notify", cmd_notify))
     app.add_handler(CommandHandler("csv", cmd_csv))
     app.add_handler(CommandHandler("trends", cmd_trends))
+    app.add_handler(CommandHandler("smart_alerts", cmd_smart_alerts))
+    app.add_handler(CommandHandler("recurring", cmd_recurring))
+    app.add_handler(CommandHandler("budget_tips", cmd_budget_tips))
+    app.add_handler(CommandHandler("health", cmd_health))
+    app.add_handler(CommandHandler("spending_patterns", cmd_spending_patterns))
+    app.add_handler(CommandHandler("forecast", cmd_forecast))
+    app.add_handler(CommandHandler("category_analysis", cmd_category_analysis))
+    app.add_handler(CommandHandler("goal_progress", cmd_goal_progress))
 
     # Inline keyboard callbacks
     app.add_handler(CallbackQueryHandler(handle_callback))

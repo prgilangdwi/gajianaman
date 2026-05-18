@@ -9,8 +9,13 @@ import Overview from './pages/Overview';
 import Pengeluaran from './pages/Pengeluaran';
 import Budget from './pages/Budget';
 import Goals from './pages/Goals';
+import GoalProgress from './pages/GoalProgress';
 import Riwayat from './pages/Riwayat';
 import Laporan from './pages/Laporan';
+import SmartAlerts from './pages/SmartAlerts';
+import Recurring from './pages/Recurring';
+import BudgetRecommendations from './pages/BudgetRecommendations';
+import MonthlyReport from './pages/MonthlyReport';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import LinkTelegram from './pages/LinkTelegram';
@@ -21,6 +26,10 @@ import Landing from './pages/Landing';
 import Gajian from './pages/Gajian';
 import SplitBill from './pages/SplitBill';
 import SplitBillShare from './pages/SplitBillShare';
+import SpendingPatterns from './pages/SpendingPatterns';
+import Forecasting from './pages/Forecasting';
+import CategoryBrowser from './pages/CategoryBrowser';
+import CategoryDetail from './pages/CategoryDetail';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -65,8 +74,17 @@ export default function App() {
                 <Route path="/pengeluaran" element={<Pengeluaran />} />
                 <Route path="/budget" element={<Budget />} />
                 <Route path="/goals" element={<Goals />} />
+                <Route path="/goal-progress" element={<GoalProgress />} />
                 <Route path="/riwayat" element={<Riwayat />} />
                 <Route path="/laporan" element={<Laporan />} />
+                <Route path="/smart-alerts" element={<SmartAlerts />} />
+                <Route path="/recurring" element={<Recurring />} />
+                <Route path="/budget-recommendations" element={<BudgetRecommendations />} />
+                <Route path="/monthly-report" element={<MonthlyReport />} />
+                <Route path="/spending-patterns" element={<SpendingPatterns />} />
+                <Route path="/forecasting" element={<Forecasting />} />
+                <Route path="/categories" element={<CategoryBrowser />} />
+                <Route path="/category/:category" element={<CategoryDetail />} />
                 <Route path="/kalender" element={<Kalender />} />
                 <Route path="/split" element={<SplitBill />} />
                 <Route path="/gajian" element={<Gajian />} />
