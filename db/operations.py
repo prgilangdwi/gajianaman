@@ -638,3 +638,207 @@ async def get_all_admins(session: AsyncSession) -> list:
         """)
     )
     return [dict(row._mapping) for row in result.fetchall()]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSACTION ANALYSIS & DATA STRUCTURE (Section 4)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def get_netting_summary(
+    session: AsyncSession,
+    user_id: int,
+    year: int = None,
+    month: int = None,
+    category: str = None
+) -> dict | None:
+    """Get net income - expense summary (netting analysis)"""
+    query = """
+        SELECT
+          category,
+          DATE_TRUNC('month', date)::DATE as month,
+          SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
+          SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
+          SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) as net_amount,
+          COUNT(*) as transaction_count
+        FROM transactions
+        WHERE user_id = :user_id
+          AND type IN ('income', 'expense')
+    """
+
+    params = {"user_id": user_id}
+
+    if category:
+        query += " AND category = :category"
+        params["category"] = category
+
+    if year and month:
+        query += " AND EXTRACT(YEAR FROM date) = :year AND EXTRACT(MONTH FROM date) = :month"
+        params["year"] = year
+        params["month"] = month
+
+    query += " GROUP BY category, DATE_TRUNC('month', date) ORDER BY month DESC"
+
+    result = await session.execute(text(query), params)
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def get_multi_month_comparison(
+    session: AsyncSession,
+    user_id: int,
+    category: str = None,
+    months: int = 6
+) -> list:
+    """Get multi-month trend comparison for category or all"""
+    query = f"""
+        WITH monthly_data AS (
+          SELECT
+            category,
+            DATE_TRUNC('month', date)::DATE as month,
+            SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+            SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense,
+            SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) as net
+          FROM transactions
+          WHERE user_id = :user_id
+            AND date >= CURRENT_DATE - INTERVAL '{months} months'
+            {f"AND category = :category" if category else ""}
+          GROUP BY category, DATE_TRUNC('month', date)
+        )
+        SELECT
+          *,
+          LAG(expense) OVER (PARTITION BY category ORDER BY month) as prev_month_expense,
+          LAG(net) OVER (PARTITION BY category ORDER BY month) as prev_month_net
+        FROM monthly_data
+        ORDER BY category, month DESC
+    """
+
+    params = {"user_id": user_id}
+    if category:
+        params["category"] = category
+
+    result = await session.execute(text(query), params)
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def detect_recurring_patterns(
+    session: AsyncSession,
+    user_id: int,
+    category: str = None,
+    min_occurrences: int = 3
+) -> list:
+    """Detect recurring transaction patterns (same amount/merchant within date ranges)"""
+    query = f"""
+        WITH recurring_candidates AS (
+          SELECT
+            category,
+            amount,
+            merchant_name,
+            COUNT(*) as occurrence_count,
+            AVG(amount) as avg_amount,
+            STDDEV(amount) as amount_stddev,
+            MAX(date) as last_date,
+            MIN(date) as first_date,
+            MAX(date) - MIN(date) as date_range_days
+          FROM transactions
+          WHERE user_id = :user_id
+            AND merchant_name IS NOT NULL
+            {f"AND category = :category" if category else ""}
+          GROUP BY category, amount, merchant_name
+          HAVING COUNT(*) >= :min_occurrences
+        )
+        SELECT
+          *,
+          CASE
+            WHEN occurrence_count >= 12 THEN 'monthly'
+            WHEN occurrence_count >= 4 THEN 'quarterly'
+            WHEN occurrence_count >= 2 THEN 'biweekly'
+            ELSE 'unknown'
+          END as likely_frequency
+        FROM recurring_candidates
+        ORDER BY occurrence_count DESC
+    """
+
+    params = {"user_id": user_id, "min_occurrences": min_occurrences}
+    if category:
+        params["category"] = category
+
+    result = await session.execute(text(query), params)
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def get_transaction_aggregates(
+    session: AsyncSession,
+    user_id: int,
+    period: str = 'monthly',
+    category: str = None,
+    year: int = None,
+    month: int = None
+) -> list:
+    """Get aggregated transaction statistics by period"""
+    query = f"""
+        SELECT
+          category,
+          type,
+          COUNT(*) as count,
+          SUM(amount) as total_amount,
+          AVG(amount) as avg_amount,
+          MIN(amount) as min_amount,
+          MAX(amount) as max_amount,
+          STDDEV(amount) as volatility
+        FROM transactions
+        WHERE user_id = :user_id
+          {f"AND category = :category" if category else ""}
+          {f"AND EXTRACT(YEAR FROM date) = :year" if year else ""}
+          {f"AND EXTRACT(MONTH FROM date) = :month" if month else ""}
+        GROUP BY category, type
+        ORDER BY total_amount DESC NULLS LAST
+    """
+
+    params = {"user_id": user_id}
+    if category:
+        params["category"] = category
+    if year:
+        params["year"] = year
+    if month:
+        params["month"] = month
+
+    result = await session.execute(text(query), params)
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def update_transaction_metadata(
+    session: AsyncSession,
+    transaction_id: int,
+    merchant_name: str = None,
+    payment_method: str = None,
+    receipt_url: str = None,
+    custom_properties: dict = None
+) -> dict:
+    """Update transaction with additional metadata"""
+    updates = []
+    params = {"tx_id": transaction_id}
+
+    if merchant_name is not None:
+        updates.append("merchant_name = :merchant_name")
+        params["merchant_name"] = merchant_name
+
+    if payment_method is not None:
+        updates.append("payment_method = :payment_method")
+        params["payment_method"] = payment_method
+
+    if receipt_url is not None:
+        updates.append("receipt_url = :receipt_url")
+        params["receipt_url"] = receipt_url
+
+    if custom_properties is not None:
+        updates.append("custom_properties = :custom_properties")
+        params["custom_properties"] = json.dumps(custom_properties)
+
+    if not updates:
+        return {}
+
+    query = f"UPDATE transactions SET {', '.join(updates)} WHERE id = :tx_id RETURNING *"
+    result = await session.execute(text(query), params)
+    await session.commit()
+    row = result.fetchone()
+    return dict(row._mapping) if row else {}
