@@ -32,6 +32,15 @@ import CategoryBrowser from './pages/CategoryBrowser';
 import CategoryDetail from './pages/CategoryDetail';
 import Profile from './pages/Profile';
 import Onboarding from './pages/Onboarding';
+import CaraKerja from './pages/CaraKerja';
+import Fitur from './pages/Fitur';
+import Keamanan from './pages/Keamanan';
+import Testimonial from './pages/Testimonial';
+import FAQ from './pages/FAQ';
+import Blog from './pages/Blog';
+import TentangKami from './pages/TentangKami';
+import SyaratKetentuan from './pages/SyaratKetentuan';
+import KebijakanPrivasi from './pages/KebijakanPrivasi';
 
 function StubPage({ title }: { title: string }) {
   return (
@@ -65,6 +74,17 @@ export default function App() {
               <Route path="/link-telegram" element={<LinkTelegram />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/split/:token" element={<SplitBillShare />} />
+
+              {/* Public Pages */}
+              <Route path="/cara-kerja" element={<CaraKerja />} />
+              <Route path="/fitur" element={<Fitur />} />
+              <Route path="/keamanan" element={<Keamanan />} />
+              <Route path="/testimonial" element={<Testimonial />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/tentang-kami" element={<TentangKami />} />
+              <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
+              <Route path="/kebijakan-privasi" element={<KebijakanPrivasi />} />
 
               <Route
                 element={

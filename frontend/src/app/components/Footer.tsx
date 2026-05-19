@@ -528,18 +528,18 @@ export default function Footer() {
             <div className="footer-nav-cols">
               <div className="footer-col">
                 <div className="footer-col-title">Navigation</div>
-                <a href="#">Cara kerja</a>
-                <a href="#">Fitur</a>
-                <a href="#">Keamanan</a>
-                <a href="#">Testimonial</a>
-                <a href="#">FAQ</a>
+                <a href="/cara-kerja">Cara kerja</a>
+                <a href="/fitur">Fitur</a>
+                <a href="/keamanan">Keamanan</a>
+                <a href="/testimonial">Testimonial</a>
+                <a href="/faq">FAQ</a>
               </div>
               <div className="footer-col">
                 <div className="footer-col-title">Company</div>
-                <a href="#">Blog</a>
-                <a href="#">Tentang Kami</a>
-                <a href="#">Syarat &amp; Ketentuan</a>
-                <a href="#">Kebijakan Privasi</a>
+                <a href="/blog">Blog</a>
+                <a href="/tentang-kami">Tentang Kami</a>
+                <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+                <a href="/kebijakan-privasi">Kebijakan Privasi</a>
               </div>
             </div>
           </div>

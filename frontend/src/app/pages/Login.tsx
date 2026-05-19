@@ -81,158 +81,134 @@ export default function Login() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D2818]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col">
-      <div
-        className="min-h-screen relative overflow-hidden flex items-center justify-center px-4"
-        style={{
-          backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%23000" width="1920" height="1080"/></svg>')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      >
-        {/* Video background */}
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: 'brightness(0.5)' }}
+    <div className="flex flex-col min-h-screen">
+      <div className="flex-1 flex items-center justify-center px-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <FloatingIcon icon={DollarSign} style={{ top: '15%', left: '5%' }} delay={0} />
+        <FloatingIcon icon={PiggyBank} style={{ top: '20%', right: '8%' }} delay={1.2} />
+        <FloatingIcon icon={TrendingUp} style={{ bottom: '20%', left: '10%' }} delay={0.6} />
+        <FloatingIcon icon={PiggyBank} style={{ bottom: '15%', right: '6%' }} delay={1.8} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 32, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="w-full max-w-md"
         >
-          <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
-        </video>
-
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/35"></div>
-      <FloatingIcon icon={DollarSign} style={{ top: '8%', left: '6%' }} delay={0} />
-      <FloatingIcon icon={PiggyBank} style={{ top: '12%', right: '8%' }} delay={1.2} />
-      <FloatingIcon icon={TrendingUp} style={{ bottom: '14%', left: '10%' }} delay={0.6} />
-      <FloatingIcon icon={PiggyBank} style={{ bottom: '10%', right: '6%' }} delay={1.8} />
-      <FloatingIcon icon={DollarSign} style={{ top: '45%', left: '3%' }} delay={2.4} />
-      <FloatingIcon icon={TrendingUp} style={{ top: '35%', right: '4%' }} delay={0.3} />
-
-      <motion.div
-        initial={{ opacity: 0, y: 32, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-md z-10"
-      >
-        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur">
-          <CardHeader className="text-center space-y-3 pb-4">
-            <motion.div
-              className="mx-auto"
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <GajianAmanMark className="w-16 h-16" />
-            </motion.div>
-            <div>
-              <CardTitle className="text-2xl font-extrabold tracking-tight text-[#0D2818]">
-                Gajian Aman
-              </CardTitle>
-              <p className="text-sm text-[#4AE54A] mt-1 font-body font-semibold">
-                Dashboard keuangan lengkap, catat transaksi via Telegram
-              </p>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-5">
-            {/* Google Sign-In */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-11 text-sm font-semibold border-2 border-[#4AE54A] text-[#0D2818] hover:bg-[#4AE54A]/10 gap-2"
-              onClick={handleGoogleLogin}
-              disabled={googleLoading}
-            >
-              {googleLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <GoogleIcon />
-              )}
-              Masuk dengan Google
-            </Button>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-card px-3 text-muted-foreground">atau gunakan Telegram ID</span>
-              </div>
-            </div>
-
-            {/* Telegram ID form */}
-            <form onSubmit={handleTelegramSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="telegram-id">Telegram ID</Label>
-                <Input
-                  id="telegram-id"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="cth. 123456789"
-                  value={telegramId}
-                  onChange={(e) => setTelegramId(e.target.value.replace(/\D/g, ''))}
-                  autoFocus
-                  className="text-base font-mono"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-11 text-base font-semibold bg-[#4AE54A] hover:bg-[#38C438] text-[#0D2818]"
-                disabled={loading || !telegramId}
+          <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur">
+            <CardHeader className="text-center space-y-3 pb-4">
+              <motion.div
+                className="mx-auto"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               >
-                {loading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Masuk…</>
+                <GajianAmanMark className="w-16 h-16" />
+              </motion.div>
+              <div>
+                <CardTitle className="text-2xl font-extrabold tracking-tight text-slate-900">
+                  Gajian Aman
+                </CardTitle>
+                <p className="text-sm text-emerald-600 mt-1 font-body font-semibold">
+                  Dashboard keuangan lengkap, catat transaksi via Telegram
+                </p>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5">
+              {/* Google Sign-In */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11 text-sm font-semibold"
+                onClick={handleGoogleLogin}
+                disabled={googleLoading}
+              >
+                {googleLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Masuk ke Dashboard'
+                  <GoogleIcon />
                 )}
+                <span className="ml-2">Masuk dengan Google</span>
               </Button>
-            </form>
 
-            {/* Info Banner */}
-            <div className="flex gap-3 p-3 rounded-xl bg-[#4AE54A]/10 border border-[#4AE54A]/30">
-              <Info className="w-4 h-4 text-[#4AE54A] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-[#555] leading-relaxed">
-                Belum punya akun?{' '}
-                <span className="font-semibold text-[#0D2818]">Kirim /start ke @GajianAmanBot</span>{' '}
-                di Telegram, atau mulai langsung dengan Google. Semua terintegrasi otomatis.
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-5 pt-1">
-              {[
-                { icon: DollarSign, label: 'Catat' },
-                { icon: TrendingUp, label: 'Analisis' },
-                { icon: PiggyBank, label: 'Hemat' },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-[#4AE54A]/15 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-[#4AE54A]" />
-                  </div>
-                  <span className="text-xs text-[#777]">{label}</span>
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-3 text-muted-foreground">atau gunakan Telegram ID</span>
+                </div>
+              </div>
 
-        <p className="text-center text-white/60 text-xs mt-4">
-          Powered by Claude · Supabase
-        </p>
-      </motion.div>
-    </div>
+              {/* Telegram ID form */}
+              <form onSubmit={handleTelegramSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="telegram-id">Telegram ID</Label>
+                  <Input
+                    id="telegram-id"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="cth. 123456789"
+                    value={telegramId}
+                    onChange={(e) => setTelegramId(e.target.value.replace(/\D/g, ''))}
+                    autoFocus
+                    className="text-base font-mono"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={loading || !telegramId}
+                >
+                  {loading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Masuk…</>
+                  ) : (
+                    'Masuk ke Dashboard'
+                  )}
+                </Button>
+              </form>
 
-      {/* Footer — white section below the dark hero */}
+              {/* Info Banner */}
+              <div className="flex gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <Info className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Belum punya akun?{' '}
+                  <span className="font-semibold text-slate-900">Kirim /start ke @GajianAmanBot</span>{' '}
+                  di Telegram, atau mulai langsung dengan Google. Semua terintegrasi otomatis.
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-5 pt-1">
+                {[
+                  { icon: DollarSign, label: 'Catat' },
+                  { icon: TrendingUp, label: 'Analisis' },
+                  { icon: PiggyBank, label: 'Hemat' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center gap-1">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <span className="text-xs text-slate-500">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-slate-400 text-xs mt-4">
+            Powered by Claude · Supabase
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Footer */}
       <section style={{ background: '#ffffff', padding: '48px 24px' }}>
         <Footer />
       </section>
