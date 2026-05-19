@@ -6,21 +6,128 @@
   --font-family-body: 'Plus Jakarta Sans', sans-serif;
   --font-family-mono: 'DM Mono', monospace;
 
-  /* Gajian Aman Brand — Primary */
-  --primary: #4AE54A;           /* Bright Mint/Vivid Lime — CTAs, active states */
+  /* ─── BRAND ─────────────────────────────────────── */
+  --color-brand-primary: #4AE54A;
+  --color-brand-primary-dark: #38C438;
+  --color-brand-primary-light: #DCFCE7;
+  --color-brand-primary-fg: #0D2818;
+
+  /* ─── SIDEBAR ────────────────────────────────────── */
+  --color-sidebar-bg: #0D2818;
+  --color-sidebar-active-bg: #163D24;
+  --color-sidebar-hover-bg: rgba(74, 229, 74, 0.08);
+  --color-sidebar-text: #FFFFFF;
+  --color-sidebar-muted: rgba(255, 255, 255, 0.55);
+  --color-sidebar-label: rgba(255, 255, 255, 0.35);
+
+  /* ─── CONTENT (text hierarchy) ───────────────────── */
+  --color-content-primary: #1A2B1A;
+  --color-content-secondary: #454745;
+  --color-content-tertiary: #6A6C6A;
+  --color-content-link: #163D24;
+
+  /* ─── INTERACTIVE ────────────────────────────────── */
+  --color-interactive-primary: #0D2818;
+  --color-interactive-accent: #4AE54A;
+  --color-interactive-secondary: #868685;
+  --color-interactive-control: #0D2818;
+
+  /* ─── BACKGROUNDS ────────────────────────────────── */
+  --color-bg-screen: #F4F6F4;
+  --color-bg-card: #FFFFFF;
+  --color-bg-card-hover: #F9FDF9;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-neutral: rgba(22, 51, 0, 0.08);
+  --color-bg-overlay: rgba(22, 51, 0, 0.08);
+
+  /* ─── BORDERS ────────────────────────────────────── */
+  --color-border-neutral: rgba(14, 15, 12, 0.12);
+  --color-border-overlay: rgba(14, 15, 12, 0.12);
+
+  /* ─── SENTIMENT ──────────────────────────────────── */
+  --color-sentiment-positive: #2F5711;
+  --color-sentiment-positive-bg: #F0FDF4;
+  --color-sentiment-negative: #A8200D;
+  --color-sentiment-negative-bg: #FEF2F2;
+  --color-sentiment-warning: #EDC843;
+  --color-sentiment-warning-bg: #FFFBEB;
+
+  /* ─── CATEGORY COLORS ────────────────────────────── */
+  --color-cat-food: #F59E0B;
+  --color-cat-transport: #3B82F6;
+  --color-cat-groceries: #4AE54A;
+  --color-cat-shopping: #EC4899;
+  --color-cat-bills: #8B5CF6;
+  --color-cat-health: #EF4444;
+  --color-cat-entertainment: #F97316;
+  --color-cat-education: #06B6D4;
+  --color-cat-income: #2F5711;
+  --color-cat-savings: #0891B2;
+
+  /* ─── RADIUS TOKENS ─────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ─── SPACING (8px baseline) ────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─── SHADOW TOKENS ─────────────────────────────── */
+  --shadow-card: 0 1px 3px rgba(13, 40, 24, 0.06), 0 1px 2px rgba(13, 40, 24, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(13, 40, 24, 0.10), 0 2px 4px rgba(13, 40, 24, 0.06);
+  --shadow-modal: 0 20px 48px rgba(13, 40, 24, 0.16);
+  --shadow-nav: 0 -1px 0 rgba(14, 15, 12, 0.08);
+
+  /* ─── TYPOGRAPHY TOKENS ────────────────────────── */
+  --text-display: 2rem;
+  --text-h1: 1.75rem;
+  --text-h2: 1.375rem;
+  --text-h3: 1.125rem;
+  --text-body-lg: 1rem;
+  --text-body: 0.875rem;
+  --text-caption: 0.75rem;
+  --text-mono-lg: 1.25rem;
+  --text-mono: 1rem;
+  --text-mono-sm: 0.875rem;
+
+  /* ─── TRANSITION DURATIONS ──────────────────────── */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  /* ─── TRANSITION EASING ─────────────────────────── */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── LEGACY TOKENS (for shadcn/ui) ────────────── */
+  --primary: #4AE54A;
   --primary-dark: #38C438;
   --primary-light: #72ED72;
-  --primary-foreground: #0D2818; /* Deep Forest Green text on lime buttons */
+  --primary-foreground: #0D2818;
 
-  /* Background & Surfaces */
-  --background: #F9FAFB;         /* Off-White */
-  --foreground: #1A1A1A;         /* Near-Black/Charcoal */
+  --background: #F9FAFB;
+  --foreground: #1A1A1A;
   --card: #FFFFFF;
   --card-foreground: #1A1A1A;
   --popover: #FFFFFF;
   --popover-foreground: #1A1A1A;
 
-  /* Sidebar (Deep Forest Green) */
   --sidebar: #0D2818;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #4AE54A;
@@ -30,15 +137,13 @@
   --sidebar-border: #1F4A2D;
   --sidebar-ring: #4AE54A;
 
-  /* Secondary & Muted */
   --secondary: #F0FDF4;
   --secondary-foreground: #0D2818;
   --muted: #F1F5F9;
-  --muted-foreground: #6B7280;   /* Mid-Gray */
+  --muted-foreground: #6B7280;
   --accent: #DCFCE7;
   --accent-foreground: #0D2818;
 
-  /* Semantic Colors */
   --success: #4AE54A;
   --success-foreground: #0D2818;
   --warning: #F59E0B;
@@ -48,7 +153,6 @@
   --info: #3B82F6;
   --info-foreground: #FFFFFF;
 
-  /* Category Colors */
   --category-food: #F59E0B;
   --category-transport: #3B82F6;
   --category-groceries: #4AE54A;
@@ -58,7 +162,6 @@
   --category-entertainment: #F97316;
   --category-education: #06B6D4;
 
-  /* UI Elements */
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
   --border: #E2E8F0;
@@ -67,14 +170,12 @@
   --switch-background: #CBD5E1;
   --ring: #4AE54A;
 
-  /* Charts */
   --chart-1: #4AE54A;
   --chart-2: #3B82F6;
   --chart-3: #F59E0B;
   --chart-4: #8B5CF6;
   --chart-5: #EC4899;
 
-  /* Radius */
   --radius: 1.25rem;
 
   --font-weight-medium: 500;
@@ -82,6 +183,47 @@
 }
 
 .dark {
+  /* New semantic tokens — dark mode */
+  --color-brand-primary: #4AE54A;
+  --color-brand-primary-dark: #38C438;
+  --color-brand-primary-light: #1A4620;
+  --color-brand-primary-fg: #FFFFFF;
+
+  --color-sidebar-bg: #0D2818;
+  --color-sidebar-active-bg: #1F4A2D;
+  --color-sidebar-hover-bg: rgba(74, 229, 74, 0.12);
+  --color-sidebar-text: #FFFFFF;
+  --color-sidebar-muted: rgba(255, 255, 255, 0.55);
+  --color-sidebar-label: rgba(255, 255, 255, 0.35);
+
+  --color-content-primary: #F0F0F0;
+  --color-content-secondary: #B5B5B5;
+  --color-content-tertiary: #808080;
+  --color-content-link: #4AE54A;
+
+  --color-interactive-primary: #FFFFFF;
+  --color-interactive-accent: #4AE54A;
+  --color-interactive-secondary: #808080;
+  --color-interactive-control: #0D2818;
+
+  --color-bg-screen: #0F1110;
+  --color-bg-card: #1A1A1A;
+  --color-bg-card-hover: #242424;
+  --color-bg-elevated: #1A1A1A;
+  --color-bg-neutral: rgba(74, 229, 74, 0.12);
+  --color-bg-overlay: rgba(22, 51, 0, 0.24);
+
+  --color-border-neutral: rgba(255, 255, 255, 0.12);
+  --color-border-overlay: rgba(255, 255, 255, 0.12);
+
+  --color-sentiment-positive: #86EFAC;
+  --color-sentiment-positive-bg: #1B3A1B;
+  --color-sentiment-negative: #FECACA;
+  --color-sentiment-negative-bg: #3D2120;
+  --color-sentiment-warning: #EDC843;
+  --color-sentiment-warning-bg: #2D2A1A;
+
+  /* Legacy dark tokens */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);
@@ -123,6 +265,103 @@
   --font-family-body: var(--font-family-body);
   --font-family-mono: var(--font-family-mono);
 
+  /* New semantic tokens */
+  --color-brand-primary: var(--color-brand-primary);
+  --color-brand-primary-dark: var(--color-brand-primary-dark);
+  --color-brand-primary-light: var(--color-brand-primary-light);
+  --color-brand-primary-fg: var(--color-brand-primary-fg);
+
+  --color-sidebar-bg: var(--color-sidebar-bg);
+  --color-sidebar-active-bg: var(--color-sidebar-active-bg);
+  --color-sidebar-hover-bg: var(--color-sidebar-hover-bg);
+  --color-sidebar-text: var(--color-sidebar-text);
+  --color-sidebar-muted: var(--color-sidebar-muted);
+  --color-sidebar-label: var(--color-sidebar-label);
+
+  --color-content-primary: var(--color-content-primary);
+  --color-content-secondary: var(--color-content-secondary);
+  --color-content-tertiary: var(--color-content-tertiary);
+  --color-content-link: var(--color-content-link);
+
+  --color-interactive-primary: var(--color-interactive-primary);
+  --color-interactive-accent: var(--color-interactive-accent);
+  --color-interactive-secondary: var(--color-interactive-secondary);
+  --color-interactive-control: var(--color-interactive-control);
+
+  --color-bg-screen: var(--color-bg-screen);
+  --color-bg-card: var(--color-bg-card);
+  --color-bg-card-hover: var(--color-bg-card-hover);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-neutral: var(--color-bg-neutral);
+  --color-bg-overlay: var(--color-bg-overlay);
+
+  --color-border-neutral: var(--color-border-neutral);
+  --color-border-overlay: var(--color-border-overlay);
+
+  --color-sentiment-positive: var(--color-sentiment-positive);
+  --color-sentiment-positive-bg: var(--color-sentiment-positive-bg);
+  --color-sentiment-negative: var(--color-sentiment-negative);
+  --color-sentiment-negative-bg: var(--color-sentiment-negative-bg);
+  --color-sentiment-warning: var(--color-sentiment-warning);
+  --color-sentiment-warning-bg: var(--color-sentiment-warning-bg);
+
+  --color-cat-food: var(--color-cat-food);
+  --color-cat-transport: var(--color-cat-transport);
+  --color-cat-groceries: var(--color-cat-groceries);
+  --color-cat-shopping: var(--color-cat-shopping);
+  --color-cat-bills: var(--color-cat-bills);
+  --color-cat-health: var(--color-cat-health);
+  --color-cat-entertainment: var(--color-cat-entertainment);
+  --color-cat-education: var(--color-cat-education);
+  --color-cat-income: var(--color-cat-income);
+  --color-cat-savings: var(--color-cat-savings);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-full: var(--radius-full);
+
+  --space-1: var(--space-1);
+  --space-2: var(--space-2);
+  --space-3: var(--space-3);
+  --space-4: var(--space-4);
+  --space-5: var(--space-5);
+  --space-6: var(--space-6);
+  --space-8: var(--space-8);
+  --space-10: var(--space-10);
+  --space-12: var(--space-12);
+  --space-16: var(--space-16);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-modal: var(--shadow-modal);
+  --shadow-nav: var(--shadow-nav);
+
+  --text-display: var(--text-display);
+  --text-h1: var(--text-h1);
+  --text-h2: var(--text-h2);
+  --text-h3: var(--text-h3);
+  --text-body-lg: var(--text-body-lg);
+  --text-body: var(--text-body);
+  --text-caption: var(--text-caption);
+  --text-mono-lg: var(--text-mono-lg);
+  --text-mono: var(--text-mono);
+  --text-mono-sm: var(--text-mono-sm);
+
+  --duration-instant: var(--duration-instant);
+  --duration-fast: var(--duration-fast);
+  --duration-normal: var(--duration-normal);
+  --duration-slow: var(--duration-slow);
+
+  --ease-standard: var(--ease-standard);
+  --ease-enter: var(--ease-enter);
+  --ease-exit: var(--ease-exit);
+  --ease-spring: var(--ease-spring);
+
+  /* Legacy tokens for shadcn/ui */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -159,10 +398,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

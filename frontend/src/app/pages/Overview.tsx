@@ -1,60 +1,93 @@
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Progress } from '../components/ui/progress';
+import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import { PrivacyAmount } from '../components/PrivacyAmount';
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, AlertTriangle, Download, Zap } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line } from 'recharts';
+import { TrendingUp, TrendingDown, ArrowUpRight, Download } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions';
 import { useBudgets } from '@/hooks/useBudgets';
-import { useGoals } from '@/hooks/useGoals';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecurringBills } from '@/hooks/useRecurringBills';
-import { GajianSetupReminder } from '../components/GajianSetupReminder';
 import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
+import { TextPositive, TextNegative, TextLink } from '../components/Markup';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, cn } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { pageEnter, staggerChildren, fadeUp, useReducedMotion } from '@/lib/transitions';
 
 function SkeletonCard() {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="h-4 bg-muted rounded animate-pulse w-24 mb-3" />
-        <div className="h-8 bg-muted rounded animate-pulse w-32" />
-      </CardContent>
-    </Card>
+    <div className="h-24 bg-[var(--color-bg-neutral)] rounded-[var(--radius-xl)] animate-pulse" />
   );
 }
 
-function WalletFilterBar({ wallets, walletId, setWalletId }: {
+function WalletChips({ wallets, walletId, setWalletId }: {
   wallets: import('@/lib/supabase').Wallet[];
   walletId: string;
   setWalletId: (id: string) => void;
 }) {
   if (wallets.length === 0) return null;
+  const chips = [
+    { id: 'all', label: 'Semua' },
+    ...wallets.map(w => ({ id: w.id, label: `${w.name}${w.is_primary ? ' ⭐' : ''}` }))
+  ];
+
   return (
-    <select
-      value={walletId}
-      onChange={(e) => setWalletId(e.target.value)}
-      className="px-3 py-2 rounded-lg border bg-input text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
-    >
-      <option value="all">Semua Wallet</option>
-      {wallets.map((w) => (
-        <option key={w.id} value={w.id}>{w.name}{w.is_primary ? ' ⭐' : ''}</option>
-      ))}
-    </select>
+    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex gap-2 pb-2">
+        {chips.map((chip) => (
+          <button
+            key={chip.id}
+            onClick={() => setWalletId(chip.id)}
+            className={cn(
+              'whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors border',
+              walletId === chip.id
+                ? 'bg-[var(--color-brand-primary)] text-[var(--color-brand-primary-fg)] border-[var(--color-brand-primary)]'
+                : 'border-[var(--color-border-neutral)] text-[var(--color-content-secondary)] hover:border-[var(--color-brand-primary)]'
+            )}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function generatePDF(month: number, year: number, displayIncome: number, displayExpenses: number, categorySpending: any[]) {
+function TrendChip({ current, previous }: { current: number; previous: number }) {
+  if (previous === 0) return null;
+  const change = ((current - previous) / previous) * 100;
+  const isPositive = change > 0;
+
+  return (
+    <div className={cn(
+      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
+      isPositive
+        ? 'bg-[var(--color-sentiment-positive-bg)]'
+        : 'bg-[var(--color-sentiment-negative-bg)]'
+    )}>
+      {isPositive ? (
+        <ArrowUpRight className="w-3 h-3" />
+      ) : (
+        <TrendingDown className="w-3 h-3" />
+      )}
+      <span className={isPositive ? 'text-[var(--color-sentiment-positive)]' : 'text-[var(--color-sentiment-negative)]'}>
+        {Math.abs(change).toFixed(1)}%
+      </span>
+    </div>
+  );
+}
+
+function generatePDF(month: number, year: number, displayIncome: number, displayExpenses: number) {
   const monthName = format(new Date(year, month - 1), 'MMMM yyyy', { locale: idLocale });
+  const balance = displayIncome - displayExpenses;
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -63,25 +96,17 @@ function generatePDF(month: number, year: number, displayIncome: number, display
         <title>Gajian Aman - ${monthName}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
-          h1 { color: #22c55e; margin-bottom: 10px; }
-          .subtitle { color: #666; margin-bottom: 30px; }
-          .section { margin-bottom: 30px; page-break-inside: avoid; }
-          .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+          h1 { color: #4AE54A; margin-bottom: 10px; }
+          .metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 30px 0; }
           .metric-box { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
           .metric-label { color: #999; font-size: 12px; margin-bottom: 8px; }
-          .metric-value { font-size: 24px; font-weight: bold; color: #22c55e; }
-          .category-list { border-collapse: collapse; width: 100%; margin-top: 15px; }
-          .category-list th { text-align: left; padding: 10px; border-bottom: 2px solid #ddd; }
-          .category-list td { padding: 10px; border-bottom: 1px solid #eee; }
-          .category-list tr:last-child td { border-bottom: none; }
-          .total-row { font-weight: bold; background-color: #f5f5f5; }
+          .metric-value { font-size: 24px; font-weight: bold; color: #4AE54A; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #999; font-size: 12px; }
         </style>
       </head>
       <body>
         <h1>Gajian Aman</h1>
-        <p class="subtitle">Monthly Report - ${monthName}</p>
-
+        <p>Monthly Report - ${monthName}</p>
         <div class="metrics">
           <div class="metric-box">
             <div class="metric-label">Pemasukan</div>
@@ -92,40 +117,12 @@ function generatePDF(month: number, year: number, displayIncome: number, display
             <div class="metric-value">Rp ${(displayExpenses / 1000000).toFixed(1)}jt</div>
           </div>
           <div class="metric-box">
-            <div class="metric-label">Sisa</div>
-            <div class="metric-value">Rp ${((displayIncome - displayExpenses) / 1000000).toFixed(1)}jt</div>
+            <div class="metric-label">Saldo</div>
+            <div class="metric-value">Rp ${(balance / 1000000).toFixed(1)}jt</div>
           </div>
         </div>
-
-        ${categorySpending.length > 0 ? `
-          <div class="section">
-            <h2>Pengeluaran per Kategori</h2>
-            <table class="category-list">
-              <thead>
-                <tr>
-                  <th>Kategori</th>
-                  <th style="text-align: right;">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${categorySpending.map(cat => `
-                  <tr>
-                    <td>${cat.emoji} ${cat.name}</td>
-                    <td style="text-align: right;">Rp ${(Number(cat.spent) / 1000000).toFixed(2)}jt</td>
-                  </tr>
-                `).join('')}
-                <tr class="total-row">
-                  <td>Total Pengeluaran</td>
-                  <td style="text-align: right;">Rp ${(displayExpenses / 1000000).toFixed(2)}jt</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        ` : ''}
-
         <div class="footer">
           <p>Generated by Gajian Aman on ${format(new Date(), 'dd MMMM yyyy', { locale: idLocale })}</p>
-          <p>© 2025 Gajian Aman. Secure Finance Tracker</p>
         </div>
       </body>
     </html>
@@ -149,9 +146,8 @@ export default function Overview() {
   const { wallets } = useWallets(user?.userId);
   const { transactions, income, expenses, isLoading } = useTransactions(month, year);
   const { transactions: recentTx } = useRecentTransactions(10);
-  const { budgets } = useBudgets(month, year);
-  const { goals } = useGoals();
-  const { recurringBills, isLoading: recurringLoading } = useRecurringBills();
+  const { recurringBills } = useRecurringBills();
+  const prefersReduced = useReducedMotion();
 
   const filteredTransactions = walletId === 'all'
     ? transactions
@@ -160,93 +156,79 @@ export default function Overview() {
   const filteredIncome = filteredTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const filteredExpenses = filteredTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
-  const netBalance = (walletId === 'all' ? income : filteredIncome) - (walletId === 'all' ? expenses : filteredExpenses);
-
-  // Top categories with budget
-  const categorySpending = useMemo(() => {
-    const map: Record<string, number> = {};
-    filteredTransactions.filter((t) => t.type === 'expense').forEach((t) => {
-      map[t.category] = (map[t.category] ?? 0) + Number(t.amount);
-    });
-    return Object.entries(map)
-      .map(([name, spent]) => {
-        const budget = budgets.find((b) => b.category === name)?.amount ?? 0;
-        return { name, spent, budget, ...getCategoryMeta(name) };
-      })
-      .sort((a, b) => b.spent - a.spent)
-      .slice(0, 5);
-  }, [filteredTransactions, budgets]);
-
-  // 7-day spending chart
-  const weeklyData = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = subDays(new Date(), 6 - i);
-      const dateStr = format(d, 'yyyy-MM-dd');
-      const amount = filteredTransactions
-        .filter((t) => t.type === 'expense' && t.date === dateStr)
-        .reduce((s, t) => s + Number(t.amount), 0);
-      return { day: format(d, 'EEE', { locale: idLocale }), amount };
-    });
-  }, [filteredTransactions]);
-
-  const overBudgetCategories = categorySpending.filter(
-    (c) => c.budget > 0 && c.spent > c.budget,
-  );
-
   const displayIncome = walletId === 'all' ? income : filteredIncome;
   const displayExpenses = walletId === 'all' ? expenses : filteredExpenses;
+  const saldo = displayIncome - displayExpenses;
 
-  // Today summary
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const todayTransactions = filteredTransactions.filter((t) => t.date === todayStr);
-  const todayExpenses = todayTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-  const todayIncome = todayTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  // Previous month data for trend
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const { transactions: prevTransactions, income: prevIncome, expenses: prevExpenses } = useTransactions(prevMonth, prevYear);
 
-  const todayByCategory = useMemo(() => {
-    const map: Record<string, number> = {};
-    todayTransactions.filter((t) => t.type === 'expense').forEach((t) => {
-      map[t.category] = (map[t.category] ?? 0) + Number(t.amount);
+  const prevFilteredIncome = walletId === 'all'
+    ? prevIncome
+    : prevTransactions.filter((t) => t.type === 'income' && t.wallet_id === walletId).reduce((s, t) => s + Number(t.amount), 0);
+
+  // Monthly chart data (simplified - 4 weeks)
+  const monthlyChartData = useMemo(() => {
+    const weeks = Array.from({ length: 4 }, (_, weekIdx) => {
+      const start = startOfMonth(new Date(year, month - 1));
+      const weekStart = new Date(start);
+      weekStart.setDate(start.getDate() + weekIdx * 7);
+
+      let income = 0, expense = 0;
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+
+        const txs = filteredTransactions.filter((t) => t.date === dateStr);
+        income += txs.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+        expense += txs.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+      }
+
+      return {
+        week: `W${weekIdx + 1}`,
+        income,
+        expense,
+      };
     });
-    return Object.entries(map)
-      .map(([name, spent]) => ({ name, spent, ...getCategoryMeta(name) }))
-      .sort((a, b) => b.spent - a.spent);
-  }, [todayTransactions]);
-
-  const topCategoryToday = todayByCategory[0];
-
-  // Quick insight
-  const getQuickInsight = () => {
-    if (displayIncome === 0) return 'Mulai log pemasukan Anda untuk melihat insight.';
-    if (displayExpenses === 0) return 'Belum ada pengeluaran bulan ini. Mulai tracking pengeluaran!';
-    const savingsRate = ((displayIncome - displayExpenses) / displayIncome) * 100;
-    if (savingsRate >= 50) return `✨ Luar biasa! Anda menyimpan ${savingsRate.toFixed(0)}% dari income.`;
-    if (savingsRate >= 30) return `👍 Bagus! Anda menyimpan ${savingsRate.toFixed(0)}% dari income.`;
-    if (savingsRate >= 10) return `💡 Anda menyimpan ${savingsRate.toFixed(0)}% dari income. Coba tingkatkan lagi!`;
-    return '⚠️ Pengeluaran melebihi pemasukan. Yuk optimalkan budget Anda!';
-  };
+    return weeks;
+  }, [filteredTransactions, month, year]);
 
   if (isLoading) {
     return (
-      <div className="space-y-3 sm:space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="space-y-4"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[0, 1, 2].map((i) => <SkeletonCard key={i} />)}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header with Export Button */}
+    <motion.div
+      initial={prefersReduced ? { opacity: 0 } : pageEnter.initial}
+      animate={prefersReduced ? { opacity: 1 } : pageEnter.animate}
+      transition={pageEnter.transition}
+      className="space-y-6"
+    >
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Overview</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-content-primary)]">Overview</h1>
+          <p className="text-sm text-[var(--color-content-tertiary)] mt-1">
             {format(new Date(year, month - 1), 'MMMM yyyy', { locale: idLocale })}
           </p>
         </div>
         <Button
-          onClick={() => generatePDF(month, year, displayIncome, displayExpenses, categorySpending)}
+          type="button"
+          onClick={() => generatePDF(month, year, displayIncome, displayExpenses)}
           className="gap-2 w-full sm:w-auto"
           variant="outline"
         >
@@ -255,286 +237,191 @@ export default function Overview() {
         </Button>
       </div>
 
-      {/* Wallet Filter */}
+      {/* Wallet Chips */}
       {wallets.length > 0 && (
-        <WalletFilterBar wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
+        <WalletChips wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
       )}
 
-      {/* Ringkasan Hari Ini */}
-      {todayTransactions.length > 0 && (
-        <Card className="bg-gradient-to-r from-primary/5 via-primary/5 to-transparent border-primary/20">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-primary" />
-              <CardTitle className="text-lg">Ringkasan Hari Ini</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              <div className="stat-card">
-                <p className="stat-label">Pengeluaran</p>
-                <p className="stat-value">
-                  <PrivacyAmount value={formatRupiah(todayExpenses)} />
-                </p>
-              </div>
-              <div className="stat-card">
-                <p className="stat-label">Pemasukan</p>
-                <p className="stat-value text-success">
-                  <PrivacyAmount value={formatRupiah(todayIncome)} />
-                </p>
-              </div>
-              <div className="stat-card">
-                <p className="stat-label">Transaksi</p>
-                <p className="stat-value">{todayTransactions.length}</p>
-              </div>
-              {topCategoryToday && (
-                <div className="stat-card">
-                  <p className="stat-label">Top Kategori</p>
-                  <p className="text-lg sm:text-xl">{topCategoryToday.emoji}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Recent Today */}
-            {todayTransactions.slice(0, 3).length > 0 && (
-              <div className="space-y-2 border-t pt-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaksi Hari Ini</p>
-                <div className="space-y-1.5">
-                  {todayTransactions.slice(0, 3).map((tx) => {
-                    const meta = getCategoryMeta(tx.category);
-                    return (
-                      <div key={tx.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md transition-colors">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-base flex-shrink-0">{meta.emoji}</span>
-                          <div className="min-w-0">
-                            <p className="text-xs sm:text-sm font-medium truncate">{tx.note || tx.category}</p>
-                            <p className="text-[10px] text-muted-foreground">{format(new Date(tx.date), 'HH:mm') || tx.date}</p>
-                          </div>
-                        </div>
-                        <p className={`font-['DM_Mono'] font-semibold text-xs sm:text-sm flex-shrink-0 ml-2 ${tx.type === 'income' ? 'text-success' : 'text-foreground'}`}>
-                          {tx.type === 'income' ? '+' : '-'}<PrivacyAmount value={formatRupiah(Number(tx.amount))} />
-                        </p>
-                      </div>
-                    );
-                  })}
+      {/* Summary Cards Grid - Desktop: 3 cols, Mobile: 1 col */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ staggerChildren: prefersReduced ? 0 : 0.05, delay: prefersReduced ? 0 : 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        {/* Saldo Card */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+        >
+          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <CardContent className="pt-6">
+              <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-2">Total Saldo</p>
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-mono text-2xl md:text-3xl font-bold text-[var(--color-content-primary)]">
+                  <PrivacyAmount value={formatRupiah(saldo)} />
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              <TrendChip current={displayIncome} previous={prevFilteredIncome} />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-      {/* Gajian Setup Reminder */}
-      <GajianSetupReminder />
-
-      {/* Three Main KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground mb-2">Pemasukan</p>
-            <div className="flex items-center justify-between">
-              <div className="font-['DM_Mono'] font-bold text-2xl text-success">
-                <PrivacyAmount value={formatRupiah(displayIncome)} />
+        {/* Pemasukan Card */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+        >
+          <Card className="border-l-4 border-l-[var(--color-sentiment-positive)] bg-[var(--color-bg-card)]">
+            <CardContent className="pt-6">
+              <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-2">Pemasukan</p>
+              <div className="font-mono text-2xl md:text-3xl font-bold">
+                <TextPositive>
+                  <PrivacyAmount value={formatRupiah(displayIncome)} />
+                </TextPositive>
               </div>
-              <TrendingUp className="w-5 h-5 text-success/50" />
-            </div>
-          </CardContent>
-        </Card>
+              <TrendingUp className="w-5 h-5 text-[var(--color-sentiment-positive)] mt-2 opacity-40" />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="border-l-4 border-l-danger">
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground mb-2">Pengeluaran</p>
-            <div className="flex items-center justify-between">
-              <div className="font-['DM_Mono'] font-bold text-2xl text-danger">
-                <PrivacyAmount value={formatRupiah(displayExpenses)} />
+        {/* Pengeluaran Card */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+        >
+          <Card className="border-l-4 border-l-[var(--color-sentiment-negative)] bg-[var(--color-bg-card)]">
+            <CardContent className="pt-6">
+              <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-2">Pengeluaran</p>
+              <div className="font-mono text-2xl md:text-3xl font-bold">
+                <TextNegative>
+                  <PrivacyAmount value={formatRupiah(displayExpenses)} />
+                </TextNegative>
               </div>
-              <TrendingDown className="w-5 h-5 text-danger/50" />
-            </div>
-          </CardContent>
-        </Card>
+              <TrendingDown className="w-5 h-5 text-[var(--color-sentiment-negative)] mt-2 opacity-40" />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
-        <Card className={`border-l-4 ${netBalance >= 0 ? 'border-l-primary' : 'border-l-warning'}`}>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground mb-2">Saldo Netto</p>
-            <div className="flex items-center justify-between">
-              <div className={`font-['DM_Mono'] font-bold text-2xl ${netBalance >= 0 ? 'text-primary' : 'text-warning'}`}>
-                <PrivacyAmount value={formatRupiah(netBalance)} />
-              </div>
-              {netBalance >= 0 ? (
-                <ArrowUpRight className="w-5 h-5 text-primary/50" />
+      {/* Desktop: Chart + Upcoming Bills | Mobile: Full-width Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart - 2 columns on desktop, 1 on mobile */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+          className="lg:col-span-2"
+        >
+          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <CardHeader>
+              <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Income vs Expense</h3>
+            </CardHeader>
+            <CardContent>
+              {monthlyChartData.some(d => d.income > 0 || d.expense > 0) ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={monthlyChartData}>
+                    <defs>
+                      <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-sentiment-positive)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--color-sentiment-positive)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-sentiment-negative)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--color-sentiment-negative)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="week" stroke="var(--color-content-tertiary)" fontSize={12} />
+                    <YAxis stroke="var(--color-content-tertiary)" fontSize={12} tickFormatter={createCompactAxisFormatter()} />
+                    <Tooltip
+                      formatter={(value: number) => formatRupiah(value)}
+                      contentStyle={{ backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-neutral)' }}
+                    />
+                    <Legend />
+                    <Area type="monotone" dataKey="income" stroke="var(--color-sentiment-positive)" strokeWidth={2} fill="url(#colorIncome)" name="Income" isAnimationActive={!prefersReduced} />
+                    <Area type="monotone" dataKey="expense" stroke="var(--color-sentiment-negative)" strokeWidth={2} fill="url(#colorExpense)" name="Expense" isAnimationActive={!prefersReduced} />
+                  </AreaChart>
+                </ResponsiveContainer>
               ) : (
-                <ArrowDownRight className="w-5 h-5 text-warning/50" />
+                <p className="text-sm text-[var(--color-content-tertiary)] text-center py-8">Belum ada data bulan ini</p>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Upcoming Bills - 1 column on desktop */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+        >
+          <UpcomingBillsWidget recurringBills={recurringBills} isLoading={false} />
+        </motion.div>
       </div>
 
-      {/* Quick Insight */}
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="pt-6">
-          <p className="text-sm leading-relaxed">{getQuickInsight()}</p>
-        </CardContent>
-      </Card>
-
-      {/* Budget Alert */}
-      {overBudgetCategories.length > 0 && (
-        <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <AlertTriangle className="w-4 h-4 text-warning" />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-semibold text-sm text-warning-foreground">Waspada Budget</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              {overBudgetCategories.map((c) => `${c.name}`).join(', ')} sudah melebihi budget bulan ini.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Upcoming Bills */}
-      <UpcomingBillsWidget recurringBills={recurringBills} isLoading={recurringLoading} />
-
-      {/* Spending Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Trend Pengeluaran (7 Hari)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {weeklyData.some(d => d.amount > 0) ? (
-            <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={weeklyData}>
-                <defs>
-                  <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={createCompactAxisFormatter()} />
-                <Tooltip formatter={(value: number) => [formatRupiah(value), 'Pengeluaran']} />
-                <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2} fill="url(#colorAmount)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">Belum ada pengeluaran dalam 7 hari terakhir</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Top Categories by Spending */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Pengeluaran per Kategori</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {categorySpending.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Belum ada pengeluaran bulan ini</p>
-          ) : (
-            categorySpending.map((category) => {
-              const percentage = category.budget > 0 ? (category.spent / category.budget) * 100 : 0;
-              const isOverBudget = category.budget > 0 && percentage > 100;
-              return (
-                <div key={category.name} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{category.emoji}</span>
-                      <span className="text-sm font-medium">{category.name}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-['DM_Mono'] font-semibold">
-                        <PrivacyAmount value={formatRupiah(Number(category.spent))} />
-                      </p>
-                      {category.budget > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          / <PrivacyAmount value={formatRupiah(category.budget)} />
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {category.budget > 0 && (
-                    <div className="relative">
-                      <Progress
-                        value={Math.min(percentage, 100)}
-                        className="h-2"
-                        style={{ '--progress-background': category.color } as React.CSSProperties}
-                      />
-                      {isOverBudget && (
-                        <Badge variant="destructive" className="absolute -top-1 right-0 text-[10px] h-5">Lewat</Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Transactions & Goals Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Recent Transactions */}
-        <Card>
+      {/* Recent Transactions */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
           <CardHeader>
-            <CardTitle className="text-lg">Transaksi Terbaru</CardTitle>
+            <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Transaksi Terbaru</h3>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {recentTx.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Belum ada transaksi</p>
-              ) : (
-                recentTx.slice(0, 5).map((tx) => {
-                  const meta = getCategoryMeta(tx.category);
-                  return (
-                    <div key={tx.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{meta.emoji}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{tx.note || tx.category}</p>
-                          <p className="text-xs text-muted-foreground">{tx.date}</p>
-                        </div>
-                      </div>
-                      <p className={`font-['DM_Mono'] font-semibold text-sm flex-shrink-0 ml-2 ${tx.type === 'income' ? 'text-success' : 'text-foreground'}`}>
-                        {tx.type === 'income' ? '+' : '-'}<PrivacyAmount value={formatRupiah(Number(tx.amount))} />
-                      </p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Savings Goals */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Target Tabungan</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {goals.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">Belum ada target. Buat target di halaman Goals!</p>
+            {recentTx.length === 0 ? (
+              <p className="text-sm text-[var(--color-content-tertiary)] text-center py-6">Belum ada transaksi</p>
             ) : (
-              goals.slice(0, 4).map((goal, idx) => {
-                const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'];
-                const color = colors[idx % colors.length];
-                const percentage = (Number(goal.saved_amount) / Number(goal.target_amount)) * 100;
-                return (
-                  <div key={goal.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium truncate">{goal.name}</h4>
-                      <span className="text-sm font-semibold flex-shrink-0 ml-2" style={{ color }}>
-                        {Math.min(percentage, 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <Progress value={Math.min(percentage, 100)} className="h-2" style={{ '--progress-background': color } as React.CSSProperties} />
-                  </div>
-                );
-              })
+              <div className="space-y-3">
+                <AnimatePresence>
+                  {recentTx.slice(0, 5).map((tx, idx) => {
+                    const meta = getCategoryMeta(tx.category);
+                    return (
+                      <motion.div
+                        key={tx.id}
+                        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                        animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                        transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
+                        className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-bg-screen)] border border-[var(--color-border-neutral)]"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className="text-lg flex-shrink-0">{meta.emoji}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--color-content-primary)] truncate">{tx.note || tx.category}</p>
+                            <p className="text-xs text-[var(--color-content-tertiary)]">{format(new Date(tx.date), 'dd MMM', { locale: idLocale })}</p>
+                          </div>
+                        </div>
+                        <div className="font-mono font-semibold text-sm flex-shrink-0 ml-2">
+                          {tx.type === 'income' ? (
+                            <TextPositive>
+                              +<PrivacyAmount value={formatRupiah(Number(tx.amount))} />
+                            </TextPositive>
+                          ) : (
+                            <TextNegative>
+                              −<PrivacyAmount value={formatRupiah(Number(tx.amount))} />
+                            </TextNegative>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+            {recentTx.length > 5 && (
+              <div className="mt-4 text-center">
+                <a href="/riwayat" className="text-sm">
+                  <TextLink>Lihat semua →</TextLink>
+                </a>
+              </div>
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

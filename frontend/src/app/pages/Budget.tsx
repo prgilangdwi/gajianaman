@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,15 +12,17 @@ import {
   DialogFooter,
 } from '../components/ui/dialog';
 import { Edit, Plus, CheckCircle, AlertCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { useBudgets, upsertBudget } from '@/hooks/useBudgets';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { getCategoryMeta, ALL_CATEGORIES } from '@/lib/categoryMetadata';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, cn } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
-import type { CSSProperties } from 'react';
+import { TextPositive, TextNegative, TextWarning } from '../components/Markup';
+import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
 
 type BudgetStatus = 'safe' | 'warning' | 'over' | 'none';
 
@@ -32,28 +33,45 @@ function getStatus(pct: number): BudgetStatus {
 }
 
 function StatusBadge({ status }: { status: BudgetStatus }) {
-  if (status === 'none')
-    return (
-      <Badge className="bg-gray-100 text-gray-500 gap-1">
-        Belum Dibuat
-      </Badge>
-    );
-  if (status === 'over')
-    return (
-      <Badge className="bg-red-100 text-red-700 gap-1">
-        <AlertCircle className="w-3 h-3" /> Melebihi
-      </Badge>
-    );
-  if (status === 'warning')
-    return (
-      <Badge className="bg-yellow-100 text-yellow-700 gap-1">
-        <AlertTriangle className="w-3 h-3" /> Hampir
-      </Badge>
-    );
+  const statusConfig = {
+    none: {
+      bg: 'bg-[var(--color-bg-neutral)]',
+      text: 'text-[var(--color-content-tertiary)]',
+      icon: null,
+      label: 'Belum Dibuat',
+    },
+    over: {
+      bg: 'bg-[var(--color-sentiment-negative-bg)]',
+      text: 'text-[var(--color-sentiment-negative)]',
+      icon: AlertCircle,
+      label: 'Melebihi',
+    },
+    warning: {
+      bg: 'bg-[var(--color-sentiment-warning-bg)]',
+      text: 'text-[var(--color-sentiment-warning)]',
+      icon: AlertTriangle,
+      label: 'Hampir',
+    },
+    safe: {
+      bg: 'bg-[var(--color-sentiment-positive-bg)]',
+      text: 'text-[var(--color-sentiment-positive)]',
+      icon: CheckCircle,
+      label: 'Aman',
+    },
+  };
+
+  const config = statusConfig[status];
+  const IconComponent = config.icon;
+
   return (
-    <Badge className="bg-green-100 text-green-700 gap-1">
-      <CheckCircle className="w-3 h-3" /> Aman
-    </Badge>
+    <div className={cn(
+      'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
+      config.bg,
+      config.text
+    )}>
+      {IconComponent && <IconComponent className="w-3 h-3" />}
+      {config.label}
+    </div>
   );
 }
 
@@ -62,6 +80,7 @@ export default function Budget() {
   const { user } = useAuth();
   const { budgets, isLoading: budgetsLoading, refetch } = useBudgets(month, year);
   const { transactions, isLoading: txLoading } = useTransactions(month, year);
+  const prefersReduced = useReducedMotion();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editCategory, setEditCategory] = useState('');
@@ -81,7 +100,6 @@ export default function Budget() {
     return map;
   }, [transactions]);
 
-  // Build merged list: all CATEGORY_META cats + any extra spending cats
   const allCats = useMemo(() => {
     const extra = Object.keys(spendingMap).filter(
       (c) => !ALL_CATEGORIES.includes(c) && c !== 'Food' && c !== 'Bills',
@@ -188,181 +206,265 @@ export default function Budget() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="space-y-6"
+      >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map((i) => (
-            <Card key={i}>
+            <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
               <CardContent className="pt-6">
-                <div className="h-4 bg-muted rounded animate-pulse w-20 mb-3" />
-                <div className="h-7 bg-muted rounded animate-pulse w-28" />
+                <div className="h-4 bg-[var(--color-bg-neutral)] rounded animate-pulse w-20 mb-3" />
+                <div className="h-7 bg-[var(--color-bg-neutral)] rounded animate-pulse w-28" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Card>
+        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
           <CardContent className="pt-6 space-y-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+              <div key={i} className="h-16 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
             ))}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={prefersReduced ? { opacity: 0 } : pageEnter.initial}
+      animate={prefersReduced ? { opacity: 1 } : pageEnter.animate}
+      transition={pageEnter.transition}
+      className="space-y-6"
+    >
       {/* Summary KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ staggerChildren: prefersReduced ? 0 : 0.05 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4"
+      >
         {[
-          { label: 'Total Budget', value: formatRupiah(totalBudget), color: 'text-foreground', isAmount: true },
-          { label: 'Total Terpakai', value: formatRupiah(totalUsed), color: 'text-orange-600', isAmount: true },
+          {
+            label: 'Total Budget',
+            value: formatRupiah(totalBudget),
+            component: 'default',
+          },
+          {
+            label: 'Total Terpakai',
+            value: formatRupiah(totalUsed),
+            component: totalUsed > totalBudget * 0.8 ? 'warning' : 'default',
+          },
           {
             label: 'Sisa Budget',
             value: formatRupiah(Math.max(remaining, 0)),
-            color: remaining >= 0 ? 'text-green-600' : 'text-red-600',
-            isAmount: true,
+            component: remaining >= 0 ? 'positive' : 'negative',
           },
-          { label: 'Kategori Aman', value: `${safeCount} kategori`, color: 'text-green-600', isAmount: false },
-        ].map((kpi) => (
-          <Card key={kpi.label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">{kpi.label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`font-['DM_Mono'] font-bold text-xl ${kpi.color}`}>
-                {kpi.isAmount ? <PrivacyAmount value={kpi.value} /> : kpi.value}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Budget Cards */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Budget per Kategori</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={showTips ? 'default' : 'outline'}
-              onClick={handleGetAITips}
-              disabled={tipsLoading}
-              className="gap-1"
-            >
-              <Sparkles className="w-4 h-4" /> Saran AI
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => openEdit('', 0)}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" /> Tambah Budget
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {budgetRows.length === 0 ? (
-            <div className="text-center py-12 space-y-3">
-              <p className="text-muted-foreground text-sm">Belum ada budget yang ditetapkan</p>
-              <Button onClick={() => openEdit('Food & Dining', 0)} variant="outline" size="sm">
-                <Plus className="w-4 h-4 mr-1" /> Buat Budget Pertama
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {budgetRows.map((row) => (
-                <div key={row.category} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{row.emoji}</span>
-                      <div>
-                        <p className="text-sm font-semibold">{row.category}</p>
-                        <p className="text-xs text-muted-foreground font-['DM_Mono']">
-                          <PrivacyAmount value={formatRupiah(row.spent)} />
-                          {row.budget > 0 && <> / <PrivacyAmount value={formatRupiah(row.budget)} /></>}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={row.status} />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => openEdit(row.category, row.budget)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {row.hasEntry ? (
-                    <>
-                      <Progress
-                        value={Math.min(row.pct, 100)}
-                        className="h-2"
-                        style={
-                          {
-                            '--progress-background':
-                              row.status === 'over'
-                                ? '#ef4444'
-                                : row.status === 'warning'
-                                  ? '#f59e0b'
-                                  : row.color,
-                          } as CSSProperties
-                        }
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>Terpakai: <PrivacyAmount value={formatRupiah(row.spent)} /></span>
-                        <span>{row.pct.toFixed(0)}%</span>
-                      </div>
-                    </>
+          {
+            label: 'Kategori Aman',
+            value: `${safeCount} kategori`,
+            component: 'default',
+          },
+        ].map((kpi, idx) => (
+          <motion.div
+            key={kpi.label}
+            initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+            animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+            transition={fadeUp.transition}
+          >
+            <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+                  {kpi.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="font-mono text-lg md:text-xl font-bold">
+                  {kpi.component === 'positive' ? (
+                    <TextPositive>
+                      <PrivacyAmount value={kpi.value} />
+                    </TextPositive>
+                  ) : kpi.component === 'negative' ? (
+                    <TextNegative>
+                      <PrivacyAmount value={kpi.value} />
+                    </TextNegative>
+                  ) : kpi.component === 'warning' ? (
+                    <TextWarning>
+                      <PrivacyAmount value={kpi.value} />
+                    </TextWarning>
                   ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2 text-xs h-7"
-                      onClick={() => openEdit(row.category, 0)}
-                    >
-                      <Plus className="w-3 h-3 mr-1" /> Buat Budget
-                    </Button>
+                    <span className="text-[var(--color-content-primary)]">
+                      <PrivacyAmount value={kpi.value} />
+                    </span>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
 
-      {/* AI Budget Tips Panel */}
-      {showTips && (
-        <Card className="bg-amber-50 border-amber-200">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-600" />
-              Saran AI untuk Anggaran Anda
+      {/* Budget Cards */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold text-[var(--color-content-primary)]">
+              Budget per Kategori
             </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={showTips ? 'default' : 'outline'}
+                onClick={handleGetAITips}
+                disabled={tipsLoading}
+                className="gap-1 text-xs"
+              >
+                <Sparkles className="w-4 h-4" /> Saran AI
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => openEdit('', 0)}
+                className="gap-1 text-xs"
+              >
+                <Plus className="w-4 h-4" /> Tambah
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {tipsLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <div className="animate-spin">⏳</div>
+            {budgetRows.length === 0 ? (
+              <div className="text-center py-12 space-y-3">
+                <p className="text-sm text-[var(--color-content-tertiary)]">Belum ada budget yang ditetapkan</p>
+                <Button onClick={() => openEdit('Food & Dining', 0)} variant="outline" size="sm">
+                  <Plus className="w-4 h-4 mr-1" /> Buat Budget Pertama
+                </Button>
               </div>
-            ) : aiTips.length > 0 ? (
-              <ul className="space-y-3">
-                {aiTips.map((tip, idx) => (
-                  <li key={idx} className="flex gap-3">
-                    <span className="text-amber-600 font-bold flex-shrink-0">{idx + 1}.</span>
-                    <span className="text-sm text-amber-900">{tip}</span>
-                  </li>
-                ))}
-              </ul>
             ) : (
-              <p className="text-sm text-amber-800">Tidak ada saran AI tersedia saat ini.</p>
+              <div className="space-y-5">
+                <AnimatePresence>
+                  {budgetRows.map((row, idx) => (
+                    <motion.div
+                      key={row.category}
+                      initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                      animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                      exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                      transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-lg flex-shrink-0">{row.emoji}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--color-content-primary)]">{row.category}</p>
+                            <p className="text-xs text-[var(--color-content-tertiary)] font-mono">
+                              <PrivacyAmount value={formatRupiah(row.spent)} />
+                              {row.budget > 0 && (
+                                <> / <PrivacyAmount value={formatRupiah(row.budget)} /></>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <StatusBadge status={row.status} />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => openEdit(row.category, row.budget)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {row.hasEntry ? (
+                        <>
+                          <div
+                            className="w-full h-2 bg-[var(--color-bg-neutral)] rounded-full overflow-hidden"
+                          >
+                            <div
+                              className={cn(
+                                'h-full rounded-full transition-all',
+                                row.status === 'over'
+                                  ? 'bg-[var(--color-sentiment-negative)]'
+                                  : row.status === 'warning'
+                                    ? 'bg-[var(--color-sentiment-warning)]'
+                                    : 'bg-[var(--color-sentiment-positive)]'
+                              )}
+                              style={{ width: `${Math.min(row.pct, 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-[var(--color-content-tertiary)]">
+                            <span>Terpakai: <PrivacyAmount value={formatRupiah(row.spent)} /></span>
+                            <span>{row.pct.toFixed(0)}%</span>
+                          </div>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs h-7"
+                          onClick={() => openEdit(row.category, 0)}
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> Buat Budget
+                        </Button>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
             )}
           </CardContent>
         </Card>
-      )}
+      </motion.div>
+
+      {/* AI Budget Tips Panel */}
+      <AnimatePresence>
+        {showTips && (
+          <motion.div
+            initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card className="bg-[var(--color-bg-card)] border border-[var(--color-sentiment-warning-bg)]">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-[var(--color-content-primary)]">
+                  <Sparkles className="w-5 h-5 text-[var(--color-sentiment-warning)]" />
+                  Saran AI untuk Anggaran Anda
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tipsLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="animate-spin">⏳</div>
+                  </div>
+                ) : aiTips.length > 0 ? (
+                  <ul className="space-y-3">
+                    {aiTips.map((tip, idx) => (
+                      <li key={idx} className="flex gap-3 text-sm">
+                        <span className="font-bold text-[var(--color-sentiment-warning)] flex-shrink-0">
+                          {idx + 1}.
+                        </span>
+                        <span className="text-[var(--color-content-secondary)]">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-[var(--color-content-tertiary)]">
+                    Tidak ada saran AI tersedia saat ini.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Budget Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -379,7 +481,7 @@ export default function Budget() {
                 <select
                   value={editCategory}
                   onChange={(e) => setEditCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
                 >
                   <option value="">Pilih kategori...</option>
                   {ALL_CATEGORIES.map((c) => (
@@ -411,6 +513,6 @@ export default function Budget() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
