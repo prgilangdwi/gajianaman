@@ -91,8 +91,27 @@ export default function Login() {
     <div className="flex flex-col">
       <div
         className="min-h-screen relative overflow-hidden flex items-center justify-center px-4"
-      style={{ background: 'linear-gradient(150deg, #0D2818 0%, #0D3B2E 55%, #163D24 100%)' }}
-    >
+        style={{
+          backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%23000" width="1920" height="1080"/></svg>')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: 'brightness(0.5)' }}
+        >
+          <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
+        </video>
+
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/35"></div>
       <FloatingIcon icon={DollarSign} style={{ top: '8%', left: '6%' }} delay={0} />
       <FloatingIcon icon={PiggyBank} style={{ top: '12%', right: '8%' }} delay={1.2} />
       <FloatingIcon icon={TrendingUp} style={{ bottom: '14%', left: '10%' }} delay={0.6} />
@@ -116,10 +135,10 @@ export default function Login() {
               <GajianAmanMark className="w-16 h-16" />
             </motion.div>
             <div>
-              <CardTitle className="text-2xl font-extrabold tracking-tight">
+              <CardTitle className="text-2xl font-extrabold tracking-tight text-[#0D2818]">
                 Gajian Aman
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1 font-body">
+              <p className="text-sm text-[#4AE54A] mt-1 font-body font-semibold">
                 Dashboard keuangan lengkap, catat transaksi via Telegram
               </p>
             </div>
@@ -130,7 +149,7 @@ export default function Login() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-11 text-sm font-semibold border-2 hover:bg-gray-50 gap-2"
+              className="w-full h-11 text-sm font-semibold border-2 border-[#4AE54A] text-[#0D2818] hover:bg-[#4AE54A]/10 gap-2"
               onClick={handleGoogleLogin}
               disabled={googleLoading}
             >
@@ -169,7 +188,7 @@ export default function Login() {
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 text-base font-semibold"
+                className="w-full h-11 text-base font-semibold bg-[#4AE54A] hover:bg-[#38C438] text-[#0D2818]"
                 disabled={loading || !telegramId}
               >
                 {loading ? (
@@ -181,11 +200,11 @@ export default function Login() {
             </form>
 
             {/* Info Banner */}
-            <div className="flex gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
-              <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
+            <div className="flex gap-3 p-3 rounded-xl bg-[#4AE54A]/10 border border-[#4AE54A]/30">
+              <Info className="w-4 h-4 text-[#4AE54A] flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-[#555] leading-relaxed">
                 Belum punya akun?{' '}
-                <span className="font-semibold text-primary">Kirim /start ke @GajianAmanBot</span>{' '}
+                <span className="font-semibold text-[#0D2818]">Kirim /start ke @GajianAmanBot</span>{' '}
                 di Telegram, atau mulai langsung dengan Google. Semua terintegrasi otomatis.
               </p>
             </div>
@@ -197,10 +216,10 @@ export default function Login() {
                 { icon: PiggyBank, label: 'Hemat' },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-primary" />
+                  <div className="w-10 h-10 rounded-xl bg-[#4AE54A]/15 flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-[#4AE54A]" />
                   </div>
-                  <span className="text-xs text-muted-foreground">{label}</span>
+                  <span className="text-xs text-[#777]">{label}</span>
                 </div>
               ))}
             </div>
