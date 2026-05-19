@@ -105,3 +105,74 @@ def test_generate_image_prompt():
     assert "Groceries" in prompt
     assert "Food & Dining" in prompt
     assert "JSON only" in prompt
+
+def test_fast_check_matches_disambiguation_rule():
+    """Test that fast check catches user's specific rules"""
+    from services.fast_check import fast_categorize
+
+    profile = create_empty_profile("12345")
+    profile.disambiguation_rules = [
+        DisambiguationRule(
+            keywords=["grab", "gojek"],
+            category="Transport",
+            reason="user_correction",
+            confidence="high"
+        )
+    ]
+
+    result = fast_categorize("grab ke kantor", profile)
+    assert result.matched
+    assert result.category == "Transport"
+    assert result.confidence == "high"
+
+def test_fast_check_respects_exclude_keywords():
+    """Test that exclude keywords prevent rule from matching but generic patterns still apply"""
+    from services.fast_check import fast_categorize
+
+    profile = create_empty_profile("12345")
+    profile.disambiguation_rules = [
+        DisambiguationRule(
+            keywords=["grab"],
+            exclude_keywords=["makanan", "food"],
+            category="Transport",
+            reason="test",
+            confidence="high"
+        )
+    ]
+
+    # "grab food" should NOT match the specific rule, but "grab" matches generic pattern
+    result = fast_categorize("grab food ke rumah", profile)
+    assert result.matched  # Matches via generic pattern, not via rule
+    assert result.category == "Transport"  # Generic pattern for "grab"
+    assert "Keyword match" in result.reason
+
+def test_fast_check_generic_keywords():
+    """Test generic keyword patterns"""
+    from services.fast_check import fast_categorize
+
+    profile = create_empty_profile("12345")
+
+    # Salary
+    result = fast_categorize("gaji bulan ini", profile)
+    assert result.matched
+    assert result.category == "Salary"
+
+    # Entertainment
+    result = fast_categorize("netflix subscription", profile)
+    assert result.matched
+    assert result.category == "Entertainment"
+
+    # Transport
+    result = fast_categorize("bensin mobil", profile)
+    assert result.matched
+    assert result.category == "Transport"
+
+def test_fast_check_no_match_returns_none():
+    """Test that no match returns None (will go to Haiku)"""
+    from services.fast_check import fast_categorize
+
+    profile = create_empty_profile("12345")
+
+    result = fast_categorize("jajan sembarangan", profile)
+    assert not result.matched
+    assert result.to_dict() is None
