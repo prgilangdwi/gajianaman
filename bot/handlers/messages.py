@@ -174,8 +174,7 @@ async def _show_batch_preview(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Build preview message
     lines = [f"🗒 Saya temukan {len(txs)} transaksi:\n"]
     if summary:
-        lines.append(f"📊 *Ringkasan:* {summary}\n")
-    lines.append("")
+        lines.append(f"📊 *Ringkasan:* {summary}")
 
     for i, tx in enumerate(txs, 1):
         icon_map = {
