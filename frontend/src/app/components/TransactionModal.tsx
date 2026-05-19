@@ -41,7 +41,7 @@ const defaultCategories = [
 
 type PhotoPhase = 'idle' | 'preview' | 'analyzing' | 'confirm' | 'error';
 type TransactionType = 'pengeluaran' | 'pemasukan' | 'tabung' | 'transfer';
-type InputMethod = 'ai' | 'foto' | 'manual' | 'multi';
+type InputMethod = 'ai' | 'foto' | 'manual';
 
 interface ParsedTx {
   type: 'expense' | 'income' | 'savings' | 'transfer';
@@ -141,10 +141,43 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   };
 
   // ───── AI Parsing ─────
+  const isMultiTransaction = (text: string) => {
+    const amountRegex = /\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta|mio)?\b/gi;
+    const matches = text.match(amountRegex);
+    return (matches && matches.length >= 2) || text.includes(',') || text.includes('\n');
+  };
+
   const handleParseAI = async () => {
     if (!aiInput.trim()) return;
     setIsParsingAI(true);
+    setMultiError(null);
+    setMultiParsedTxs([]);
+
     try {
+      // Detect if it's a multi-transaction input
+      if (isMultiTransaction(aiInput)) {
+        // Use API for multi-transaction parsing
+        const res = await fetch('/api/parse-multi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: aiInput }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          setMultiError(data.error);
+          return;
+        }
+        if (!data.transactions || data.transactions.length === 0) {
+          setMultiError('Tidak dapat menganalisis transaksi. Coba lagi dengan format yang lebih jelas.');
+          return;
+        }
+
+        setMultiParsedTxs(data.transactions);
+        return;
+      }
+
+      // Single transaction - use local parsing (fast)
       const lower = aiInput.toLowerCase();
       let category = 'Shopping';
       let type: 'expense' | 'income' = transactionType === 'pemasukan' ? 'income' : 'expense';
@@ -420,7 +453,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
   const shouldShowSaveButton = () => {
     if (transactionType === 'pengeluaran' || transactionType === 'pemasukan') {
-      if (inputMethod === 'ai') return !!parsedData;
+      if (inputMethod === 'ai') return !!parsedData || multiParsedTxs.length > 0;
       if (inputMethod === 'foto') return photoPhase === 'confirm';
       if (inputMethod === 'manual') return true;
     }
@@ -445,22 +478,22 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           }}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-4 gap-1">
-            <TabsTrigger value="pengeluaran" className="gap-1.5 text-xs flex flex-col">
+          <TabsList className="grid w-full grid-cols-4 gap-1 bg-muted p-1 rounded-lg">
+            <TabsTrigger value="pengeluaran" className="gap-1.5 text-xs flex flex-col items-center justify-center py-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <TrendingDown className="w-4 h-4 text-red-500" />
-              <span>Pengeluaran</span>
+              <span className="leading-tight">Pengeluaran</span>
             </TabsTrigger>
-            <TabsTrigger value="pemasukan" className="gap-1.5 text-xs flex flex-col">
+            <TabsTrigger value="pemasukan" className="gap-1.5 text-xs flex flex-col items-center justify-center py-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <TrendingUp className="w-4 h-4 text-green-500" />
-              <span>Pemasukan</span>
+              <span className="leading-tight">Pemasukan</span>
             </TabsTrigger>
-            <TabsTrigger value="tabung" className="gap-1.5 text-xs flex flex-col">
+            <TabsTrigger value="tabung" className="gap-1.5 text-xs flex flex-col items-center justify-center py-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <PiggyBank className="w-4 h-4 text-blue-500" />
-              <span>Tabung</span>
+              <span className="leading-tight">Tabung</span>
             </TabsTrigger>
-            <TabsTrigger value="transfer" className="gap-1.5 text-xs flex flex-col">
+            <TabsTrigger value="transfer" className="gap-1.5 text-xs flex flex-col items-center justify-center py-3 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <ArrowLeftRight className="w-4 h-4 text-purple-500" />
-              <span>Transfer</span>
+              <span className="leading-tight">Transfer</span>
             </TabsTrigger>
           </TabsList>
 
@@ -468,14 +501,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           <TabsContent value="pengeluaran" className="space-y-4 mt-6">
             {/* Sub-tabs for input method */}
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="ai" className="gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">AI</span>
-                </TabsTrigger>
-                <TabsTrigger value="multi" className="gap-1">
-                  <span className="text-base">📝</span>
-                  <span className="hidden sm:inline text-xs">Multi</span>
                 </TabsTrigger>
                 <TabsTrigger value="foto" className="gap-1">
                   <Camera className="w-3.5 h-3.5" />
@@ -489,12 +518,12 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
               {/* AI Sub-tab */}
               <TabsContent value="ai" className="space-y-4 mt-4">
-                {!parsedData ? (
+                {multiParsedTxs.length === 0 && !parsedData ? (
                   <div className="space-y-3">
-                    <Label className="font-body">Ketik bebas, AI akan parsing untuk kamu</Label>
+                    <Label className="font-body">Ketik bebas (satu atau banyak transaksi), AI akan parsing untuk kamu</Label>
                     <Textarea
-                      placeholder="contoh: beli kopi 25rb tadi pagi"
-                      className="min-h-[100px] resize-none"
+                      placeholder="Contoh:&#10;beli kopi 25rb tadi pagi&#10;atau:&#10;makan soto 50k 17 mei, isi bensin 100k hari ini, dari Adi 50rb"
+                      className="min-h-[120px] resize-none"
                       value={aiInput}
                       onChange={(e) => setAiInput(e.target.value)}
                     />
@@ -504,13 +533,61 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       className="w-full bg-primary hover:bg-primary-dark"
                     >
                       {isParsingAI ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sedang diproses...</>
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menganalisis...</>
                       ) : (
-                        <><Sparkles className="w-4 h-4 mr-2" />Mengunyah dengan AI</>
+                        <><Sparkles className="w-4 h-4 mr-2" />Analisis Transaksi</>
                       )}
                     </Button>
                   </div>
-                ) : (
+                ) : multiParsedTxs.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
+                      <p className="text-sm font-semibold text-primary mb-3">🗒 {multiParsedTxs.length} transaksi terdeteksi:</p>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {multiParsedTxs.map((tx, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-background/50 border border-border/50 text-sm">
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{tx.note}</p>
+                              <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+                                <span>💰 Rp {(tx.amount || 0).toLocaleString('id-ID')}</span>
+                                <span>📂 {tx.category}</span>
+                                <span>📅 {tx.date === 'today' ? 'Hari ini' : tx.date}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSaveAllMulti}
+                        disabled={isSaving}
+                        className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                      >
+                        {isSaving ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
+                        ) : (
+                          <><CheckCircle2 className="w-4 h-4" />Simpan Semua</>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setMultiParsedTxs([]);
+                          setAiInput('');
+                          setMultiError(null);
+                        }}
+                        variant="outline"
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                    {multiError && (
+                      <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                        {multiError}
+                      </div>
+                    )}
+                  </div>
+                ) : parsedData ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-2">
                       <p className="text-sm font-semibold text-primary">Hasil Analisis:</p>
@@ -548,7 +625,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       ← Kembali ke Input
                     </Button>
                   </div>
-                )}
+                ) : null}
               </TabsContent>
 
               {/* Foto Sub-tab */}
@@ -798,100 +875,6 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                 </div>
               </TabsContent>
 
-              {/* Multi Sub-tab */}
-              <TabsContent value="multi" className="space-y-4 mt-4">
-                {multiParsedTxs.length === 0 ? (
-                  <div className="space-y-3">
-                    <Label className="font-body">Ketik beberapa transaksi sekaligus, pisahkan dengan koma atau baris baru</Label>
-                    <Textarea
-                      placeholder="Contoh:&#10;makan soto betawi 50k 17 mei, isi bensin 100k hari ini, dari Adi 50rb"
-                      value={multiInput}
-                      onChange={(e) => setMultiInput(e.target.value)}
-                      rows={5}
-                      className="resize-none"
-                    />
-                    <Button
-                      onClick={handleParseMulti}
-                      disabled={isParsingMulti || !multiInput.trim()}
-                      className="w-full gap-2 bg-primary hover:bg-primary-dark"
-                    >
-                      {isParsingMulti ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Menganalisis...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4" />
-                          Analisis Transaksi
-                        </>
-                      )}
-                    </Button>
-                    {multiError && (
-                      <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-                        {multiError}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
-                      <p className="text-sm font-semibold text-primary mb-3">🗒 {multiParsedTxs.length} transaksi terdeteksi:</p>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {multiParsedTxs.map((tx, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-background/50 border border-border/50 text-sm">
-                            <div className="flex-1">
-                              <p className="font-medium text-foreground">{tx.note}</p>
-                              <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-                                <span>💰 Rp {(tx.amount || 0).toLocaleString('id-ID')}</span>
-                                <span>📂 {tx.category}</span>
-                                <span>📅 {tx.date === 'today' ? 'Hari ini' : tx.date}</span>
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleSaveMultiTransaction(idx)}
-                              className="ml-2"
-                            >
-                              ✓
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSaveAllMulti}
-                        disabled={isSaving}
-                        className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
-                      >
-                        {isSaving ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Menyimpan...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-4 h-4" />
-                            Simpan Semua
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setMultiParsedTxs([]);
-                          setMultiInput('');
-                          setMultiError(null);
-                        }}
-                        variant="outline"
-                      >
-                        Batal
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
             </Tabs>
           </TabsContent>
 
@@ -899,14 +882,10 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           <TabsContent value="pemasukan" className="space-y-4 mt-6">
             {/* Sub-tabs for input method */}
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="ai" className="gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">AI</span>
-                </TabsTrigger>
-                <TabsTrigger value="multi" className="gap-1">
-                  <span className="text-base">📝</span>
-                  <span className="hidden sm:inline text-xs">Multi</span>
                 </TabsTrigger>
                 <TabsTrigger value="foto" className="gap-1">
                   <Camera className="w-3.5 h-3.5" />
