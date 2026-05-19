@@ -11,7 +11,7 @@ from telegram.constants import ParseMode
 
 from db.database import AsyncSessionLocal
 from db import operations as db
-from services.categorizer import categorize_transaction, parse_batch_transactions
+from services.categorizer import categorize_transaction, parse_batch_transactions, summarize_batch_transactions
 from services.categorizer_v2 import categorize_transaction as categorize_transaction_v2
 from services.formatter import build_transaction_confirm, fmt_currency, build_daily_summary_message, build_history_message, build_summary_message
 from bot.handlers.commands import RECAT_KEYBOARD, parse_amount, maybe_send_budget_alert, parse_backdate
@@ -163,13 +163,19 @@ def is_multi_transaction(text: str) -> bool:
 
 
 async def _show_batch_preview(update: Update, context: ContextTypes.DEFAULT_TYPE, txs: list):
-    """Show preview of parsed batch transactions with confirm/cancel buttons."""
+    """Show preview of parsed batch transactions with AI summary and confirm/cancel buttons."""
     if not txs:
         await update.message.reply_text("❌ Tidak dapat menganalisis transaksi. Coba lagi.")
         return
 
+    # Generate AI summary
+    summary = summarize_batch_transactions(txs)
+
     # Build preview message
     lines = [f"🗒 Saya temukan {len(txs)} transaksi:\n"]
+    if summary:
+        lines.append(f"📊 *Ringkasan:* {summary}\n")
+    lines.append("")
 
     for i, tx in enumerate(txs, 1):
         icon_map = {

@@ -338,3 +338,55 @@ def parse_batch_transactions(text: str) -> list:
         print(f"[Batch Parser Error] {e}")
         print(f"[Batch Parser] Error details: {type(e).__name__}")
         return []
+
+
+def summarize_batch_transactions(txs: list) -> str:
+    """Generate AI summary of batch transactions for preview.
+
+    Args:
+        txs: List of parsed transaction dicts (from parse_batch_transactions)
+
+    Returns:
+        str: Natural language summary in Indonesian or empty string if error
+    """
+    if not txs:
+        return ""
+
+    try:
+        # Build transaction list for Claude
+        tx_lines = []
+        for tx in txs:
+            amount = tx.get("amount", 0)
+            note = tx.get("note", "Transaksi")
+            category = tx.get("category", "Other")
+            tx_type = tx.get("type", "expense")
+            tx_lines.append(f"- {amount} {tx_type} ({category}): {note}")
+
+        tx_text = "\n".join(tx_lines)
+
+        prompt = f"""Buatkan ringkasan singkat (1-2 baris) untuk batch transaksi ini dalam bahasa Indonesia:
+
+{tx_text}
+
+Format ringkasan:
+- Total: [total amount dalam Rp]
+- Breakdown: [kategori utama dengan jumlah transaksi]
+- Catatan: [observasi unik jika ada]
+
+Contoh: "Total Rp 250.000 • 2 Food & Dining, 1 Transport, 1 Shopping • Mostly weekday expenses"
+"""
+
+        response = anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=150,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        summary = response.content[0].text.strip()
+        return summary
+
+    except Exception as e:
+        print(f"[Batch Summary Error] {e}")
+        return ""
