@@ -42,7 +42,10 @@ async_engine = create_async_engine(
     DATABASE_URL,
     echo=False,
     poolclass=NullPool,
-    connect_args={"statement_cache_size": 0},
+    connect_args={
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    },
 )
 
 _session_factory = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
