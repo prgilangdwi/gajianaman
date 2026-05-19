@@ -72,6 +72,7 @@ export default function App() {
 
               <Route path="/login" element={<Login />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/v1/callback" element={<AuthCallback />} />
               <Route path="/link-telegram" element={<LinkTelegram />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/split/:token" element={<SplitBillShare />} />
