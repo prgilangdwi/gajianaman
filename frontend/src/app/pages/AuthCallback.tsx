@@ -11,13 +11,22 @@ export default function AuthCallback() {
 
   useEffect(() => {
     async function handle() {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (error || !session) {
-        setStatus('Login gagal. Kembali ke halaman login...');
-        setTimeout(() => navigate('/login', { replace: true }), 2000);
-        return;
-      }
+        if (error) {
+          console.error('Supabase session error:', error);
+          setStatus(`Login gagal: ${error.message}. Kembali ke halaman login...`);
+          setTimeout(() => navigate('/login', { replace: true }), 3000);
+          return;
+        }
+
+        if (!session) {
+          console.error('No session returned from OAuth callback');
+          setStatus('Google OAuth belum dikonfigurasi di Supabase. Hubungi admin.');
+          setTimeout(() => navigate('/login', { replace: true }), 3000);
+          return;
+        }
 
       const googleId = session.user.id;
       const email = session.user.email ?? '';
@@ -57,14 +66,19 @@ export default function AuthCallback() {
         return;
       }
 
-      // First time — store pending session and ask to link Telegram ID
-      sessionStorage.setItem(PENDING_KEY, JSON.stringify({
-        googleId,
-        email,
-        name: session.user.user_metadata?.full_name ?? '',
-      }));
-      setStatus('Akun baru. Menghubungkan ke Telegram...');
-      navigate('/link-telegram', { replace: true });
+        // First time — store pending session and ask to link Telegram ID
+        sessionStorage.setItem(PENDING_KEY, JSON.stringify({
+          googleId,
+          email,
+          name: session.user.user_metadata?.full_name ?? '',
+        }));
+        setStatus('Akun baru. Menghubungkan ke Telegram...');
+        navigate('/link-telegram', { replace: true });
+      } catch (err) {
+        console.error('Auth callback error:', err);
+        setStatus('Terjadi kesalahan. Kembali ke halaman login...');
+        setTimeout(() => navigate('/login', { replace: true }), 2000);
+      }
     }
 
     handle();
