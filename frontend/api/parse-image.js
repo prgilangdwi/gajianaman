@@ -1,5 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk').default;
-
 const IMAGE_PARSE_PROMPT = `Analyze this image and extract financial transaction information.
 
 This could be: a store receipt (struk), bank transfer screenshot, e-wallet payment (GoPay, OVO, DANA, ShopeePay), food delivery order, invoice, or any payment confirmation.
@@ -42,33 +40,49 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType ?? 'image/jpeg',
-                data: imageBase64,
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mediaType ?? 'image/jpeg',
+                  data: imageBase64,
+                },
               },
-            },
-            {
-              type: 'text',
-              text: IMAGE_PARSE_PROMPT,
-            },
-          ],
-        },
-      ],
+              {
+                type: 'text',
+                text: IMAGE_PARSE_PROMPT,
+              },
+            ],
+          },
+        ],
+      }),
     });
 
-    let raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('[parse-image] API error:', data);
+      return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
+    }
+
+    let raw = data.content[0]?.text?.trim() || '';
+    if (!raw) {
+      return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
+    }
 
     // Strip markdown fences if model wraps in ```json
     if (raw.includes('```')) {
