@@ -1,3 +1,7 @@
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic();
+
 const IMAGE_PARSE_PROMPT = `Analyze this image and extract financial transaction information.
 
 This could be: a store receipt (struk), bank transfer screenshot, e-wallet payment (GoPay, OVO, DANA, ShopeePay), food delivery order, invoice, or any payment confirmation.
@@ -23,7 +27,7 @@ Rules:
 If no amount can be determined or image is unclear:
 {"error": "Tidak dapat membaca informasi transaksi dari gambar ini"}`;
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -33,53 +37,32 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'imageBase64 is required' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('[parse-image] ANTHROPIC_API_KEY not set');
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType ?? 'image/jpeg',
-                  data: imageBase64,
-                },
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType ?? 'image/jpeg',
+                data: imageBase64,
               },
-              {
-                type: 'text',
-                text: IMAGE_PARSE_PROMPT,
-              },
-            ],
-          },
-        ],
-      }),
+            },
+            {
+              type: 'text',
+              text: IMAGE_PARSE_PROMPT,
+            },
+          ],
+        },
+      ],
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('[parse-image] API error:', data);
-      return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
-    }
-
-    let raw = data.content[0]?.text?.trim() || '';
+    let raw = response.content[0]?.text?.trim() || '';
     if (!raw) {
       return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
     }
@@ -102,4 +85,4 @@ module.exports = async function handler(req, res) {
     console.error('[parse-image] Error:', err.message || err);
     return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
   }
-};
+}
