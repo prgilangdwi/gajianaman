@@ -24,7 +24,7 @@ def main():
             pairs.append(pair)
 
     # Q2: Correction examples
-    print("\nQ2: Correction examples? (format: 'note → Category', press Enter to skip)")
+    print("\nQ2: Correction examples? (format: 'note -> Category', press Enter to skip)")
     examples = []
     while True:
         line = input("> ").strip()
@@ -60,7 +60,7 @@ def main():
     # Save
     profile_path = os.path.join(output_dir, "categorization_profile.json")
     save_profile(profile, profile_path)
-    print(f"\n✅ Profile saved to {profile_path}")
+    print(f"\n[OK] Profile saved to {profile_path}")
 
     # Checklist
     checklist = f"""# Deployment Checklist
@@ -78,7 +78,7 @@ Generated: {datetime.utcnow().isoformat()}Z
     checklist_path = os.path.join(output_dir, "DEPLOYMENT_CHECKLIST.md")
     with open(checklist_path, 'w') as f:
         f.write(checklist)
-    print(f"✅ Checklist saved to {checklist_path}")
+    print(f"[OK] Checklist saved to {checklist_path}")
     print("\nNext: Follow the deployment checklist")
 
 if __name__ == "__main__":
