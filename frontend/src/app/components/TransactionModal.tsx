@@ -41,7 +41,7 @@ const defaultCategories = [
 
 type PhotoPhase = 'idle' | 'preview' | 'analyzing' | 'confirm' | 'error';
 type TransactionType = 'pengeluaran' | 'pemasukan' | 'tabung' | 'transfer';
-type InputMethod = 'ai' | 'foto' | 'manual';
+type InputMethod = 'ai' | 'foto' | 'manual' | 'multi';
 
 interface ParsedTx {
   type: 'expense' | 'income' | 'savings' | 'transfer';
@@ -109,6 +109,12 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [manualNote, setManualNote] = useState('');
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // Multi-transaction state
+  const [isParsingMulti, setIsParsingMulti] = useState(false);
+  const [multiInput, setMultiInput] = useState('');
+  const [multiParsedTxs, setMultiParsedTxs] = useState<any[]>([]);
+  const [multiError, setMultiError] = useState<string | null>(null);
+
   // Savings & transfer state
   const [allUserTags, setAllUserTags] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -169,6 +175,106 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
       form.updateFromParsed(parsed);
     } finally {
       setIsParsingAI(false);
+    }
+  };
+
+  // ───── Multi-Transaction Parsing ─────
+  const handleParseMulti = async () => {
+    if (!multiInput.trim()) return;
+    setIsParsingMulti(true);
+    setMultiError(null);
+    try {
+      console.log('[Multi Parse] Input:', multiInput);
+      const res = await fetch('/api/parse-multi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: multiInput }),
+      });
+      console.log('[Multi Parse] Response status:', res.status);
+      const data = await res.json();
+      console.log('[Multi Parse] Response data:', data);
+      if (data.error) {
+        setMultiError(data.error);
+        return;
+      }
+      if (!data.transactions || data.transactions.length === 0) {
+        setMultiError('Tidak dapat menganalisis transaksi. Coba lagi dengan format yang lebih jelas.');
+        return;
+      }
+      console.log('[Multi Parse] Parsed transactions:', data.transactions);
+      setMultiParsedTxs(data.transactions);
+    } catch (err) {
+      console.error('[Multi Parse Error]', err);
+      setMultiError('Terjadi error saat menganalisis transaksi');
+    } finally {
+      setIsParsingMulti(false);
+    }
+  };
+
+  const handleSaveMultiTransaction = async (txIndex: number) => {
+    if (!user || txIndex < 0 || txIndex >= multiParsedTxs.length) return;
+    const tx = multiParsedTxs[txIndex];
+
+    try {
+      const payload: any = {
+        user_id: user.userId,
+        type: tx.type || 'expense',
+        amount: Number(tx.amount || 0),
+        category: tx.category || 'Other',
+        subcategory: tx.subcategory || null,
+        note: tx.note || 'Transaksi',
+        date: tx.date === 'today' ? new Date().toISOString().split('T')[0] : tx.date,
+      };
+
+      const res = await supabase.from('transactions').insert([payload]);
+      if (res.error) throw res.error;
+
+      toast.success(`${tx.note} — Rp ${Number(tx.amount || 0).toLocaleString('id-ID')} berhasil dicatat`);
+
+      // Remove from pending list
+      setMultiParsedTxs((prev) => prev.filter((_, i) => i !== txIndex));
+
+      if (multiParsedTxs.length === 1) {
+        // Last transaction saved
+        onSaved?.();
+        onClose();
+      }
+    } catch (err) {
+      console.error('[Save Multi Error]', err);
+      toast.error('Gagal menyimpan transaksi');
+    }
+  };
+
+  const handleSaveAllMulti = async () => {
+    if (!user || multiParsedTxs.length === 0) return;
+    setIsSaving(true);
+    let successCount = 0;
+
+    try {
+      const payloads = multiParsedTxs.map((tx) => ({
+        user_id: user.userId,
+        type: tx.type || 'expense',
+        amount: Number(tx.amount || 0),
+        category: tx.category || 'Other',
+        subcategory: tx.subcategory || null,
+        note: tx.note || 'Transaksi',
+        date: tx.date === 'today' ? new Date().toISOString().split('T')[0] : (tx.date === 'yesterday' ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : tx.date),
+      }));
+
+      const res = await supabase.from('transactions').insert(payloads);
+      if (res.error) throw res.error;
+
+      successCount = payloads.length;
+      toast.success(`✅ ${successCount} transaksi berhasil dicatat`);
+      setMultiParsedTxs([]);
+      setMultiInput('');
+      onSaved?.();
+      onClose();
+    } catch (err) {
+      console.error('[Save All Multi Error]', err);
+      toast.error(`Gagal menyimpan transaksi. ${successCount} dari ${multiParsedTxs.length} tersimpan.`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -362,18 +468,22 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           <TabsContent value="pengeluaran" className="space-y-4 mt-6">
             {/* Sub-tabs for input method */}
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="ai" className="gap-1.5">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="ai" className="gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  AI
+                  <span className="hidden sm:inline">AI</span>
                 </TabsTrigger>
-                <TabsTrigger value="foto" className="gap-1.5">
+                <TabsTrigger value="multi" className="gap-1">
+                  <span className="text-base">📝</span>
+                  <span className="hidden sm:inline text-xs">Multi</span>
+                </TabsTrigger>
+                <TabsTrigger value="foto" className="gap-1">
                   <Camera className="w-3.5 h-3.5" />
-                  Foto
+                  <span className="hidden sm:inline">Foto</span>
                 </TabsTrigger>
-                <TabsTrigger value="manual" className="gap-1.5">
+                <TabsTrigger value="manual" className="gap-1">
                   <PenLine className="w-3.5 h-3.5" />
-                  Manual
+                  <span className="hidden sm:inline text-xs">Manual</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -687,6 +797,101 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   </div>
                 </div>
               </TabsContent>
+
+              {/* Multi Sub-tab */}
+              <TabsContent value="multi" className="space-y-4 mt-4">
+                {multiParsedTxs.length === 0 ? (
+                  <div className="space-y-3">
+                    <Label className="font-body">Ketik beberapa transaksi sekaligus, pisahkan dengan koma atau baris baru</Label>
+                    <Textarea
+                      placeholder="Contoh:&#10;makan soto betawi 50k 17 mei, isi bensin 100k hari ini, dari Adi 50rb"
+                      value={multiInput}
+                      onChange={(e) => setMultiInput(e.target.value)}
+                      rows={5}
+                      className="resize-none"
+                    />
+                    <Button
+                      onClick={handleParseMulti}
+                      disabled={isParsingMulti || !multiInput.trim()}
+                      className="w-full gap-2 bg-primary hover:bg-primary-dark"
+                    >
+                      {isParsingMulti ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Menganalisis...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Analisis Transaksi
+                        </>
+                      )}
+                    </Button>
+                    {multiError && (
+                      <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                        {multiError}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
+                      <p className="text-sm font-semibold text-primary mb-3">🗒 {multiParsedTxs.length} transaksi terdeteksi:</p>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {multiParsedTxs.map((tx, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-background/50 border border-border/50 text-sm">
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{tx.note}</p>
+                              <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+                                <span>💰 Rp {(tx.amount || 0).toLocaleString('id-ID')}</span>
+                                <span>📂 {tx.category}</span>
+                                <span>📅 {tx.date === 'today' ? 'Hari ini' : tx.date}</span>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSaveMultiTransaction(idx)}
+                              className="ml-2"
+                            >
+                              ✓
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSaveAllMulti}
+                        disabled={isSaving}
+                        className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Menyimpan...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            Simpan Semua
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setMultiParsedTxs([]);
+                          setMultiInput('');
+                          setMultiError(null);
+                        }}
+                        variant="outline"
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
             </Tabs>
           </TabsContent>
 
@@ -694,18 +899,22 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           <TabsContent value="pemasukan" className="space-y-4 mt-6">
             {/* Sub-tabs for input method */}
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="ai" className="gap-1.5">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="ai" className="gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  AI
+                  <span className="hidden sm:inline">AI</span>
                 </TabsTrigger>
-                <TabsTrigger value="foto" className="gap-1.5">
+                <TabsTrigger value="multi" className="gap-1">
+                  <span className="text-base">📝</span>
+                  <span className="hidden sm:inline text-xs">Multi</span>
+                </TabsTrigger>
+                <TabsTrigger value="foto" className="gap-1">
                   <Camera className="w-3.5 h-3.5" />
-                  Foto
+                  <span className="hidden sm:inline">Foto</span>
                 </TabsTrigger>
-                <TabsTrigger value="manual" className="gap-1.5">
+                <TabsTrigger value="manual" className="gap-1">
                   <PenLine className="w-3.5 h-3.5" />
-                  Manual
+                  <span className="hidden sm:inline text-xs">Manual</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -937,6 +1146,101 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                     />
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Multi Sub-tab */}
+              <TabsContent value="multi" className="space-y-4 mt-4">
+                {multiParsedTxs.length === 0 ? (
+                  <div className="space-y-3">
+                    <Label className="font-body">Ketik beberapa transaksi sekaligus, pisahkan dengan koma atau baris baru</Label>
+                    <Textarea
+                      placeholder="Contoh:&#10;dari gajian 5jt, freelance 1jt, bonus 500k"
+                      value={multiInput}
+                      onChange={(e) => setMultiInput(e.target.value)}
+                      rows={5}
+                      className="resize-none"
+                    />
+                    <Button
+                      onClick={handleParseMulti}
+                      disabled={isParsingMulti || !multiInput.trim()}
+                      className="w-full gap-2 bg-primary hover:bg-primary-dark"
+                    >
+                      {isParsingMulti ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Menganalisis...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Analisis Transaksi
+                        </>
+                      )}
+                    </Button>
+                    {multiError && (
+                      <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                        {multiError}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
+                      <p className="text-sm font-semibold text-primary mb-3">🗒 {multiParsedTxs.length} transaksi terdeteksi:</p>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {multiParsedTxs.map((tx, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-background/50 border border-border/50 text-sm">
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{tx.note}</p>
+                              <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+                                <span>💰 Rp {(tx.amount || 0).toLocaleString('id-ID')}</span>
+                                <span>📂 {tx.category}</span>
+                                <span>📅 {tx.date === 'today' ? 'Hari ini' : tx.date}</span>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSaveMultiTransaction(idx)}
+                              className="ml-2"
+                            >
+                              ✓
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSaveAllMulti}
+                        disabled={isSaving}
+                        className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Menyimpan...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            Simpan Semua
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setMultiParsedTxs([]);
+                          setMultiInput('');
+                          setMultiError(null);
+                        }}
+                        variant="outline"
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </TabsContent>

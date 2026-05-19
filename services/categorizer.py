@@ -201,3 +201,140 @@ def categorize_transaction(note: str) -> dict:
             "confidence": "low",
             "reason": "Terjadi error saat kategorisasi."
         }
+
+
+BATCH_PARSE_PROMPT = """You are a personal finance transaction parser for Indonesian users.
+Your ONLY job: parse multiple transactions from text and return ONLY a JSON array. NO OTHER TEXT.
+
+IMPORTANT: Return ONLY valid JSON. If you return any text outside the JSON array, the parsing will fail.
+
+INSTRUCTION: For the input text, identify each separate transaction. For each transaction:
+1. amount: Extract the amount in IDR (parse "50k"→50000, "1jt"→1000000, "100rb"→100000, "4000"→4000)
+2. type: "expense" (makan, beli, bayar), "income" (dapat, masuk, gaji, dari), "savings" (nabung, tabung, investasi)
+3. note: Brief description in Indonesian (max 30 chars)
+4. date: "today"/"yesterday"/"tomorrow" OR "YYYY-MM-DD" format (if "17 mei"→"2026-05-17", if explicit year like "17 mei 2026"→"2026-05-17")
+5. category: Exact match one: Food & Dining, Groceries, Transport, Shopping, Health, Entertainment, Bills & Utilities, Education, Personal Care, Dining Out, Salary, Freelance, Investment Return, Other Income, Savings, Investment
+6. subcategory: Optional detail (e.g., "Street Food / Snacks")
+7. confidence: "high" (clear), "medium" (some ambiguity), "low" (unclear)
+
+RETURN FORMAT — a valid JSON array with this structure:
+[
+  {
+    "amount": 50000,
+    "type": "expense",
+    "note": "Soto betawi",
+    "date": "2026-05-17",
+    "category": "Food & Dining",
+    "subcategory": "Street Food",
+    "confidence": "high"
+  },
+  {
+    "amount": 100000,
+    "type": "expense",
+    "note": "Bensin mobil",
+    "date": "today",
+    "category": "Transport",
+    "subcategory": "Fuel",
+    "confidence": "high"
+  }
+]
+
+CRITICAL RULES:
+- Return ONLY the JSON array. Zero other text.
+- If text has NO transactions or is unclear, return empty array: []
+- Max 10 transactions. If more, keep first 10 only.
+"""
+
+
+def parse_batch_transactions(text: str) -> list:
+    """
+    Parse multiple transactions from a single natural-language input.
+    Uses Claude Haiku to extract structure AND categorize in one call.
+
+    Args:
+        text: Multi-transaction natural language text (e.g. "makan 50k, bensin 100k, dari Adi 50rb")
+
+    Returns:
+        list[dict] with keys: amount, type, note, date, category, subcategory, confidence
+        OR [] if parsing fails or input is empty
+    """
+    try:
+        response = anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            system=BATCH_PARSE_PROMPT,
+            messages=[
+                {"role": "user", "content": f"Parse these transactions:\n\n{text}"}
+            ]
+        )
+
+        raw = response.content[0].text.strip()
+        print(f"[Batch Parser] Raw response (first 200 chars): {raw[:200]}")
+
+        # Strip markdown fences if present
+        if "```" in raw:
+            parts = raw.split("```")
+            for part in parts:
+                part = part.strip()
+                # Remove "json" prefix if present
+                if part.startswith("json"):
+                    part = part[4:].strip()
+                # Check if this part is a valid JSON array
+                if part.startswith("["):
+                    raw = part
+                    break
+
+        # Extra: try to find JSON array even without markdown fences
+        if not raw.startswith("["):
+            # Look for [ anywhere in the response
+            bracket_idx = raw.find("[")
+            if bracket_idx != -1:
+                raw = raw[bracket_idx:]
+                # Find matching closing bracket
+                bracket_count = 0
+                for i, c in enumerate(raw):
+                    if c == "[":
+                        bracket_count += 1
+                    elif c == "]":
+                        bracket_count -= 1
+                        if bracket_count == 0:
+                            raw = raw[:i+1]
+                            break
+
+        result = json.loads(raw)
+
+        # Validate result is a list
+        if not isinstance(result, list):
+            return []
+
+        # Cap at 10 transactions
+        if len(result) > 10:
+            result = result[:10]
+
+        # Ensure required fields
+        for tx in result:
+            required = ["amount", "type", "note", "date", "category"]
+            for field in required:
+                if field not in tx:
+                    if field == "amount":
+                        tx[field] = 0
+                    elif field == "type":
+                        tx[field] = "expense"
+                    elif field == "category":
+                        tx[field] = "Other"
+                    else:
+                        tx[field] = ""
+
+            tx.setdefault("subcategory", "Uncategorized")
+            tx.setdefault("confidence", "medium")
+
+        return result
+
+    except json.JSONDecodeError as e:
+        print(f"[Batch Parser JSON Error] {e}")
+        print(f"[Batch Parser] Raw response was: {raw}")
+        return []
+    except Exception as e:
+        print(f"[Batch Parser Error] {e}")
+        print(f"[Batch Parser] Error details: {type(e).__name__}")
+        return []

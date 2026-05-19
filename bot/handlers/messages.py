@@ -4,13 +4,14 @@
 import re
 import calendar
 from typing import Optional, Tuple
+from datetime import date, timedelta, datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
 from db.database import AsyncSessionLocal
 from db import operations as db
-from services.categorizer import categorize_transaction
+from services.categorizer import categorize_transaction, parse_batch_transactions
 from services.formatter import build_transaction_confirm, fmt_currency, build_daily_summary_message, build_history_message, build_summary_message
 from bot.handlers.commands import RECAT_KEYBOARD, parse_amount, maybe_send_budget_alert, parse_backdate
 
@@ -134,6 +135,94 @@ def detect_natural_transaction(text: str) -> Tuple[Optional[float], Optional[str
         note = "Transaksi"
 
     return amount, note, tx_type, source_wallet, dest_wallet
+
+
+def is_multi_transaction(text: str) -> bool:
+    """
+    Detect if text contains multiple transactions.
+    Checks for: 2+ amount patterns, comma separators, or newlines.
+    """
+    if text.startswith("/"):
+        return False
+
+    # Count amount patterns (k, rb, jt, mio, or raw numbers)
+    amount_matches = _AMOUNT_RE.findall(text)
+    if len(amount_matches) >= 2:
+        return True
+
+    # Check for comma or newline separators with at least one amount in each part
+    if "," in text or "\n" in text:
+        separator = "\n" if "\n" in text else ","
+        parts = text.split(separator)
+        count_with_amount = sum(1 for part in parts if _parse_amount_value(part) is not None)
+        if count_with_amount >= 2:
+            return True
+
+    return False
+
+
+async def _show_batch_preview(update: Update, context: ContextTypes.DEFAULT_TYPE, txs: list):
+    """Show preview of parsed batch transactions with confirm/cancel buttons."""
+    if not txs:
+        await update.message.reply_text("❌ Tidak dapat menganalisis transaksi. Coba lagi.")
+        return
+
+    # Build preview message
+    lines = [f"🗒 Saya temukan {len(txs)} transaksi:\n"]
+
+    for i, tx in enumerate(txs, 1):
+        icon_map = {
+            "Food & Dining": "🍜",
+            "Groceries": "🛒",
+            "Transport": "🚗",
+            "Shopping": "🛍️",
+            "Health": "💊",
+            "Entertainment": "🎮",
+            "Bills & Utilities": "📱",
+            "Education": "🎓",
+            "Personal Care": "💆",
+            "Dining Out": "🍽️",
+            "Salary": "💼",
+            "Freelance": "💻",
+            "Investment Return": "📈",
+            "Other Income": "💚",
+            "Savings": "🏦",
+            "Investment": "📊",
+        }
+        icon = icon_map.get(tx.get("category"), "💵")
+        type_label = {"expense": "Pengeluaran", "income": "Pemasukan", "savings": "Tabungan"}.get(tx.get("type"), "Transaksi")
+
+        date_val = tx.get("date", "today")
+        if date_val == "today":
+            date_str = "Hari ini"
+        elif date_val == "yesterday":
+            date_str = "Kemarin"
+        elif date_val == "tomorrow":
+            date_str = "Besok"
+        else:
+            # Parse ISO date for display
+            try:
+                dt = datetime.strptime(date_val, "%Y-%m-%d").strftime("%d %B %Y")
+                date_str = dt
+            except:
+                date_str = date_val
+
+        lines.append(f"\n{i}️⃣ {icon} {tx.get('note', 'Transaksi')} • {type_label}")
+        lines.append(f"   {fmt_currency(tx.get('amount', 0))} • 📅 {date_str}")
+
+    msg = "\n".join(lines)
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Simpan Semua", callback_data="multi_confirm_all"),
+            InlineKeyboardButton("❌ Batal", callback_data="multi_cancel"),
+        ]
+    ])
+
+    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+
+    # Store parsed batch in context
+    context.user_data["pending_multi_txs"] = txs
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -298,6 +387,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode=ParseMode.MARKDOWN,
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
+        return
+
+    # Check for multi-transaction input
+    is_multi = is_multi_transaction(text)
+    print(f"[Multi-TX Debug] Text: {text[:50]}... | is_multi: {is_multi}")
+    if is_multi:
+        status_msg = await update.message.reply_text("🔍 AI sedang menganalisis transaksi...")
+        parsed_txs = parse_batch_transactions(text)
+        print(f"[Multi-TX Debug] Parsed {len(parsed_txs) if parsed_txs else 0} transactions")
+
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass
+
+        if parsed_txs:
+            await _show_batch_preview(update, context, parsed_txs)
+        else:
+            await update.message.reply_text("❌ Tidak dapat menganalisis transaksi. Coba lagi dengan format yang lebih jelas.")
         return
 
     amount, note, tx_type, source_wallet, dest_wallet = detect_natural_transaction(text)

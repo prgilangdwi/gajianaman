@@ -18,7 +18,7 @@ from bot.handlers.commands import (
     cmd_budget, cmd_goal, cmd_help, cmd_delete, cmd_stats, cmd_cancel,
     cmd_tutorial, cmd_quickbudget, cmd_commands, cmd_wallet, cmd_insights, cmd_notify, cmd_csv, cmd_trends,
     cmd_smart_alerts, cmd_recurring, cmd_budget_tips, cmd_health, cmd_spending_patterns, cmd_forecast,
-    cmd_category_analysis, cmd_goal_progress, cmd_subscribe,
+    cmd_category_analysis, cmd_goal_progress, cmd_subscribe, cmd_multi,
     get_splitbill_handler,
 )
 from bot.handlers.callbacks import handle_callback
@@ -66,6 +66,7 @@ def main():
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("add", cmd_add))
     app.add_handler(CommandHandler("income", cmd_income))
+    app.add_handler(CommandHandler("multi", cmd_multi))
     app.add_handler(CommandHandler("summary", cmd_summary))
     app.add_handler(CommandHandler("history", cmd_history))
     app.add_handler(CommandHandler("budget", cmd_budget))

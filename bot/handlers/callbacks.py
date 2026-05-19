@@ -910,6 +910,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ]),
             )
 
+    # ── Batch transaction confirm ─────────────────────
+    elif data == "multi_confirm_all":
+        await callback_multi_confirm_all(update, context)
+
+    elif data == "multi_cancel":
+        await callback_multi_cancel(update, context)
+
+    elif data.startswith("delete_direct:"):
+        await callback_delete_direct(update, context)
+
     # ── Quick-delete from transaction confirm ──────────
     elif data == "delete:last":
         tx_id = context.user_data.get("last_tx_id")
@@ -1297,3 +1307,132 @@ async def _show_recat_tx_list(query, user_id: int, target_date: date):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup(buttons),
     )
+
+
+# ─────────────────────────────────────────
+# Batch transaction callbacks
+# ─────────────────────────────────────────
+async def callback_multi_confirm_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Insert all pending multi transactions."""
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    pending_txs = context.user_data.get("pending_multi_txs", [])
+
+    if not pending_txs:
+        await query.edit_message_text("❌ Tidak ada transaksi yang menunggu.")
+        return
+
+    # Helper to resolve date strings to actual dates
+    def resolve_date(date_str: str) -> date:
+        if date_str == "today":
+            return date.today()
+        elif date_str == "yesterday":
+            return date.today() - timedelta(days=1)
+        elif date_str == "tomorrow":
+            return date.today() + timedelta(days=1)
+        elif date_str == "next_week":
+            return date.today() + timedelta(days=7)
+        else:
+            try:
+                return datetime.strptime(date_str, "%Y-%m-%d").date()
+            except:
+                return date.today()
+
+    # Insert all transactions
+    inserted_ids = []
+    async with AsyncSessionLocal() as session:
+        for tx in pending_txs:
+            tx_date = resolve_date(tx.get("date", "today"))
+            tx_id = await db.insert_transaction(
+                session=session,
+                user_id=user_id,
+                amount=int(tx.get("amount", 0)),
+                tx_type=tx.get("type", "expense"),
+                category=tx.get("category", "Other"),
+                subcategory=tx.get("subcategory"),
+                note=tx.get("note", "Transaksi"),
+                confidence=tx.get("confidence", "medium"),
+                tx_date=tx_date,
+            )
+            inserted_ids.append((tx_id, tx))
+
+    # Clear pending state
+    context.user_data.pop("pending_multi_txs", None)
+    context.user_data["last_batch_tx_ids"] = [tx_id for tx_id, _ in inserted_ids]
+
+    # Build result message with individual undo buttons
+    lines = [f"✅ {len(inserted_ids)} transaksi berhasil dicatat!\n"]
+    buttons = []
+
+    icon_map = {
+        "Food & Dining": "🍜",
+        "Groceries": "🛒",
+        "Transport": "🚗",
+        "Shopping": "🛍️",
+        "Health": "💊",
+        "Entertainment": "🎮",
+        "Bills & Utilities": "📱",
+        "Education": "🎓",
+        "Personal Care": "💆",
+        "Dining Out": "🍽️",
+        "Salary": "💼",
+        "Freelance": "💻",
+        "Investment Return": "📈",
+        "Other Income": "💚",
+        "Savings": "🏦",
+        "Investment": "📊",
+    }
+
+    for i, (tx_id, tx) in enumerate(inserted_ids, 1):
+        icon = icon_map.get(tx.get("category"), "💵")
+        amount_str = fmt_currency(tx.get("amount", 0))
+        note_short = tx.get("note", "Transaksi")[:30]
+        lines.append(f"{i}️⃣ {icon} {note_short} — {amount_str}")
+        buttons.append([InlineKeyboardButton(f"🗑️ Hapus #{i}", callback_data=f"delete_direct:{tx_id}")])
+
+    buttons.append([InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")])
+
+    msg = "\n".join(lines)
+    await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup(buttons))
+
+
+async def callback_multi_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cancel all pending multi transactions."""
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data.pop("pending_multi_txs", None)
+    await query.edit_message_text("❌ Transaksi dibatalkan.", reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏠 Menu Utama", callback_data="menu:main")],
+    ]))
+
+
+async def callback_delete_direct(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Immediate delete of a transaction (used after batch insert)."""
+    query = update.callback_query
+    user_id = update.effective_user.id
+
+    try:
+        tx_id = int(query.data.split(":")[1])
+    except (IndexError, ValueError):
+        await query.answer("❌ Invalid transaction ID")
+        return
+
+    async with AsyncSessionLocal() as session:
+        await db.delete_transaction(session, tx_id, user_id)
+
+    await query.answer("🗑️ Transaksi dihapus")
+
+    # Edit message to show it was deleted
+    try:
+        current_text = query.message.text or ""
+        # Try to remove the deleted item line from the message
+        lines = current_text.split("\n")
+        # Find and remove the line with this tx_id (if visible)
+        # For now, just edit the message text to indicate deletion
+        await query.edit_message_text(current_text + f"\n\n_[Transaksi #{tx_id} dihapus]_", parse_mode=ParseMode.MARKDOWN)
+    except BadRequest:
+        # Message might already be deleted or unchanged
+        pass

@@ -2328,3 +2328,49 @@ async def cmd_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
     )
+
+
+# ─────────────────────────────────────────
+# /multi — Batch transaction entry
+# ─────────────────────────────────────────
+@require_start
+async def cmd_multi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Parse multiple transactions from a single input."""
+    from services.categorizer import parse_batch_transactions
+    from bot.handlers.messages import _show_batch_preview
+
+    args_text = " ".join(context.args) if context.args else ""
+
+    if not args_text:
+        await update.message.reply_text(
+            "📝 *Format Batch Transaksi*\n\n"
+            "Gunakan `/multi` untuk catat banyak transaksi sekaligus:\n\n"
+            "`/multi <transaksi 1>, <transaksi 2>, <transaksi 3>`\n\n"
+            "*Contoh:*\n"
+            "```\n"
+            "/multi makan soto 50k 17 mei, isi bensin 100k hari ini, dari Adi 50rb bayar hutang\n"
+            "```\n\n"
+            "*Format setiap transaksi:*\n"
+            "• `[nominal] [keterangan] [@tanggal]`\n"
+            "• Pisahkan dengan koma atau baris baru\n"
+            "• Tanggal opsional (default: hari ini)\n\n"
+            "*Tanggal yang didukung:*\n"
+            "• `17 mei` atau `5 september` → tanggal spesifik\n"
+            "• `hari ini` / `kemarin` / `besok`\n"
+            "• Atau `@17/05`, `@5-mei`, dll.",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return
+
+    status_msg = await update.message.reply_text("🔍 AI sedang menganalisis transaksi...")
+    parsed_txs = parse_batch_transactions(args_text)
+
+    try:
+        await status_msg.delete()
+    except Exception:
+        pass
+
+    if parsed_txs:
+        await _show_batch_preview(update, context, parsed_txs)
+    else:
+        await update.message.reply_text("❌ Tidak dapat menganalisis transaksi. Coba lagi dengan format yang lebih jelas.")
