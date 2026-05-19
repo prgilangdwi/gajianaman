@@ -24,6 +24,7 @@ from bot.handlers.commands import (
 from bot.handlers.callbacks import handle_callback
 from bot.handlers.messages import handle_message
 from bot.handlers.photos import handle_photo
+from services.categorization_profile import load_profile
 
 load_dotenv()
 logging.basicConfig(
@@ -58,6 +59,14 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # Load categorization profile for transaction parsing optimization
+    try:
+        app.bot_data["profile"] = load_profile()
+        logger.info("Profile loaded for transaction parsing optimization")
+    except FileNotFoundError:
+        logger.warning("Profile not found - using original categorizer")
+        app.bot_data["profile"] = None
 
     # ConversationHandlers — must be registered BEFORE generic message handlers
     app.add_handler(get_splitbill_handler())

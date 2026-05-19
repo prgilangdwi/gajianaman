@@ -1,0 +1,24 @@
+{
+  "user_id": "default",
+  "generated_at": "2026-05-19T05:18:48.907126Z",
+  "version": "1",
+  "top_categories": {
+    "Food & Dining": 0.35,
+    "Transport": 0.25,
+    "Groceries": 0.2,
+    "Shopping": 0.1,
+    "Entertainment": 0.05,
+    "Other": 0.05
+  },
+  "problem_pairs": [],
+  "low_confidence_patterns": {},
+  "few_shot_examples": [],
+  "disambiguation_rules": [],
+  "amount_ranges": {},
+  "metadata": {
+    "transactions_analyzed": 0,
+    "date_range": "N/A",
+    "avg_confidence": 0.85,
+    "accuracy_score": 0.9
+  }
+}

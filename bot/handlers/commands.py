@@ -13,6 +13,7 @@ import os
 from db.database import AsyncSessionLocal
 from db import operations as db
 from services.categorizer import categorize_transaction
+from services.categorizer_v2 import categorize_transaction as categorize_transaction_v2
 from services.formatter import (
     build_transaction_confirm,
     fmt_currency,
@@ -419,7 +420,11 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
     status_msg = await update.message.reply_text("🔍 AI sedang menganalisis transaksi...")
 
-    result = categorize_transaction(note)
+    profile = context.application.bot_data.get("profile")
+    if profile:
+        result = categorize_transaction_v2(note, profile)
+    else:
+        result = categorize_transaction(note)
 
     async with AsyncSessionLocal() as session:
         tx_id = await db.insert_transaction(
@@ -537,7 +542,11 @@ async def cmd_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
 
-    result = categorize_transaction(note)
+    profile = context.application.bot_data.get("profile")
+    if profile:
+        result = categorize_transaction_v2(note, profile)
+    else:
+        result = categorize_transaction(note)
     result["type"] = "income"
 
     async with AsyncSessionLocal() as session:

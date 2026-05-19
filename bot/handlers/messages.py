@@ -12,6 +12,7 @@ from telegram.constants import ParseMode
 from db.database import AsyncSessionLocal
 from db import operations as db
 from services.categorizer import categorize_transaction, parse_batch_transactions
+from services.categorizer_v2 import categorize_transaction as categorize_transaction_v2
 from services.formatter import build_transaction_confirm, fmt_currency, build_daily_summary_message, build_history_message, build_summary_message
 from bot.handlers.commands import RECAT_KEYBOARD, parse_amount, maybe_send_budget_alert, parse_backdate
 
@@ -436,7 +437,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # For expense and income, categorize. For transfer, skip categorization
     if tx_type in ("expense", "income"):
-        result = categorize_transaction(note)
+        profile = context.application.bot_data.get("profile")
+        if profile:
+            result = categorize_transaction_v2(note, profile)
+        else:
+            result = categorize_transaction(note)
         result["type"] = tx_type  # Override with detected type
     else:  # transfer
         result = {
