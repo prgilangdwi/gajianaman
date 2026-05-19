@@ -113,22 +113,21 @@ export default function Landing() {
           loop
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
-          poster="/aethera-studio-poster.jpg"
         >
-          <source src="/aethera-studio.mp4" type="video/mp4" />
+          <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
         </video>
 
-        {/* Gradient Overlay for Text Readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background/80" />
+        {/* Dark Overlay for Text Readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/50" />
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-20 text-center">
-          <Badge className="mb-6 bg-primary/90 text-primary-foreground border-primary/50">
+          <Badge className="mb-6 bg-emerald-600/90 text-white border-emerald-500/50">
             🇮🇩 Dibuat untuk pekerja Indonesia
           </Badge>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-white drop-shadow-lg">
             Udah gajian,<br />
-            <span className="text-cyan-400">tapi duit ke mana?</span>
+            <span className="text-emerald-400">tapi duit ke mana?</span>
           </h1>
           <p className="text-lg text-gray-100 max-w-xl mx-auto mb-10 drop-shadow-md">
             Dashboard keuangan lengkap. Catat transaksi via Telegram untuk kemudahan sehari-hari.
@@ -136,7 +135,7 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/login">
-              <Button size="lg" className="gap-2 px-8 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg">
+              <Button size="lg" className="gap-2 px-8 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg">
                 Coba Gratis <ChevronRight className="w-4 h-4" />
               </Button>
             </Link>
