@@ -2,7 +2,87 @@
 @import './tailwind.css';
 @import './theme.css';
 
-/* Privacy mode — blur sensitive numbers */
+/* ─────────────────────────────────────────── */
+/* ACCESSIBILITY IMPROVEMENTS                 */
+/* ─────────────────────────────────────────── */
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+/* Buttons, links, and interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse users (but keep for keyboard) */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Improved focus states for form inputs */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(74, 229, 74, 0.1);
+}
+
+/* Dark mode focus states */
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(74, 229, 74, 0.15);
+}
+
+/* Skip to main content link (hidden until focused) */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-brand-primary);
+  color: var(--color-brand-primary-fg);
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Enhanced color contrast for readability */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────────────────────────────────────── */
+/* PRIVACY MODE                               */
+/* ─────────────────────────────────────────── */
+
 .privacy-hidden {
   filter: blur(8px);
   user-select: none;
@@ -14,7 +94,10 @@
   filter: blur(4px);
 }
 
-/* Sidebar custom scrollbar */
+/* ─────────────────────────────────────────── */
+/* SIDEBAR STYLING                            */
+/* ─────────────────────────────────────────── */
+
 .sidebar-nav::-webkit-scrollbar {
   width: 4px;
 }
@@ -26,4 +109,48 @@
 
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* ─────────────────────────────────────────── */
+/* FOCUS RING UTILITIES                       */
+/* ─────────────────────────────────────────── */
+
+/* Utility class for custom focus styles */
+.focus-ring-primary:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+/* Input field focus ring */
+.input-focus-ring:focus {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(74, 229, 74, 0.1);
+}
+
+/* ─────────────────────────────────────────── */
+/* SCROLLBAR STYLING (GLOBAL)                 */
+/* ─────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-screen);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-neutral);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-content-secondary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-color: var(--color-border-neutral) var(--color-bg-screen);
+  scrollbar-width: thin;
 }
