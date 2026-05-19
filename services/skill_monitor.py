@@ -8,16 +8,16 @@ def main():
     user_id = sys.argv[2] if len(sys.argv) > 2 else "default"
     days = int(sys.argv[4]) if len(sys.argv) > 4 else 7
 
-    print(f"\n🔍 DRIFT DETECTION: User {user_id}, Last {days} days\n")
+    print(f"\n[DRIFT DETECTION] User {user_id}, Last {days} days\n")
 
     try:
         profile = load_profile()
-        print(f"✓ Loaded profile (generated {profile.generated_at})")
+        print(f"[OK] Loaded profile (generated {profile.generated_at})")
     except FileNotFoundError:
-        print("✗ Profile not found. Run setup first.")
+        print("[ERROR] Profile not found. Run setup first.")
         sys.exit(1)
 
-    print(f"\n✅ No issues detected. Profile is healthy!")
+    print(f"\n[SUCCESS] No issues detected. Profile is healthy!")
     print(f"\nMetadata:")
     print(f"  - Transactions analyzed: {profile.metadata.transactions_analyzed}")
     print(f"  - Avg confidence: {profile.metadata.avg_confidence:.0%}")
