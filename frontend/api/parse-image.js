@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+const Anthropic = require('@anthropic-ai/sdk').default;
 
 const IMAGE_PARSE_PROMPT = `Analyze this image and extract financial transaction information.
 
@@ -25,7 +25,7 @@ Rules:
 If no amount can be determined or image is unclear:
 {"error": "Tidak dapat membaca informasi transaksi dari gambar ini"}`;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error('[parse-image] ANTHROPIC_API_KEY not set');
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
@@ -81,9 +82,10 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     if (err instanceof SyntaxError) {
+      console.error('[parse-image] JSON parse error:', err.message);
       return res.status(200).json({ error: 'Tidak dapat membaca informasi transaksi dari gambar ini' });
     }
-    console.error('[parse-image]', err);
+    console.error('[parse-image] Error:', err.message || err);
     return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
   }
-}
+};
