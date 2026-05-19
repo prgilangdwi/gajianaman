@@ -495,22 +495,22 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
           }}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-4 gap-2 bg-transparent p-0">
-            <TabsTrigger value="pengeluaran" className="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-negative)] data-[state=active]:bg-[var(--color-sentiment-negative)]/10 transition-colors">
-              <TrendingDown className="w-5 h-5 text-[var(--color-sentiment-negative)]" />
-              <span className="leading-tight">Pengeluaran</span>
+          <TabsList className="grid w-full grid-cols-4 gap-1.5 bg-transparent p-0">
+            <TabsTrigger value="pengeluaran" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-negative)] data-[state=active]:bg-[var(--color-sentiment-negative)]/10 transition-colors">
+              <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-sentiment-negative)]" />
+              <span className="leading-tight text-[10px] sm:text-xs">Pengeluaran</span>
             </TabsTrigger>
-            <TabsTrigger value="pemasukan" className="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-positive)] data-[state=active]:bg-[var(--color-sentiment-positive)]/10 transition-colors">
-              <TrendingUp className="w-5 h-5 text-[var(--color-sentiment-positive)]" />
-              <span className="leading-tight">Pemasukan</span>
+            <TabsTrigger value="pemasukan" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-positive)] data-[state=active]:bg-[var(--color-sentiment-positive)]/10 transition-colors">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-sentiment-positive)]" />
+              <span className="leading-tight text-[10px] sm:text-xs">Pemasukan</span>
             </TabsTrigger>
-            <TabsTrigger value="tabung" className="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-brand-primary)] data-[state=active]:bg-[var(--color-brand-primary)]/10 transition-colors">
-              <PiggyBank className="w-5 h-5 text-[var(--color-brand-primary)]" />
-              <span className="leading-tight">Tabung</span>
+            <TabsTrigger value="tabung" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-brand-primary)] data-[state=active]:bg-[var(--color-brand-primary)]/10 transition-colors">
+              <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-brand-primary)]" />
+              <span className="leading-tight text-[10px] sm:text-xs">Tabung</span>
             </TabsTrigger>
-            <TabsTrigger value="transfer" className="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-warning)] data-[state=active]:bg-[var(--color-sentiment-warning)]/10 transition-colors">
-              <ArrowLeftRight className="w-5 h-5 text-[var(--color-sentiment-warning)]" />
-              <span className="leading-tight">Transfer</span>
+            <TabsTrigger value="transfer" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-warning)] data-[state=active]:bg-[var(--color-sentiment-warning)]/10 transition-colors">
+              <ArrowLeftRight className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-sentiment-warning)]" />
+              <span className="leading-tight text-[10px] sm:text-xs">Transfer</span>
             </TabsTrigger>
           </TabsList>
 

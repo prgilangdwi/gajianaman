@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 
 const IMAGE_PARSE_PROMPT = `Analyze this image and extract financial transaction information.
 
@@ -35,28 +35,39 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'imageBase64 is required' });
   }
 
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
   try {
-    const client = new GoogleGenerativeAI(apiKey);
-    const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const client = new Anthropic({ apiKey });
 
-    const imageBuffer = Buffer.from(imageBase64, 'base64');
-
-    const response = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mediaType ?? 'image/jpeg',
-          data: imageBase64,
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType ?? 'image/jpeg',
+                data: imageBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: IMAGE_PARSE_PROMPT,
+            },
+          ],
         },
-      },
-      IMAGE_PARSE_PROMPT,
-    ]);
+      ],
+    });
 
-    let raw = response.response.text().trim();
+    let raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
 
     // Strip markdown fences if model wraps in ```json
     if (raw.includes('```')) {
