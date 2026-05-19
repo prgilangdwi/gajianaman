@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { TrendingDown, AlertCircle } from 'lucide-react';
+import { TrendingDown, AlertCircle, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
@@ -75,6 +75,7 @@ export default function Pengeluaran() {
     : (transactions ?? []).filter((t) => t.wallet_id === walletId);
 
   const { totalExpenses: expenses = 0, categoryData = [], maxSpent = 1 } = useWalletStats(filteredTransactions);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const { stats: categoryStats, isLoading: categoryLoading } = useCategoryTransactions(
     selectedCategory || '',
@@ -83,9 +84,22 @@ export default function Pengeluaran() {
     expenses
   );
 
+  // Get last 5 transactions for expanded category
+  const expandedTransactions = useMemo(() => {
+    if (!expandedCategory) return [];
+    return filteredTransactions
+      .filter((t) => t.category === expandedCategory && t.type === 'expense')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [expandedCategory, filteredTransactions]);
+
   const handleCategoryClick = (categoryName: string) => {
     setSelectedCategory(categoryName);
     setIsModalOpen(true);
+  };
+
+  const toggleExpand = (categoryName: string) => {
+    setExpandedCategory(expandedCategory === categoryName ? null : categoryName);
   };
 
   if (error) {
@@ -286,10 +300,13 @@ export default function Pengeluaran() {
                 Belum ada pengeluaran untuk bulan ini
               </p>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-2">
                 <AnimatePresence>
                   {categoryData.map((cat, idx) => {
                     const pct = (cat.spent / maxSpent) * 100;
+                    const isExpanded = expandedCategory === cat.name;
+                    const catTransactions = isExpanded ? expandedTransactions : [];
+
                     return (
                       <motion.div
                         key={cat.name}
@@ -297,32 +314,96 @@ export default function Pengeluaran() {
                         animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
                         transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
-                        className="space-y-2 p-3 rounded-lg hover:bg-[var(--color-bg-screen)] transition-colors cursor-pointer"
-                        onClick={() => handleCategoryClick(cat.name)}
+                        className="space-y-0 rounded-lg border border-[var(--color-border-neutral)] overflow-hidden bg-[var(--color-bg-screen)]"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0">
+                        {/* Category Header Row */}
+                        <div className="p-3 flex items-center justify-between group hover:bg-[var(--color-bg-neutral)]/50 transition-colors">
+                          <div
+                            className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                            onClick={() => handleCategoryClick(cat.name)}
+                          >
                             <span className="text-lg sm:text-xl flex-shrink-0">{cat.emoji}</span>
                             <span className="text-base sm:text-sm font-semibold text-[var(--color-content-primary)] truncate">
                               {cat.name}
                             </span>
                           </div>
-                          <div
-                            className="font-mono text-xs sm:text-[11px] px-2 py-1 rounded-full flex-shrink-0"
-                            style={{
-                              backgroundColor: `${cat.color}20`,
-                              color: cat.color,
-                            }}
-                          >
-                            <PrivacyAmount value={formatRupiah(cat.spent)} />
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                            <div
+                              className="font-mono text-xs sm:text-[11px] px-2 py-1 rounded-full"
+                              style={{
+                                backgroundColor: `${cat.color}20`,
+                                color: cat.color,
+                              }}
+                            >
+                              <PrivacyAmount value={formatRupiah(cat.spent)} />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(cat.name);
+                              }}
+                              className="p-1 rounded-lg hover:bg-[var(--color-bg-screen)] transition-colors flex-shrink-0"
+                              title={isExpanded ? 'Tutup' : 'Buka'}
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  'w-4 h-4 transition-transform',
+                                  isExpanded && 'rotate-180',
+                                  'text-[var(--color-content-tertiary)]'
+                                )}
+                              />
+                            </button>
                           </div>
                         </div>
-                        <div className="w-full h-2 bg-[var(--color-bg-neutral)] rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: cat.color }}
-                          />
+
+                        {/* Progress Bar */}
+                        <div className="px-3 pb-2">
+                          <div className="w-full h-2 bg-[var(--color-bg-neutral)] rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: cat.color }}
+                            />
+                          </div>
                         </div>
+
+                        {/* Expandable Transactions */}
+                        <AnimatePresence>
+                          {isExpanded && catTransactions.length > 0 && (
+                            <motion.div
+                              initial={prefersReduced ? { opacity: 0, height: 0 } : { opacity: 0, height: 0 }}
+                              animate={prefersReduced ? { opacity: 1, height: 'auto' } : { opacity: 1, height: 'auto' }}
+                              exit={prefersReduced ? { opacity: 0, height: 0 } : { opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="border-t border-[var(--color-border-neutral)] bg-[var(--color-bg-card)]"
+                            >
+                              <div className="p-3 space-y-2">
+                                {catTransactions.map((tx) => (
+                                  <div key={tx.id} className="flex items-center justify-between p-2 rounded-lg bg-[var(--color-bg-screen)]">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-[var(--color-content-primary)] truncate">
+                                        {tx.note || tx.category}
+                                      </p>
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-xs text-[var(--color-content-tertiary)]">
+                                          {new Date(tx.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                        {tx.wallet_id && (
+                                          <span className="text-xs text-[var(--color-content-tertiary)] px-1.5 py-0.5 rounded bg-[var(--color-bg-neutral)]">
+                                            Dompet
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="font-mono text-xs font-semibold text-[var(--color-sentiment-negative)] ml-2 flex-shrink-0">
+                                      <PrivacyAmount value={formatRupiah(Number(tx.amount))} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
                     );
                   })}

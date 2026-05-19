@@ -26,7 +26,6 @@ import { useLaporanData } from '@/hooks/data/useLaporanData';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useInsights } from '@/hooks/data/useInsights';
 import { useFinancialHealth } from '@/hooks/data/useFinancialHealth';
-import { useFinancialHealthScore } from '@/hooks/data/useFinancialHealthScore';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useWallets } from '@/hooks/useWallets';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
@@ -71,9 +70,9 @@ export default function Laporan() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { monthlyData, categoryTrend, topCategories, isLoading } = useLaporanData(user?.userId);
-  const { transactions, loading: txLoading } = useTransactions(month, year);
-  const { budgets, loading: budgetLoading } = useBudgets(month, year);
-  const { wallets = [], loading: walletsLoading } = useWallets(user?.userId);
+  const { transactions, isLoading: txLoading } = useTransactions(month, year);
+  const { budgets, isLoading: budgetLoading } = useBudgets(month, year);
+  const { wallets = [], isLoading: walletsLoading } = useWallets(user?.userId);
   const { patterns, budgetRecommendations, forecast, hasEnoughData } = useInsights(
     transactions,
     month,

@@ -78,7 +78,7 @@ export function useWeeklyForecasting(
         const { data: transactions, error } = await supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', user.user_id)
+          .eq('user_id', user.userId)
           .gte('date', fourWeeksAgo.toISOString().split('T')[0])
           .lte('date', weekEndDate.toISOString().split('T')[0]);
 

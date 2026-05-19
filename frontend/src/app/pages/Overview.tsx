@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { PrivacyAmount } from '../components/PrivacyAmount';
-import { TrendingUp, TrendingDown, ArrowUpRight, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowUpRight, Download, AlertTriangle, Lightbulb, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions';
@@ -20,6 +20,8 @@ import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { pageEnter, staggerChildren, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { useFinancialHealthScore } from '@/hooks/data/useFinancialHealthScore';
+import { useInsights } from '@/hooks/data/useInsights';
 
 function SkeletonCard() {
   return (
@@ -146,8 +148,13 @@ export default function Overview() {
   const { wallets } = useWallets(user?.userId);
   const { transactions, income, expenses, isLoading } = useTransactions(month, year);
   const { transactions: recentTx } = useRecentTransactions(10);
-  const { recurringBills } = useRecurringBills();
+  const { recurringBills, isLoading: billsLoading } = useRecurringBills();
+  const { budgets } = useBudgets();
   const prefersReduced = useReducedMotion();
+
+  // Feature 1: Health score and insights
+  const healthScore = useFinancialHealthScore(transactions, budgets, month, year);
+  const insights = useInsights(transactions, month, year);
 
   const filteredTransactions = walletId === 'all'
     ? transactions
@@ -168,6 +175,59 @@ export default function Overview() {
   const prevFilteredIncome = walletId === 'all'
     ? prevIncome
     : prevTransactions.filter((t) => t.type === 'income' && t.wallet_id === walletId).reduce((s, t) => s + Number(t.amount), 0);
+
+  // Daily budget calculation - safe-to-spend today
+  const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [month, year]);
+  const currentDay = new Date().getDate();
+  const daysRemaining = daysInMonth - currentDay + 1;
+  const dailyBudget = useMemo(() => {
+    const totalMonthlyBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
+    if (daysRemaining <= 0) return 0;
+    const spent = filteredExpenses;
+    const remaining = Math.max(0, totalMonthlyBudget - spent);
+    return Math.floor(remaining / daysRemaining);
+  }, [budgets, daysRemaining, filteredExpenses]);
+
+  // Calendar heatmap data by date
+  const expenseByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredTransactions
+      .filter((t) => t.type === 'expense')
+      .forEach((t) => {
+        const dateStr = t.date.split('T')[0];
+        map[dateStr] = (map[dateStr] || 0) + Number(t.amount);
+      });
+    return map;
+  }, [filteredTransactions]);
+
+  // Calendar grid data for heatmap
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(year, month - 1, 1);
+    const startOffset = firstDay.getDay();
+    const cells: Array<{ day: number | null; date: string; expense: number }> = [];
+
+    // Empty cells before month starts
+    for (let i = 0; i < startOffset; i++) {
+      cells.push({ day: null, date: '', expense: 0 });
+    }
+
+    // Days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      cells.push({
+        day,
+        date: dateStr,
+        expense: expenseByDate[dateStr] || 0,
+      });
+    }
+
+    // Empty cells after month ends
+    while (cells.length % 7 !== 0) {
+      cells.push({ day: null, date: '', expense: 0 });
+    }
+
+    return cells;
+  }, [year, month, daysInMonth, expenseByDate]);
 
   // Monthly chart data (simplified - 4 weeks)
   const monthlyChartData = useMemo(() => {
@@ -307,6 +367,185 @@ export default function Overview() {
         </motion.div>
       </motion.div>
 
+      {/* Smart Daily Budget */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <Card className="bg-gradient-to-r from-[var(--color-brand-primary)]/10 to-[var(--color-brand-primary)]/5 border-[var(--color-brand-primary)]/30">
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-1 uppercase tracking-wide">Aman untuk dikeluarkan hari ini</p>
+                <div className="flex items-baseline gap-2">
+                  <div className="font-mono text-3xl font-bold text-[var(--color-brand-primary)]">
+                    <PrivacyAmount value={formatRupiah(dailyBudget)} />
+                  </div>
+                  <span className="text-sm text-[var(--color-content-tertiary)]">/ hari ({daysRemaining} hari tersisa)</span>
+                </div>
+              </div>
+              <Zap className="w-5 h-5 text-[var(--color-brand-primary)] opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Calendar Heatmap */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <CardHeader>
+            <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Pengeluaran Per Hari</h3>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-1">
+              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((d) => (
+                <div key={d} className="text-center text-xs font-semibold text-[var(--color-content-tertiary)] py-2">
+                  {d}
+                </div>
+              ))}
+              {calendarDays.map((cell, i) => {
+                const getHeatColor = (amount: number) => {
+                  if (amount === 0) return 'bg-white dark:bg-[var(--color-bg-screen)]';
+                  if (amount <= 100_000) return 'bg-green-100 dark:bg-green-900/20';
+                  if (amount <= 500_000) return 'bg-yellow-100 dark:bg-yellow-900/20';
+                  return 'bg-red-100 dark:bg-red-900/20';
+                };
+
+                return (
+                  <div
+                    key={i}
+                    className={`
+                      aspect-square rounded-lg p-1.5 flex items-center justify-center text-xs font-medium
+                      ${cell.day ? getHeatColor(cell.expense) : 'bg-transparent'}
+                      border border-[var(--color-border-neutral)]
+                    `}
+                    title={cell.day ? `${formatRupiah(cell.expense)}` : ''}
+                  >
+                    {cell.day && (
+                      <span className="text-[var(--color-content-primary)]">{cell.day}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Health Score + Insights Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Financial Health Score */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+        >
+          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)] h-full">
+            <CardHeader>
+              <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Kesehatan Keuangan</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="relative h-2 bg-[var(--color-bg-screen)] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${healthScore.score}%` }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                      className={cn(
+                        'h-full transition-colors',
+                        healthScore.score >= 80 ? 'bg-[var(--color-sentiment-positive)]' :
+                        healthScore.score >= 60 ? 'bg-yellow-500' :
+                        'bg-[var(--color-sentiment-negative)]'
+                      )}
+                    />
+                  </div>
+                </div>
+                <span className="font-mono font-bold text-lg text-[var(--color-content-primary)]">{healthScore.score}</span>
+              </div>
+
+              <div className="text-xs">
+                <p className="font-semibold text-[var(--color-content-primary)] mb-2 capitalize">
+                  {healthScore.level === 'excellent' ? '⭐ Sangat Baik' :
+                   healthScore.level === 'good' ? '✓ Baik' :
+                   healthScore.level === 'fair' ? '→ Cukup' :
+                   '⚠️ Perlu Perbaikan'}
+                </p>
+                <div className="space-y-1.5 text-[var(--color-content-tertiary)]">
+                  <div className="flex justify-between">
+                    <span>Rasio Tabungan</span>
+                    <span className="font-semibold text-[var(--color-content-primary)]">{healthScore.breakdown.savingsRatio}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Disiplin Anggaran</span>
+                    <span className="font-semibold text-[var(--color-content-primary)]">{healthScore.breakdown.budgetDiscipline}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Dana Darurat</span>
+                    <span className="font-semibold text-[var(--color-content-primary)]">{healthScore.breakdown.emergencyRunway}%</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Insight Cards */}
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+          className="space-y-3"
+        >
+          <h3 className="text-base font-semibold text-[var(--color-content-primary)] mt-7">Insight Pengeluaran</h3>
+          {insights.anomalies.slice(0, 3).length === 0 ? (
+            <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+              <CardContent className="pt-6">
+                <p className="text-sm text-[var(--color-content-tertiary)] text-center py-4">Pengeluaran Anda sesuai pola historis</p>
+              </CardContent>
+            </Card>
+          ) : (
+            insights.anomalies.slice(0, 3).map((anomaly, idx) => (
+              <motion.div
+                key={anomaly.category}
+                initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
+              >
+                <Card className={cn(
+                  'bg-[var(--color-bg-card)] border',
+                  anomaly.severity === 'critical' ? 'border-[var(--color-sentiment-negative)]/30' : 'border-[var(--color-border-neutral)]'
+                )}>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <div className="flex items-start gap-3">
+                      {anomaly.severity === 'critical' ? (
+                        <AlertTriangle className="w-4 h-4 text-[var(--color-sentiment-negative)] flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <Lightbulb className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--color-content-primary)]">{getCategoryMeta(anomaly.category).emoji} {anomaly.category}</p>
+                        <p className="text-xs text-[var(--color-content-tertiary)] mt-1">{anomaly.reason}</p>
+                        <div className="flex gap-2 mt-2">
+                          <span className="text-xs font-semibold text-[var(--color-sentiment-negative)]">
+                            +{Math.abs(anomaly.deviationPercent)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          )}
+        </motion.div>
+      </div>
+
       {/* Desktop: Chart + Upcoming Bills | Mobile: Full-width Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart - 2 columns on desktop, 1 on mobile */}
@@ -358,7 +597,7 @@ export default function Overview() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <UpcomingBillsWidget recurringBills={recurringBills} isLoading={false} />
+          <UpcomingBillsWidget recurringBills={recurringBills} isLoading={billsLoading} />
         </motion.div>
       </div>
 

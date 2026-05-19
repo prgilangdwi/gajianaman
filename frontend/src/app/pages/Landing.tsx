@@ -122,12 +122,12 @@ export default function Landing() {
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-20 text-center">
-          <Badge className="mb-6 bg-emerald-600/90 text-white border-emerald-500/50">
+          <Badge className="mb-6 text-white" style={{ backgroundColor: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)' }}>
             🇮🇩 Dibuat untuk pekerja Indonesia
           </Badge>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-white drop-shadow-lg">
             Udah gajian,<br />
-            <span className="text-emerald-400">tapi duit ke mana?</span>
+            <span style={{ color: 'var(--color-brand-primary)' }}>tapi duit ke mana?</span>
           </h1>
           <p className="text-lg text-gray-100 max-w-xl mx-auto mb-10 drop-shadow-md">
             Dashboard keuangan lengkap. Catat transaksi via Telegram untuk kemudahan sehari-hari.
@@ -135,7 +135,7 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/login">
-              <Button size="lg" className="gap-2 px-8 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg">
+              <Button size="lg" className="gap-2 px-8 text-white shadow-lg" style={{ backgroundColor: 'var(--color-brand-primary)' }}>
                 Coba Gratis <ChevronRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -257,7 +257,7 @@ export default function Landing() {
                 <div className="space-y-2 mb-6">
                   {p.features.map((f) => (
                     <div key={f} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-sentiment-positive)' }} />
                       {f}
                     </div>
                   ))}

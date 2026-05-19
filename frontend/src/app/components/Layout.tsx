@@ -47,6 +47,7 @@ const navItemsGrouped = {
   ],
   keuangan: [
     { icon: TrendingDown, label: 'Pengeluaran', path: '/pengeluaran' },
+    { icon: TrendingUp, label: 'Pemasukan', path: '/pemasukan' },
     { icon: Target, label: 'Budget', path: '/budget' },
     { icon: Star, label: 'Goals', path: '/goals' },
     { icon: History, label: 'Riwayat', path: '/riwayat' },
@@ -64,7 +65,7 @@ const navItemsGrouped = {
     { icon: Sparkles, label: 'Asisten', path: '/asisten' },
   ],
   lainnya: [
-    { icon: Repeat2, label: 'Berulang', path: '/recurring' },
+    { icon: Repeat2, label: 'Tagihan', path: '/recurring' },
     { icon: Crown, label: 'Langganan', path: '/langganan' },
     { icon: Settings, label: 'Profil', path: '/profile' },
   ],

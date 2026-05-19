@@ -7,6 +7,7 @@ import { PrivacyProvider } from '@/hooks/usePrivacy';
 import { WalletFilterProvider } from '@/hooks/useWalletFilter';
 import Overview from './pages/Overview';
 import Pengeluaran from './pages/Pengeluaran';
+import Pemasukan from './pages/Pemasukan';
 import Budget from './pages/Budget';
 import Goals from './pages/Goals';
 import Riwayat from './pages/Riwayat';
@@ -95,6 +96,7 @@ export default function App() {
               >
                 <Route path="/overview" element={<Overview />} />
                 <Route path="/pengeluaran" element={<Pengeluaran />} />
+                <Route path="/pemasukan" element={<Pemasukan />} />
                 <Route path="/budget" element={<Budget />} />
                 <Route path="/goals" element={<Goals />} />
                 <Route path="/goal-progress" element={<Navigate to="/goals" replace />} />

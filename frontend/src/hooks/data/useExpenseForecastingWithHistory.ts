@@ -67,7 +67,7 @@ export function useExpenseForecastingWithHistory(
           const { data, error } = await supabase
             .from('transactions')
             .select('*')
-            .eq('user_id', user.user_id)
+            .eq('user_id', user.userId)
             .gte('date', startDate.toISOString().split('T')[0])
             .lte('date', endDate.toISOString().split('T')[0]);
 
