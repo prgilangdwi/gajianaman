@@ -84,6 +84,7 @@ export default function AuthCallback() {
             name: linked.name ?? linked.username ?? email ?? fullName,
             email: linked.email ?? email,
           }));
+          window.dispatchEvent(new Event('gajian-auth-updated'));
           setStatus('Masuk berhasil. Membuka dashboard...');
           // Give them a moment to see the success message
           await new Promise(r => setTimeout(r, 500));
@@ -127,6 +128,7 @@ export default function AuthCallback() {
             name: newUser.name,
             email: newUser.email,
           }));
+          window.dispatchEvent(new Event('gajian-auth-updated'));
           setStatus('Akun baru berhasil dibuat. Membuka dashboard...');
           await new Promise(r => setTimeout(r, 500));
           navigate('/overview', { replace: true });

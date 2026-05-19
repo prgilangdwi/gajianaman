@@ -67,6 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
   }, [resolveUserFromStorage]);
 
+  // Listen for auth updates from AuthCallback (OAuth flow)
+  useEffect(() => {
+    const handleAuthUpdated = () => {
+      const stored = resolveUserFromStorage();
+      if (stored) {
+        setUser(stored);
+      }
+    };
+
+    window.addEventListener('gajian-auth-updated', handleAuthUpdated);
+    return () => window.removeEventListener('gajian-auth-updated', handleAuthUpdated);
+  }, [resolveUserFromStorage]);
+
   const setAndPersist = (u: AuthUser) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
     setUser(u);
