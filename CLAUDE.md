@@ -243,3 +243,141 @@ The bot uses `asyncpg` (async). The Streamlit dashboard and scheduler use `psyco
 - **Colors:** custom CSS variables in `frontend/src/styles/theme.css`
 - **Logo assets:** `logo/arc/` (transparent PNG, white variant, icon 1024px)
 - Target users: Indonesian salaried workers tracking monthly spending
+
+---
+
+## Project AETHER Governance Rules
+
+**Effective Date:** May 21, 2026  
+**Status:** ACTIVE — Project AETHER redesign execution framework  
+**Authority:** Single source of truth for all Claude Code sessions working on AETHER phases
+
+### Overview
+
+Project AETHER (Architecture Evolution Toward Holistic Engineering Rebuilds) is a comprehensive redesign of Gajian Aman spanning 10 phases. This section enforces strict governance rules to prevent context bloat, ensure quality gates, and maintain deterministic execution.
+
+### Rule 1: Pre-Flight Read Requirements
+
+**Every Claude Code session, before ANY code modification, MUST read in this order:**
+
+1. `feature-update/major-update_4/master-development-roadmap.md` — The single source of truth
+2. `feature-update/major-update_4/staging/phase-[XX]-*.md` — The active phase execution plan
+3. `feature-update/major-update_4/runtime/runtime-phase-[XX].md` — Execution parameters
+4. Latest recap from `aether/session-recaps/` (if one exists)
+
+**Violation:** Starting code work without reading these documents is an immediate failure. Stop and re-read.
+
+### Rule 2: Anti-Context-Bloating Limit
+
+**Hard cap: 3–5 files modified per session.**
+
+- Session completion triggers immediately after 5 files are modified OR when a micro-batch is complete
+- Do NOT attempt to start a new batch in the same session
+- Fresh session = clean context, full re-read of roadmap and phase documents
+
+**Rationale:** Prevents context window overflow and ensures clarity for the next session.
+
+### Rule 3: Post-Session Recap Requirement
+
+**MANDATORY: A recap MUST be written at the end of every session.**
+
+- Template: `feature-update/major-update_4/runtime/runtime-recap-template.md`
+- Output directory: `aether/session-recaps/`
+- Filename format: `YYYY-MM-DD-Phase[XX]-Batch[Y].md`
+- Timing: Before session termination
+- Content: Decision log, files touched, next steps, unresolved issues
+
+**Violation:** Failing to create a recap is session incompletion. The next session cannot start without it.
+
+### Rule 4: Build Quality Gate — Non-Negotiable
+
+**NO COMMIT WITHOUT A PASSING BUILD.**
+
+```bash
+npm run build  # Must pass with zero errors
+npm run lint   # Must pass once lint is available (Batch 2 onward)
+```
+
+- Test locally BEFORE committing
+- If build fails, do NOT attempt workarounds — revert, document the failure, stop
+- A green build is the prerequisite for all Git checkpoints
+
+### Rule 5: Strict Scope Separation by Phase
+
+**Phase 01 Specific (Governance & Infrastructure):**
+- ✅ Create `aether/` governance directories
+- ✅ Modify `.claude/` settings
+- ✅ Modify `CLAUDE.md` with governance rules
+- ✅ Create inventories and audits (Batch 3+)
+- ❌ NO page modifications
+- ❌ NO hook modifications
+- ❌ NO component styling changes
+- ❌ NO database schema changes
+- ❌ NO bot code changes
+
+**Future Phases:** Each phase file defines its own IN-SCOPE and OUT-OF-SCOPE items. Violating the Touch List is an immediate failure.
+
+### Rule 6: Git Workflow & Branching Strategy
+
+- **Current state:** Working on `main` during Phase 01 (governance only)
+- **Batch 2 onward:** Create `feature/phase-[XX]-[name]` from `develop` branch
+- **Commits:** Follow conventional commits: `type(scope): description`
+  - Example: `chore(gov): setup aether governance directories and CLAUDE rules`
+  - Example: `fix(a11y): implement wcag aaa accessibility standards`
+- **No direct main commits:** All feature work must use feature branches
+- **Commit frequency:** One commit per completed micro-batch
+
+### Rule 7: Architecture Preservation
+
+**Do NOT modify without explicit phase instructions:**
+- `frontend/src/lib/supabase.ts` (TypeScript types, DB client)
+- `frontend/src/styles/theme.css` (design tokens — reserved for Phase 02)
+- Existing custom hooks in `src/hooks/`
+- Vercel (frontend) + Railway (bot) architectural boundary
+
+### Rule 8: Batch Completion & Session Handoff
+
+**When a batch is complete:**
+
+1. ✅ Verify build passes: `npm run build`
+2. ✅ Run tests (once available): `npm run typecheck` + `npm test`
+3. ✅ Create Git commit with conventional format
+4. ✅ Generate recap using `runtime-recap-template.md`
+5. ✅ Stop and await human approval before starting next batch
+6. ✅ Next session: Start fresh with full pre-flight read
+
+### Rule 9: Stop Conditions — IMMEDIATE SESSION STOP
+
+Stop immediately and await human validation if:
+
+- A batch is complete ✋
+- Context limits approach (3–5 files modified) ✋
+- An architectural inconsistency is discovered ✋
+- A build or test fails ✋
+- A dependency blocker is found ✋
+
+**Never attempt to power through.** Stop, document, wait for approval.
+
+### Rule 10: Recap Memory Persistence
+
+**Recap files serve as session handoff documentation.**
+
+- Each recap is committed to Git as part of the batch checkpoint
+- Next session reads the latest recap to establish context
+- Recaps are the ONLY way to carry state between sessions (no environment files, no .claude/state)
+- Keep recaps concise but complete: decisions, blockers, next batch scope
+
+---
+
+### Configuration Reference
+
+**See `.claude/settings.json` for enforced configuration:**
+- Tool call permissions (no auto-approval of Bash/Edit/Write)
+- Session file limits (3–5 files max)
+- Build quality gates (npm run build before commit)
+- Pre-flight check list
+- Validation protocols
+
+### Questions or Clarifications
+
+If any AETHER governance rule conflicts with other CLAUDE.md guidance, **this section takes precedence.** Project AETHER supersedes all prior conventions during its execution phases.
