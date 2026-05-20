@@ -14,7 +14,7 @@ interface MobileNavProps {
   navItems: NavItem[];
   currentPath: string;
   onNavigate: () => void;
-  user: { name?: string; userId?: string } | null;
+  user: { name?: string; userId?: number } | null;
   onLogout: () => void;
 }
 

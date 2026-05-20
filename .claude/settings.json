@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(claude mcp add --transport http figma-remote-mcp https://mcp.figma.com/mcp)"
+    ]
+  }
+}

@@ -7,8 +7,8 @@ import { useFinancialHealth } from '@/hooks/data/useFinancialHealth';
 
 export default function MonthlyReport() {
   const { month, year } = useMonthFilter();
-  const { transactions, loading: txLoading } = useTransactions(month, year);
-  const { budgets, loading: budgetLoading } = useBudgets(month, year);
+  const { transactions, isLoading: txLoading } = useTransactions(month, year);
+  const { budgets, isLoading: budgetLoading } = useBudgets(month, year);
   const health = useFinancialHealth(transactions, budgets, month, year);
 
   const stats = useMemo(() => {

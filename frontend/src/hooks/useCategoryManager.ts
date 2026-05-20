@@ -25,7 +25,7 @@ export function useCategoryManager() {
       const { data: result, error: err } = await supabase
         .from('category_groups')
         .insert({
-          user_id: user.user_id,
+          user_id: user?.userId,
           name: data.name,
           icon: data.icon || null,
           color: data.color || null,
@@ -62,7 +62,7 @@ export function useCategoryManager() {
         .from('category_groups')
         .update(data)
         .eq('id', groupId)
-        .eq('user_id', user.user_id)
+        .eq('user_id', user?.userId)
         .select()
         .single();
 
@@ -91,7 +91,7 @@ export function useCategoryManager() {
         .from('category_groups')
         .delete()
         .eq('id', groupId)
-        .eq('user_id', user.user_id);
+        .eq('user_id', user?.userId);
 
       if (err) throw err;
       return true;
@@ -123,7 +123,7 @@ export function useCategoryManager() {
       const { data: result, error: err } = await supabase
         .from('categories')
         .insert({
-          user_id: user.user_id,
+          user_id: user?.userId,
           name: data.name,
           type: data.type,
           parent_group_id: data.parentGroupId || null,
@@ -174,7 +174,7 @@ export function useCategoryManager() {
         .from('categories')
         .update(updateData)
         .eq('id', categoryId)
-        .eq('user_id', user.user_id)
+        .eq('user_id', user?.userId)
         .select()
         .single();
 
@@ -203,7 +203,7 @@ export function useCategoryManager() {
         .from('categories')
         .delete()
         .eq('id', categoryId)
-        .eq('user_id', user.user_id);
+        .eq('user_id', user?.userId);
 
       if (err) throw err;
       return true;

@@ -30,7 +30,7 @@ export function useCategories(type?: 'expense' | 'income' | 'transfer') {
         const { data: groupsData, error: groupsError } = await supabase
           .from('category_groups')
           .select('*')
-          .or(`user_id.eq.${user.user_id},user_id.is.null`)
+          .or(`user_id.eq.${user?.userId},user_id.is.null`)
           .order('is_default', { ascending: false })
           .order('name');
 
@@ -40,7 +40,7 @@ export function useCategories(type?: 'expense' | 'income' | 'transfer') {
         let query = supabase
           .from('categories')
           .select('*')
-          .or(`user_id.eq.${user.user_id},user_id.is.null`);
+          .or(`user_id.eq.${user?.userId},user_id.is.null`);
 
         if (type) {
           query = query.eq('type', type);

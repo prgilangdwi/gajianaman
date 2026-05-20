@@ -12,8 +12,8 @@ export default function CategoryDetail() {
   const category = encodedCategory ? decodeURIComponent(encodedCategory) : '';
 
   const { month, year } = useMonthFilter();
-  const { transactions, loading: txLoading } = useTransactions(month, year);
-  const { budgets, loading: budgetLoading } = useBudgets(month, year);
+  const { transactions, isLoading: txLoading } = useTransactions(month, year);
+  const { budgets, isLoading: budgetLoading } = useBudgets(month, year);
   const intelligence = useCategoryIntelligence(transactions, budgets, month, year);
 
   const categoryData = intelligence.categories.find((c) => c.category === category);

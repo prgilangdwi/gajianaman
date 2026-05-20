@@ -8,7 +8,7 @@ import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 
 export default function GoalProgress() {
   const { month, year } = useMonthFilter();
-  const { transactions, loading: transLoading } = useTransactions(month, year);
+  const { transactions, isLoading: transLoading } = useTransactions(month, year);
   const { goals, isLoading: goalsLoading } = useGoals();
   const goalProgress = useGoalProgress(goals, transactions, month, year);
 

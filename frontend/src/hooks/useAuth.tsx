@@ -6,6 +6,11 @@ export interface AuthUser {
   userId: number;
   name: string;
   email?: string;
+  // Extended user properties from database
+  user_id?: number; // Alias for userId (backward compatibility)
+  payday_date?: number;
+  gajian_wallet_id?: string;
+  gajian_salary?: number;
 }
 
 interface AuthContextValue {

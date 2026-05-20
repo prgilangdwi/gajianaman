@@ -7,8 +7,8 @@ import { useBudgetRecommendations } from '@/hooks/data/useBudgetRecommendations'
 
 export default function BudgetRecommendations() {
   const { month, year } = useMonthFilter();
-  const { transactions, loading: txLoading } = useTransactions(month, year);
-  const { budgets, loading: budgetLoading } = useBudgets(month, year);
+  const { transactions, isLoading: txLoading } = useTransactions(month, year);
+  const { budgets, isLoading: budgetLoading } = useBudgets(month, year);
   const recommendations = useBudgetRecommendations(transactions, budgets, month, year);
   const [appliedRecommendations, setAppliedRecommendations] = useState<Set<string>>(new Set());
 

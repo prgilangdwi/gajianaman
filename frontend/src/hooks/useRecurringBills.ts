@@ -20,7 +20,7 @@ export function useRecurringBills() {
       const { data, error: fetchError } = await supabase
         .from('recurring_transactions')
         .select('*')
-        .eq('user_id', user.user_id)
+        .eq('user_id', user?.userId)
         .eq('is_active', true)
         .order('next_due_date', { ascending: true });
 
@@ -46,7 +46,7 @@ export function useRecurringBills() {
     try {
       const { data, error: insertError } = await supabase
         .from('recurring_transactions')
-        .insert([{ ...bill, user_id: user.user_id }])
+        .insert([{ ...bill, user_id: user?.userId }])
         .select()
         .single();
 

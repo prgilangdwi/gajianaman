@@ -38,7 +38,7 @@ export function useCategoryTransactions(
         const { data, error: fetchError } = await supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', user.user_id)
+          .eq('user_id', user?.userId)
           .eq('category', category)
           .eq('type', 'expense')
           .gte('date', startDate)
