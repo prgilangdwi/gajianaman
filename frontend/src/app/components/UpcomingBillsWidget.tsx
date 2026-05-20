@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { AlertCircle, Calendar, Clock } from 'lucide-react';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import type { RecurringTransaction } from '@/lib/supabase';
@@ -60,9 +60,12 @@ export function UpcomingBillsWidget({ recurringBills, isLoading }: UpcomingBills
                 return (
                   <div
                     key={bill.id}
-                    className={`flex items-center justify-between p-2.5 rounded-lg ${
-                      isUrgent ? 'bg-red-50 border border-red-200' : 'bg-muted/50'
-                    }`}
+                    className={cn(
+                      'flex items-center justify-between p-2.5 rounded-lg border',
+                      isUrgent
+                        ? cn(bgColorVar('sentiment-negative-bg'), borderColorVar('border-neutral'))
+                        : 'bg-muted/50 border-transparent'
+                    )}
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{bill.description}</p>
@@ -82,7 +85,7 @@ export function UpcomingBillsWidget({ recurringBills, isLoading }: UpcomingBills
                         {formatRupiah(bill.amount)}
                       </span>
                       {isUrgent && (
-                        <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <AlertCircle className={cn('w-4 h-4 flex-shrink-0', textColorVar('sentiment-negative'))} />
                       )}
                     </div>
                   </div>
