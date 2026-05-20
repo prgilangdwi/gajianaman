@@ -23,7 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useGoalProgress } from '@/hooks/data/useGoalProgress';
-import { formatRupiah, cn } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative, TextWarning } from '../components/Markup';
@@ -258,7 +258,7 @@ export default function Goals() {
   const { user } = useAuth();
   const { goals, isLoading, refetch } = useGoals();
   const { month, year } = useMonthFilter();
-  const { transactions, loading: transLoading } = useTransactions(month, year);
+  const { transactions, isLoading: transLoading } = useTransactions(month, year);
   const goalProgress = useGoalProgress(goals, transactions, month, year);
   const prefersReduced = useReducedMotion();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -308,7 +308,7 @@ export default function Goals() {
       >
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
           {[0, 1, 2].map((i) => (
-            <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card key={i} className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
               <CardHeader className="pb-2">
                 <div className="h-4 bg-[var(--color-bg-neutral)] rounded animate-pulse w-20" />
               </CardHeader>
@@ -341,7 +341,7 @@ export default function Goals() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                 Total Goals
@@ -358,7 +358,7 @@ export default function Goals() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                 Tercapai
@@ -378,7 +378,7 @@ export default function Goals() {
           transition={fadeUp.transition}
           className="col-span-2 sm:col-span-1"
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                 Total Terkumpul
@@ -413,7 +413,7 @@ export default function Goals() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CardContent className="py-16 text-center space-y-3">
               <Target className="w-12 h-12 text-[var(--color-content-tertiary)] mx-auto" />
               <p className="text-[var(--color-content-tertiary)]">Belum ada goals. Yuk mulai menabung!</p>
@@ -442,7 +442,7 @@ export default function Goals() {
       {/* Progress Detail Section */}
       {goals.length > 0 && !transLoading && (
         <Collapsible open={progressOpen} onOpenChange={setProgressOpen} className="space-y-4">
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
@@ -465,7 +465,7 @@ export default function Goals() {
               <CardContent className="space-y-6 pt-6 border-t border-[var(--color-border-neutral)]">
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+                  <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                         Total Target
@@ -481,7 +481,7 @@ export default function Goals() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+                  <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                         Total Tersimpan
@@ -499,7 +499,7 @@ export default function Goals() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+                  <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                         Rata-rata/Bulan
@@ -515,7 +515,7 @@ export default function Goals() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+                  <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                         Status
@@ -547,7 +547,7 @@ export default function Goals() {
                 </div>
 
                 {/* Overall Progress */}
-                <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+                <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
                   <CardHeader>
                     <CardTitle className="text-base text-[var(--color-content-primary)]">
                       Progress Keseluruhan
@@ -572,7 +572,7 @@ export default function Goals() {
 
                 {/* Trend Chart */}
                 {goalProgress.goals.length > 0 && goalProgress.goals[0].monthlyHistory && (
-                  <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+                  <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
                     <CardHeader>
                       <CardTitle className="text-base text-[var(--color-content-primary)]">
                         Tren Tabungan Bulanan

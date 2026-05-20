@@ -19,7 +19,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { getCategoryMeta, ALL_CATEGORIES } from '@/lib/categoryMetadata';
-import { formatRupiah, cn } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative, TextWarning } from '../components/Markup';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
@@ -35,26 +35,26 @@ function getStatus(pct: number): BudgetStatus {
 function StatusBadge({ status }: { status: BudgetStatus }) {
   const statusConfig = {
     none: {
-      bg: 'bg-[var(--color-bg-neutral)]',
-      text: 'text-[var(--color-content-tertiary)]',
+      bg: bgColorVar('bg-neutral'),
+      text: textColorVar('content-tertiary'),
       icon: null,
       label: 'Belum Dibuat',
     },
     over: {
-      bg: 'bg-[var(--color-sentiment-negative-bg)]',
-      text: 'text-[var(--color-sentiment-negative)]',
+      bg: bgColorVar('sentiment-negative-bg'),
+      text: textColorVar('sentiment-negative'),
       icon: AlertCircle,
       label: 'Melebihi',
     },
     warning: {
-      bg: 'bg-[var(--color-sentiment-warning-bg)]',
-      text: 'text-[var(--color-sentiment-warning)]',
+      bg: bgColorVar('sentiment-warning-bg'),
+      text: textColorVar('sentiment-warning'),
       icon: AlertTriangle,
       label: 'Hampir',
     },
     safe: {
-      bg: 'bg-[var(--color-sentiment-positive-bg)]',
-      text: 'text-[var(--color-sentiment-positive)]',
+      bg: bgColorVar('sentiment-positive-bg'),
+      text: textColorVar('sentiment-positive'),
       icon: CheckCircle,
       label: 'Aman',
     },
@@ -214,18 +214,18 @@ export default function Budget() {
       >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map((i) => (
-            <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
               <CardContent className="pt-6">
-                <div className="h-4 bg-[var(--color-bg-neutral)] rounded animate-pulse w-20 mb-3" />
-                <div className="h-7 bg-[var(--color-bg-neutral)] rounded animate-pulse w-28" />
+                <div className={cn('h-4 rounded animate-pulse w-20 mb-3', bgColorVar('bg-neutral'))} />
+                <div className={cn('h-7 rounded animate-pulse w-28', bgColorVar('bg-neutral'))} />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6 space-y-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
+              <div key={i} className={cn('h-16 rounded animate-pulse', bgColorVar('bg-neutral'))} />
             ))}
           </CardContent>
         </Card>
@@ -275,7 +275,7 @@ export default function Budget() {
             animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
             transition={fadeUp.transition}
           >
-            <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
                   {kpi.label}
@@ -313,7 +313,7 @@ export default function Budget() {
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
       >
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <CardTitle className="text-base font-semibold text-[var(--color-content-primary)]">
               Budget per Kategori

@@ -15,7 +15,7 @@ import { useRecurringBills } from '@/hooks/useRecurringBills';
 import { UpcomingBillsWidget } from '../components/UpcomingBillsWidget';
 import { TextPositive, TextNegative, TextLink } from '../components/Markup';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
-import { formatRupiah, cn } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -25,7 +25,7 @@ import { useInsights } from '@/hooks/data/useInsights';
 
 function SkeletonCard() {
   return (
-    <div className="h-24 bg-[var(--color-bg-neutral)] rounded-[var(--radius-xl)] animate-pulse" />
+    <div className={cn('h-24 rounded-[var(--radius-xl)] animate-pulse', bgColorVar('bg-neutral'))} />
   );
 }
 
@@ -50,8 +50,8 @@ function WalletChips({ wallets, walletId, setWalletId }: {
             className={cn(
               'whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors border',
               walletId === chip.id
-                ? 'bg-[var(--color-brand-primary)] text-[var(--color-brand-primary-fg)] border-[var(--color-brand-primary)]'
-                : 'border-[var(--color-border-neutral)] text-[var(--color-content-secondary)] hover:border-[var(--color-brand-primary)]'
+                ? cn(bgColorVar('brand-primary'), textColorVar('brand-primary-fg'), borderColorVar('brand-primary'))
+                : cn(borderColorVar('border-neutral'), textColorVar('content-secondary'), 'hover:border-[var(--color-brand-primary)]')
             )}
           >
             {chip.label}
@@ -71,15 +71,15 @@ function TrendChip({ current, previous }: { current: number; previous: number })
     <div className={cn(
       'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
       isPositive
-        ? 'bg-[var(--color-sentiment-positive-bg)]'
-        : 'bg-[var(--color-sentiment-negative-bg)]'
+        ? bgColorVar('sentiment-positive-bg')
+        : bgColorVar('sentiment-negative-bg')
     )}>
       {isPositive ? (
         <ArrowUpRight className="w-3 h-3" />
       ) : (
         <TrendingDown className="w-3 h-3" />
       )}
-      <span className={isPositive ? 'text-[var(--color-sentiment-positive)]' : 'text-[var(--color-sentiment-negative)]'}>
+      <span className={isPositive ? textColorVar('sentiment-positive') : textColorVar('sentiment-negative')}>
         {Math.abs(change).toFixed(1)}%
       </span>
     </div>
@@ -281,8 +281,8 @@ export default function Overview() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-content-primary)]">Overview</h1>
-          <p className="text-sm text-[var(--color-content-tertiary)] mt-1">
+          <h1 className={cn('text-2xl md:text-3xl font-bold', textColorVar('content-primary'))}>Overview</h1>
+          <p className={cn('text-sm mt-1', textColorVar('content-tertiary'))}>
             {format(new Date(year, month - 1), 'MMMM yyyy', { locale: idLocale })}
           </p>
         </div>
@@ -315,11 +315,11 @@ export default function Overview() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
-              <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-2">Total Saldo</p>
+              <p className={cn('text-xs font-medium mb-2', textColorVar('content-tertiary'))}>Total Saldo</p>
               <div className="flex items-center justify-between mb-3">
-                <div className="font-mono text-2xl md:text-3xl font-bold text-[var(--color-content-primary)]">
+                <div className={cn('font-mono text-2xl md:text-3xl font-bold', textColorVar('content-primary'))}>
                   <PrivacyAmount value={formatRupiah(saldo)} />
                 </div>
               </div>
@@ -334,15 +334,15 @@ export default function Overview() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="border-l-4 border-l-[var(--color-sentiment-positive)] bg-[var(--color-bg-card)]">
+          <Card className={cn('border-l-4', bgColorVar('bg-card'), 'border-l-[var(--color-sentiment-positive)]')}>
             <CardContent className="pt-6">
-              <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-2">Pemasukan</p>
+              <p className={cn('text-xs font-medium mb-2', textColorVar('content-tertiary'))}>Pemasukan</p>
               <div className="font-mono text-2xl md:text-3xl font-bold">
                 <TextPositive>
                   <PrivacyAmount value={formatRupiah(displayIncome)} />
                 </TextPositive>
               </div>
-              <TrendingUp className="w-5 h-5 text-[var(--color-sentiment-positive)] mt-2 opacity-40" />
+              <TrendingUp className={cn('w-5 h-5 mt-2 opacity-40', textColorVar('sentiment-positive'))} />
             </CardContent>
           </Card>
         </motion.div>
@@ -353,15 +353,15 @@ export default function Overview() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="border-l-4 border-l-[var(--color-sentiment-negative)] bg-[var(--color-bg-card)]">
+          <Card className={cn('border-l-4', bgColorVar('bg-card'), 'border-l-[var(--color-sentiment-negative)]')}>
             <CardContent className="pt-6">
-              <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-2">Pengeluaran</p>
+              <p className={cn('text-xs font-medium mb-2', textColorVar('content-tertiary'))}>Pengeluaran</p>
               <div className="font-mono text-2xl md:text-3xl font-bold">
                 <TextNegative>
                   <PrivacyAmount value={formatRupiah(displayExpenses)} />
                 </TextNegative>
               </div>
-              <TrendingDown className="w-5 h-5 text-[var(--color-sentiment-negative)] mt-2 opacity-40" />
+              <TrendingDown className={cn('w-5 h-5 mt-2 opacity-40', textColorVar('sentiment-negative'))} />
             </CardContent>
           </Card>
         </motion.div>
@@ -377,15 +377,15 @@ export default function Overview() {
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-[var(--color-content-tertiary)] font-medium mb-1 uppercase tracking-wide">Aman untuk dikeluarkan hari ini</p>
+                <p className={cn('text-xs font-medium mb-1 uppercase tracking-wide', textColorVar('content-tertiary'))}>Aman untuk dikeluarkan hari ini</p>
                 <div className="flex items-baseline gap-2">
-                  <div className="font-mono text-3xl font-bold text-[var(--color-brand-primary)]">
+                  <div className={cn('font-mono text-3xl font-bold', textColorVar('brand-primary'))}>
                     <PrivacyAmount value={formatRupiah(dailyBudget)} />
                   </div>
-                  <span className="text-sm text-[var(--color-content-tertiary)]">/ hari ({daysRemaining} hari tersisa)</span>
+                  <span className={cn('text-sm', textColorVar('content-tertiary'))}>/ hari ({daysRemaining} hari tersisa)</span>
                 </div>
               </div>
-              <Zap className="w-5 h-5 text-[var(--color-brand-primary)] opacity-60" />
+              <Zap className={cn('w-5 h-5 opacity-60', textColorVar('brand-primary'))} />
             </div>
           </CardContent>
         </Card>
@@ -397,14 +397,14 @@ export default function Overview() {
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
       >
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardHeader>
-            <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Pengeluaran Per Hari</h3>
+            <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>Pengeluaran Per Hari</h3>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-7 gap-1">
               {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((d) => (
-                <div key={d} className="text-center text-xs font-semibold text-[var(--color-content-tertiary)] py-2">
+                <div key={d} className={cn('text-center text-xs font-semibold py-2', textColorVar('content-tertiary'))}>
                   {d}
                 </div>
               ))}
@@ -419,15 +419,15 @@ export default function Overview() {
                 return (
                   <div
                     key={i}
-                    className={`
-                      aspect-square rounded-lg p-1.5 flex items-center justify-center text-xs font-medium
-                      ${cell.day ? getHeatColor(cell.expense) : 'bg-transparent'}
-                      border border-[var(--color-border-neutral)]
-                    `}
+                    className={cn(
+                      'aspect-square rounded-lg p-1.5 flex items-center justify-center text-xs font-medium border',
+                      cell.day ? getHeatColor(cell.expense) : 'bg-transparent',
+                      borderColorVar('border-neutral')
+                    )}
                     title={cell.day ? `${formatRupiah(cell.expense)}` : ''}
                   >
                     {cell.day && (
-                      <span className="text-[var(--color-content-primary)]">{cell.day}</span>
+                      <span className={textColorVar('content-primary')}>{cell.day}</span>
                     )}
                   </div>
                 );
@@ -445,14 +445,14 @@ export default function Overview() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)] h-full">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'), 'h-full')}>
             <CardHeader>
-              <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Kesehatan Keuangan</h3>
+              <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>Kesehatan Keuangan</h3>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <div className="relative h-2 bg-[var(--color-bg-screen)] rounded-full overflow-hidden">
+                  <div className={cn('relative h-2 rounded-full overflow-hidden', bgColorVar('bg-screen'))}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${healthScore.score}%` }}
@@ -466,28 +466,28 @@ export default function Overview() {
                     />
                   </div>
                 </div>
-                <span className="font-mono font-bold text-lg text-[var(--color-content-primary)]">{healthScore.score}</span>
+                <span className={cn('font-mono font-bold text-lg', textColorVar('content-primary'))}>{healthScore.score}</span>
               </div>
 
               <div className="text-xs">
-                <p className="font-semibold text-[var(--color-content-primary)] mb-2 capitalize">
+                <p className={cn('font-semibold mb-2 capitalize', textColorVar('content-primary'))}>
                   {healthScore.level === 'excellent' ? '⭐ Sangat Baik' :
                    healthScore.level === 'good' ? '✓ Baik' :
                    healthScore.level === 'fair' ? '→ Cukup' :
                    '⚠️ Perlu Perbaikan'}
                 </p>
-                <div className="space-y-1.5 text-[var(--color-content-tertiary)]">
+                <div className={cn('space-y-1.5', textColorVar('content-tertiary'))}>
                   <div className="flex justify-between">
                     <span>Rasio Tabungan</span>
-                    <span className="font-semibold text-[var(--color-content-primary)]">{healthScore.breakdown.savingsRatio}%</span>
+                    <span className={cn('font-semibold', textColorVar('content-primary'))}>{healthScore.breakdown.savingsRatio}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Disiplin Anggaran</span>
-                    <span className="font-semibold text-[var(--color-content-primary)]">{healthScore.breakdown.budgetDiscipline}%</span>
+                    <span className={cn('font-semibold', textColorVar('content-primary'))}>{healthScore.breakdown.budgetDiscipline}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Dana Darurat</span>
-                    <span className="font-semibold text-[var(--color-content-primary)]">{healthScore.breakdown.emergencyRunway}%</span>
+                    <span className={cn('font-semibold', textColorVar('content-primary'))}>{healthScore.breakdown.emergencyRunway}%</span>
                   </div>
                 </div>
               </div>
@@ -502,11 +502,11 @@ export default function Overview() {
           transition={fadeUp.transition}
           className="space-y-3"
         >
-          <h3 className="text-base font-semibold text-[var(--color-content-primary)] mt-7">Insight Pengeluaran</h3>
+          <h3 className={cn('text-base font-semibold mt-7', textColorVar('content-primary'))}>Insight Pengeluaran</h3>
           {insights.anomalies.slice(0, 3).length === 0 ? (
-            <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
               <CardContent className="pt-6">
-                <p className="text-sm text-[var(--color-content-tertiary)] text-center py-4">Pengeluaran Anda sesuai pola historis</p>
+                <p className={cn('text-sm text-center py-4', textColorVar('content-tertiary'))}>Pengeluaran Anda sesuai pola historis</p>
               </CardContent>
             </Card>
           ) : (
@@ -518,21 +518,22 @@ export default function Overview() {
                 transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
               >
                 <Card className={cn(
-                  'bg-[var(--color-bg-card)] border',
-                  anomaly.severity === 'critical' ? 'border-[var(--color-sentiment-negative)]/30' : 'border-[var(--color-border-neutral)]'
+                  bgColorVar('bg-card'),
+                  'border',
+                  anomaly.severity === 'critical' ? 'border-[var(--color-sentiment-negative)]/30' : borderColorVar('border-neutral')
                 )}>
                   <CardContent className="pt-4 pb-4 px-4">
                     <div className="flex items-start gap-3">
                       {anomaly.severity === 'critical' ? (
-                        <AlertTriangle className="w-4 h-4 text-[var(--color-sentiment-negative)] flex-shrink-0 mt-0.5" />
+                        <AlertTriangle className={cn('w-4 h-4 flex-shrink-0 mt-0.5', textColorVar('sentiment-negative'))} />
                       ) : (
                         <Lightbulb className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[var(--color-content-primary)]">{getCategoryMeta(anomaly.category).emoji} {anomaly.category}</p>
-                        <p className="text-xs text-[var(--color-content-tertiary)] mt-1">{anomaly.reason}</p>
+                        <p className={cn('text-sm font-medium', textColorVar('content-primary'))}>{getCategoryMeta(anomaly.category).emoji} {anomaly.category}</p>
+                        <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>{anomaly.reason}</p>
                         <div className="flex gap-2 mt-2">
-                          <span className="text-xs font-semibold text-[var(--color-sentiment-negative)]">
+                          <span className={cn('text-xs font-semibold', textColorVar('sentiment-negative'))}>
                             +{Math.abs(anomaly.deviationPercent)}%
                           </span>
                         </div>
@@ -555,9 +556,9 @@ export default function Overview() {
           transition={fadeUp.transition}
           className="lg:col-span-2"
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader>
-              <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Income vs Expense</h3>
+              <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>Income vs Expense</h3>
             </CardHeader>
             <CardContent>
               {monthlyChartData.some(d => d.income > 0 || d.expense > 0) ? (
@@ -585,7 +586,7 @@ export default function Overview() {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-sm text-[var(--color-content-tertiary)] text-center py-8">Belum ada data bulan ini</p>
+                <p className={cn('text-sm text-center py-8', textColorVar('content-tertiary'))}>Belum ada data bulan ini</p>
               )}
             </CardContent>
           </Card>
@@ -607,13 +608,13 @@ export default function Overview() {
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
       >
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardHeader>
-            <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Transaksi Terbaru</h3>
+            <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>Transaksi Terbaru</h3>
           </CardHeader>
           <CardContent>
             {recentTx.length === 0 ? (
-              <p className="text-sm text-[var(--color-content-tertiary)] text-center py-6">Belum ada transaksi</p>
+              <p className={cn('text-sm text-center py-6', textColorVar('content-tertiary'))}>Belum ada transaksi</p>
             ) : (
               <div className="space-y-3">
                 <AnimatePresence>
@@ -625,13 +626,13 @@ export default function Overview() {
                         initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
                         animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
-                        className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-bg-screen)] border border-[var(--color-border-neutral)]"
+                        className={cn('flex items-center justify-between p-3 rounded-lg border', bgColorVar('bg-screen'), borderColorVar('border-neutral'))}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <span className="text-lg flex-shrink-0">{meta.emoji}</span>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--color-content-primary)] truncate">{tx.note || tx.category}</p>
-                            <p className="text-xs text-[var(--color-content-tertiary)]">{format(new Date(tx.date), 'dd MMM', { locale: idLocale })}</p>
+                            <p className={cn('text-sm font-medium truncate', textColorVar('content-primary'))}>{tx.note || tx.category}</p>
+                            <p className={cn('text-xs', textColorVar('content-tertiary'))}>{format(new Date(tx.date), 'dd MMM', { locale: idLocale })}</p>
                           </div>
                         </div>
                         <div className="font-mono font-semibold text-sm flex-shrink-0 ml-2">
