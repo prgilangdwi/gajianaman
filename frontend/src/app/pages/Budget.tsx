@@ -22,57 +22,13 @@ import { getCategoryMeta, ALL_CATEGORIES } from '@/lib/categoryMetadata';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative, TextWarning } from '../components/Markup';
+import { BudgetCard, type BudgetStatus } from '../components/BudgetCard';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
-
-type BudgetStatus = 'safe' | 'warning' | 'over' | 'none';
 
 function getStatus(pct: number): BudgetStatus {
   if (pct > 100) return 'over';
   if (pct >= 80) return 'warning';
   return 'safe';
-}
-
-function StatusBadge({ status }: { status: BudgetStatus }) {
-  const statusConfig = {
-    none: {
-      bg: bgColorVar('bg-neutral'),
-      text: textColorVar('content-tertiary'),
-      icon: null,
-      label: 'Belum Dibuat',
-    },
-    over: {
-      bg: bgColorVar('sentiment-negative-bg'),
-      text: textColorVar('sentiment-negative'),
-      icon: AlertCircle,
-      label: 'Melebihi',
-    },
-    warning: {
-      bg: bgColorVar('sentiment-warning-bg'),
-      text: textColorVar('sentiment-warning'),
-      icon: AlertTriangle,
-      label: 'Hampir',
-    },
-    safe: {
-      bg: bgColorVar('sentiment-positive-bg'),
-      text: textColorVar('sentiment-positive'),
-      icon: CheckCircle,
-      label: 'Aman',
-    },
-  };
-
-  const config = statusConfig[status];
-  const IconComponent = config.icon;
-
-  return (
-    <div className={cn(
-      'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
-      config.bg,
-      config.text
-    )}>
-      {IconComponent && <IconComponent className="w-3 h-3" />}
-      {config.label}
-    </div>
-  );
 }
 
 export default function Budget() {
@@ -349,72 +305,19 @@ export default function Budget() {
               <div className="space-y-5">
                 <AnimatePresence>
                   {budgetRows.map((row, idx) => (
-                    <motion.div
+                    <BudgetCard
                       key={row.category}
-                      initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                      animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                      exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
-                      transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-lg flex-shrink-0">{row.emoji}</span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--color-content-primary)]">{row.category}</p>
-                            <p className="text-xs text-[var(--color-content-tertiary)] font-mono">
-                              <PrivacyAmount value={formatRupiah(row.spent)} />
-                              {row.budget > 0 && (
-                                <> / <PrivacyAmount value={formatRupiah(row.budget)} /></>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <StatusBadge status={row.status} />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => openEdit(row.category, row.budget)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {row.hasEntry ? (
-                        <>
-                          <div
-                            className="w-full h-2 bg-[var(--color-bg-neutral)] rounded-full overflow-hidden"
-                          >
-                            <div
-                              className={cn(
-                                'h-full rounded-full transition-all',
-                                row.status === 'over'
-                                  ? 'bg-[var(--color-sentiment-negative)]'
-                                  : row.status === 'warning'
-                                    ? 'bg-[var(--color-sentiment-warning)]'
-                                    : 'bg-[var(--color-sentiment-positive)]'
-                              )}
-                              style={{ width: `${Math.min(row.pct, 100)}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-xs text-[var(--color-content-tertiary)]">
-                            <span>Terpakai: <PrivacyAmount value={formatRupiah(row.spent)} /></span>
-                            <span>{row.pct.toFixed(0)}%</span>
-                          </div>
-                        </>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-xs h-7"
-                          onClick={() => openEdit(row.category, 0)}
-                        >
-                          <Plus className="w-3 h-3 mr-1" /> Buat Budget
-                        </Button>
-                      )}
-                    </motion.div>
+                      category={row.category}
+                      emoji={row.emoji}
+                      budget={row.budget}
+                      spent={row.spent}
+                      pct={row.pct}
+                      hasEntry={row.hasEntry}
+                      status={row.status}
+                      index={idx}
+                      prefersReduced={prefersReduced}
+                      onEdit={openEdit}
+                    />
                   ))}
                 </AnimatePresence>
               </div>

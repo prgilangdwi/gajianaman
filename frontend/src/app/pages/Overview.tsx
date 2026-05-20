@@ -2,7 +2,9 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { PrivacyAmount } from '../components/PrivacyAmount';
-import { TrendingUp, TrendingDown, ArrowUpRight, Download, AlertTriangle, Lightbulb, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Download, AlertTriangle, Lightbulb, Zap } from 'lucide-react';
+import { WalletChips } from '../components/WalletChips';
+import { TrendChip } from '../components/TrendChip';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions';
@@ -26,63 +28,6 @@ import { useInsights } from '@/hooks/data/useInsights';
 function SkeletonCard() {
   return (
     <div className={cn('h-24 rounded-[var(--radius-xl)] animate-pulse', bgColorVar('bg-neutral'))} />
-  );
-}
-
-function WalletChips({ wallets, walletId, setWalletId }: {
-  wallets: import('@/lib/supabase').Wallet[];
-  walletId: string;
-  setWalletId: (id: string) => void;
-}) {
-  if (wallets.length === 0) return null;
-  const chips = [
-    { id: 'all', label: 'Semua' },
-    ...wallets.map(w => ({ id: w.id, label: `${w.name}${w.is_primary ? ' ⭐' : ''}` }))
-  ];
-
-  return (
-    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-      <div className="flex gap-2 pb-2">
-        {chips.map((chip) => (
-          <button
-            key={chip.id}
-            onClick={() => setWalletId(chip.id)}
-            className={cn(
-              'whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors border',
-              walletId === chip.id
-                ? cn(bgColorVar('brand-primary'), textColorVar('brand-primary-fg'), borderColorVar('brand-primary'))
-                : cn(borderColorVar('border-neutral'), textColorVar('content-secondary'), 'hover:border-[var(--color-brand-primary)]')
-            )}
-          >
-            {chip.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TrendChip({ current, previous }: { current: number; previous: number }) {
-  if (previous === 0) return null;
-  const change = ((current - previous) / previous) * 100;
-  const isPositive = change > 0;
-
-  return (
-    <div className={cn(
-      'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
-      isPositive
-        ? bgColorVar('sentiment-positive-bg')
-        : bgColorVar('sentiment-negative-bg')
-    )}>
-      {isPositive ? (
-        <ArrowUpRight className="w-3 h-3" />
-      ) : (
-        <TrendingDown className="w-3 h-3" />
-      )}
-      <span className={isPositive ? textColorVar('sentiment-positive') : textColorVar('sentiment-negative')}>
-        {Math.abs(change).toFixed(1)}%
-      </span>
-    </div>
   );
 }
 

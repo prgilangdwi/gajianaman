@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { DollarSign, PiggyBank, TrendingUp, Info, Loader2 } from 'lucide-react';
+import { cn, bgColorVar, textColorVar } from '@/lib/utils';
 
 function GajianAmanMark({ className }: { className?: string }) {
   return <img src="/dark-logo.png" alt="Gajian Aman" className={className} />;
@@ -81,7 +82,7 @@ export default function Login() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-sidebar-bg)' }}>
+      <div className={cn('min-h-screen flex items-center justify-center', bgColorVar('sidebar-bg'))}>
         <Loader2 className="w-8 h-8 text-white animate-spin" />
       </div>
     );
@@ -89,7 +90,7 @@ export default function Login() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex-1 flex items-center justify-center px-4" style={{ background: 'var(--color-sidebar-bg)' }}>
+      <div className={cn('flex-1 flex items-center justify-center px-4', bgColorVar('sidebar-bg'))}>
         <FloatingIcon icon={DollarSign} style={{ top: '15%', left: '5%' }} delay={0} />
         <FloatingIcon icon={PiggyBank} style={{ top: '20%', right: '8%' }} delay={1.2} />
         <FloatingIcon icon={TrendingUp} style={{ bottom: '20%', left: '10%' }} delay={0.6} />
@@ -114,7 +115,7 @@ export default function Login() {
                 <CardTitle className="text-2xl font-extrabold tracking-tight text-slate-900">
                   Gajian Aman
                 </CardTitle>
-                <p className="text-sm mt-1 font-body font-semibold" style={{ color: 'var(--color-brand-primary)' }}>
+                <p className={cn('text-sm mt-1 font-body font-semibold', textColorVar('brand-primary'))}>
                   Dashboard keuangan lengkap, catat transaksi via Telegram
                 </p>
               </div>
@@ -164,8 +165,7 @@ export default function Login() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-11 text-base font-semibold text-white"
-                  style={{ backgroundColor: 'var(--color-brand-primary)' }}
+                  className={cn('w-full h-11 text-base font-semibold text-white', bgColorVar('brand-primary'))}
                   disabled={loading || !telegramId}
                 >
                   {loading ? (
@@ -177,8 +177,8 @@ export default function Login() {
               </form>
 
               {/* Info Banner */}
-              <div className="flex gap-3 p-3 rounded-xl border" style={{ backgroundColor: 'rgba(74, 229, 74, 0.05)', borderColor: 'rgba(74, 229, 74, 0.2)' }}>
-                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-brand-primary)' }} />
+              <div className="flex gap-3 p-3 rounded-xl border bg-[rgba(74,229,74,0.05)] border-[rgba(74,229,74,0.2)]">
+                <Info className={cn('w-4 h-4 flex-shrink-0 mt-0.5', textColorVar('brand-primary'))} />
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Belum punya akun?{' '}
                   <span className="font-semibold text-slate-900">Kirim /start ke @GajianAmanBot</span>{' '}
@@ -193,8 +193,8 @@ export default function Login() {
                   { icon: PiggyBank, label: 'Hemat' },
                 ].map(({ icon: Icon, label }) => (
                   <div key={label} className="flex flex-col items-center gap-1">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(74, 229, 74, 0.1)' }}>
-                      <Icon className="w-5 h-5" style={{ color: 'var(--color-brand-primary)' }} />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[rgba(74,229,74,0.1)]">
+                      <Icon className={cn('w-5 h-5', textColorVar('brand-primary'))} />
                     </div>
                     <span className="text-xs text-slate-500">{label}</span>
                   </div>
