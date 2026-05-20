@@ -28,6 +28,7 @@ import { useFinancialHealthScore } from '@/hooks/data/useFinancialHealthScore';
 import { useInsights } from '@/hooks/data/useInsights';
 import { useFinancialHealth } from '@/hooks/data/useFinancialHealth';
 import { useBudgetRecommendations } from '@/hooks/data/useBudgetRecommendations';
+import { useAIInsights } from '@/hooks/data/useAIInsights';
 import { BriefingCard } from '../components/BriefingCard';
 import { AIInsightCard } from '../components/AIInsightCard';
 
@@ -179,6 +180,9 @@ export default function Overview() {
   // Feature 2: Financial health and recommendations (for AI insight feed)
   const financialHealth = useFinancialHealth(transactions, budgets, month, year);
   const budgetRecs = useBudgetRecommendations(transactions, budgets, month, year);
+
+  // Feature 3: AI-generated insights from backend API
+  const { insights: aiInsights, loading: aiLoading } = useAIInsights(month, year);
 
   const filteredTransactions = walletId === 'all'
     ? transactions
@@ -551,15 +555,17 @@ export default function Overview() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {buildInsightFeed(insights, financialHealth, budgetRecs).length === 0 ? (
-              <p className={cn('text-xs text-center py-3', textColorVar('content-tertiary'))}>
-                Tambah lebih banyak transaksi untuk mendapatkan rekomendasi AI
-              </p>
-            ) : (
+            {/* Show loading state while fetching API insights */}
+            {aiLoading && aiInsights.length === 0 ? (
+              <div className={cn('text-xs text-center py-3 animate-pulse', textColorVar('content-tertiary'))}>
+                Menganalisis transaksi Anda...
+              </div>
+            ) : aiInsights.length > 0 ? (
+              // Use API-generated insights (preferred)
               <AnimatePresence>
-                {buildInsightFeed(insights, financialHealth, budgetRecs).map((item, idx) => (
+                {aiInsights.map((item, idx) => (
                   <AIInsightCard
-                    key={`${item.severity}-${idx}`}
+                    key={`ai-${item.severity}-${idx}`}
                     severity={item.severity}
                     emoji={item.emoji}
                     title={item.title}
@@ -569,6 +575,26 @@ export default function Overview() {
                   />
                 ))}
               </AnimatePresence>
+            ) : buildInsightFeed(insights, financialHealth, budgetRecs).length > 0 ? (
+              // Fallback to client-side calculated insights
+              <AnimatePresence>
+                {buildInsightFeed(insights, financialHealth, budgetRecs).map((item, idx) => (
+                  <AIInsightCard
+                    key={`fallback-${item.severity}-${idx}`}
+                    severity={item.severity}
+                    emoji={item.emoji}
+                    title={item.title}
+                    body={item.body}
+                    prefersReduced={prefersReduced}
+                    delay={prefersReduced ? 0 : idx * 0.08}
+                  />
+                ))}
+              </AnimatePresence>
+            ) : (
+              // Empty state
+              <p className={cn('text-xs text-center py-3', textColorVar('content-tertiary'))}>
+                Tambah lebih banyak transaksi untuk mendapatkan rekomendasi AI
+              </p>
             )}
           </CardContent>
         </Card>
