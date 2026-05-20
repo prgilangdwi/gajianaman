@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2 } from 'lucide-react';
+import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -30,6 +31,7 @@ import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
 import { TransactionRow } from '../components/TransactionRow';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { useScreenState } from '@/hooks/useScreenState';
 import { COPY } from '@/lib/copy';
 
 type FilterType = 'all' | 'income' | 'expense';
@@ -74,7 +76,7 @@ export default function Riwayat() {
   const { month, year } = useMonthFilter();
   const { walletId, setWalletId } = useWalletFilter();
   const { wallets } = useWallets(user?.userId);
-  const { transactions, isLoading } = useTransactions(month, year);
+  const { transactions, isLoading, error } = useTransactions(month, year);
   const prefersReduced = useReducedMotion();
 
   const filteredTransactions = walletId === 'all'
@@ -85,6 +87,13 @@ export default function Riwayat() {
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
+
+  // Screen state: loading, error, empty, or loaded
+  const screenState = useScreenState({
+    isLoading,
+    error: error || null,
+    isEmpty: filteredTransactions.length === 0,
+  });
 
   const handleDownload = async (format: 'csv' | 'pdf') => {
     if (!user) return;
@@ -140,30 +149,31 @@ export default function Riwayat() {
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + Number(t.amount), 0);
 
-  if (isLoading) {
+  // Show error state if fetch failed
+  if (screenState.error) {
     return (
-      <motion.div
-        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-6"
-      >
-        <div className="grid grid-cols-2 gap-2 sm:gap-4">
-          {[0, 1].map((i) => (
-            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-              <CardContent className="pt-6">
-                <div className={cn('h-4 rounded animate-pulse w-20 mb-3', bgColorVar('bg-neutral'))} />
-                <div className={cn('h-7 rounded animate-pulse w-32', bgColorVar('bg-neutral'))} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-          <CardContent className="pt-6 space-y-3">
-            {[0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
-          </CardContent>
-        </Card>
-      </motion.div>
+      <ErrorState
+        title="Gagal memuat riwayat"
+        message={screenState.error.message || 'Terjadi kesalahan saat mengambil data riwayat transaksi.'}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  // Show loading state while fetching data
+  if (screenState.isLoading) {
+    return <LoadingState count={5} type="row" />;
+  }
+
+  // Show empty state if no transactions yet
+  if (screenState.isEmpty) {
+    return (
+      <EmptyState
+        title="Belum ada transaksi"
+        message="Belum ada riwayat transaksi untuk periode ini. Mulai dengan menambahkan transaksi pertama."
+        actionLabel="Tambah Transaksi"
+        onAction={() => (window.location.href = '/add-transaction')}
+      />
     );
   }
 

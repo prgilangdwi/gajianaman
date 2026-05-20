@@ -1,21 +1,30 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { useLaporanData } from '@/hooks/data/useLaporanData';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { useScreenState } from '@/hooks/useScreenState';
 import type { MonthlyPoint } from '@/hooks/data/useLaporanData';
 
 export default function Tren() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
-  const { monthlyData, categoryTrend, isLoading } = useLaporanData(user?.userId);
+  const { monthlyData, categoryTrend, isLoading, error } = useLaporanData(user?.userId);
   const prefersReduced = useReducedMotion();
+
+  // Screen state: loading, error, empty, or loaded
+  const screenState = useScreenState({
+    isLoading,
+    error: error ? new Error(error) : null,
+    isEmpty: !monthlyData || monthlyData.length === 0,
+  });
 
   const trendData = useMemo(() => {
     if (!monthlyData || monthlyData.length === 0) return null;
@@ -45,22 +54,31 @@ export default function Tren() {
     };
   }, [monthlyData, categoryTrend]);
 
-  if (isLoading || !trendData) {
+  // Show error state if fetch failed
+  if (screenState.error) {
     return (
-      <motion.div
-        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-6"
-      >
-        {[0, 1, 2].map((i) => (
-          <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-            <CardContent className="pt-6">
-              <div className={cn('h-64 rounded animate-pulse', bgColorVar('bg-neutral'))} />
-            </CardContent>
-          </Card>
-        ))}
-      </motion.div>
+      <ErrorState
+        title="Gagal memuat tren"
+        message={screenState.error.message || 'Terjadi kesalahan saat mengambil data tren keuangan.'}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  // Show loading state while fetching data
+  if (screenState.isLoading) {
+    return <LoadingState count={3} type="chart" />;
+  }
+
+  // Show empty state if not enough data
+  if (screenState.isEmpty) {
+    return (
+      <EmptyState
+        title="Belum cukup data"
+        message="Anda membutuhkan minimal 3 bulan data untuk melihat tren keuangan. Mulai dengan menambahkan transaksi."
+        actionLabel="Tambah Transaksi"
+        onAction={() => (window.location.href = '/add-transaction')}
+      />
     );
   }
 

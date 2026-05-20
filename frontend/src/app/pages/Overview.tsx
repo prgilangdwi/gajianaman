@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { PrivacyAmount } from '../components/PrivacyAmount';
-import { TrendingUp, TrendingDown, Download, AlertTriangle, Lightbulb, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Download, Zap } from 'lucide-react';
 import { WalletChips } from '../components/WalletChips';
 import { TrendChip } from '../components/TrendChip';
+import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { useTransactions, useRecentTransactions } from '@/hooks/useTransactions';
@@ -19,17 +20,16 @@ import { TextPositive, TextNegative, TextLink } from '../components/Markup';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { pageEnter, staggerChildren, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { useScreenState } from '@/hooks/useScreenState';
 import { useFinancialHealthScore } from '@/hooks/data/useFinancialHealthScore';
 import { useInsights } from '@/hooks/data/useInsights';
-
-function SkeletonCard() {
-  return (
-    <div className={cn('h-24 rounded-[var(--radius-xl)] animate-pulse', bgColorVar('bg-neutral'))} />
-  );
-}
+import { useFinancialHealth } from '@/hooks/data/useFinancialHealth';
+import { useBudgetRecommendations } from '@/hooks/data/useBudgetRecommendations';
+import { BriefingCard } from '../components/BriefingCard';
+import { AIInsightCard } from '../components/AIInsightCard';
 
 function generatePDF(month: number, year: number, displayIncome: number, displayExpenses: number) {
   const monthName = format(new Date(year, month - 1), 'MMMM yyyy', { locale: idLocale });
@@ -86,20 +86,94 @@ function generatePDF(month: number, year: number, displayIncome: number, display
   URL.revokeObjectURL(url);
 }
 
+// Format large numbers for compact display (KPI Strip)
+function formatCompactRupiah(value: number): string {
+  if (value >= 1000000) return `Rp ${(value / 1000000).toFixed(1)}jt`;
+  if (value >= 1000) return `Rp ${(value / 1000).toFixed(0)}k`;
+  return `Rp ${value}`;
+}
+
+// Format amounts for calendar cells
+function formatCompact(amount: number): string {
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}jt`;
+  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}k`;
+  return amount.toString();
+}
+
+// Build AI insight feed from multiple sources
+interface InsightFeedItem {
+  severity: 'critical' | 'warning' | 'info';
+  emoji: string;
+  title: string;
+  body: string;
+}
+
+function buildInsightFeed(
+  insights: ReturnType<typeof useInsights>,
+  healthData: ReturnType<typeof useFinancialHealth>,
+  budgetRecs: ReturnType<typeof useBudgetRecommendations>,
+): InsightFeedItem[] {
+  const items: InsightFeedItem[] = [];
+
+  // Add anomalies (max 2)
+  insights.anomalies.slice(0, 2).forEach((anomaly) => {
+    items.push({
+      severity: anomaly.severity === 'high' ? 'critical' : 'warning',
+      emoji: '⚠️',
+      title: anomaly.title,
+      body: anomaly.description,
+    });
+  });
+
+  // Add health insights (max 2)
+  healthData.insights?.slice(0, 2).forEach((insight) => {
+    items.push({
+      severity: insight.severity === 'critical' ? 'critical' : insight.severity === 'warning' ? 'warning' : 'info',
+      emoji: insight.emoji || '💡',
+      title: insight.title,
+      body: insight.body,
+    });
+  });
+
+  // Add first budget recommendation if space
+  if (items.length < 4 && budgetRecs.length > 0) {
+    const rec = budgetRecs[0];
+    items.push({
+      severity: 'info',
+      emoji: '💰',
+      title: rec.title,
+      body: rec.body,
+    });
+  }
+
+  return items.slice(0, 4); // Max 4 items
+}
+
 export default function Overview() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { walletId, setWalletId } = useWalletFilter();
   const { wallets } = useWallets(user?.userId);
-  const { transactions, income, expenses, isLoading } = useTransactions(month, year);
+  const { transactions, income, expenses, isLoading, error } = useTransactions(month, year);
   const { transactions: recentTx } = useRecentTransactions(10);
   const { recurringBills, isLoading: billsLoading } = useRecurringBills();
   const { budgets } = useBudgets();
   const prefersReduced = useReducedMotion();
 
+  // Screen state: loading, error, empty, or loaded
+  const screenState = useScreenState({
+    isLoading,
+    error: error || null,
+    isEmpty: transactions.length === 0,
+  });
+
   // Feature 1: Health score and insights
   const healthScore = useFinancialHealthScore(transactions, budgets, month, year);
   const insights = useInsights(transactions, month, year);
+
+  // Feature 2: Financial health and recommendations (for AI insight feed)
+  const financialHealth = useFinancialHealth(transactions, budgets, month, year);
+  const budgetRecs = useBudgetRecommendations(transactions, budgets, month, year);
 
   const filteredTransactions = walletId === 'all'
     ? transactions
@@ -132,6 +206,35 @@ export default function Overview() {
     const remaining = Math.max(0, totalMonthlyBudget - spent);
     return Math.floor(remaining / daysRemaining);
   }, [budgets, daysRemaining, filteredExpenses]);
+
+  // Payday countdown
+  const daysUntilPayday = useMemo(() => {
+    if (!user?.payday_date) return null;
+    const today = new Date().getDate();
+    const payday = Number(user.payday_date);
+    const daysLeft = payday >= today ? payday - today : daysInMonth - today + payday;
+    return daysLeft;
+  }, [user?.payday_date, currentDay, daysInMonth]);
+
+  // Budget remaining percentage
+  const totalBudget = useMemo(() => budgets.reduce((sum, b) => sum + b.amount, 0), [budgets]);
+  const budgetRemainingPct = useMemo(() => {
+    if (totalBudget <= 0) return null;
+    return Math.round(((totalBudget - displayExpenses) / totalBudget) * 100);
+  }, [totalBudget, displayExpenses]);
+
+  // Highest-risk velocity category
+  const topVelocity = useMemo(() => {
+    return insights.velocities
+      .filter(v => v.riskLevel !== 'safe')
+      .sort((a, b) => b.percentUsed - a.percentUsed)[0] ?? null;
+  }, [insights.velocities]);
+
+  // Time-based greeting
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    return h < 12 ? 'Selamat pagi' : h < 17 ? 'Selamat siang' : 'Selamat sore';
+  }, []);
 
   // Calendar heatmap data by date
   const expenseByDate = useMemo(() => {
@@ -201,18 +304,31 @@ export default function Overview() {
     return weeks;
   }, [filteredTransactions, month, year]);
 
-  if (isLoading) {
+  // Show error state if fetch failed
+  if (screenState.error) {
     return (
-      <motion.div
-        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-4"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => <SkeletonCard key={i} />)}
-        </div>
-      </motion.div>
+      <ErrorState
+        title="Gagal memuat dashboard"
+        message={screenState.error.message || 'Terjadi kesalahan saat mengambil data. Silakan coba lagi.'}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  // Show loading state while fetching data
+  if (screenState.isLoading) {
+    return <LoadingState count={3} type="card" />;
+  }
+
+  // Show empty state if no transactions yet
+  if (screenState.isEmpty) {
+    return (
+      <EmptyState
+        title="Dashboard Kosong"
+        message="Mulai dengan menambahkan transaksi pertama Anda untuk melihat ringkasan keuangan."
+        actionLabel="Tambah Transaksi"
+        onAction={() => (window.location.href = '/add-transaction')}
+      />
     );
   }
 
@@ -223,22 +339,25 @@ export default function Overview() {
       transition={pageEnter.transition}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Section 1: Compact Greeting Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className={cn('text-2xl md:text-3xl font-bold', textColorVar('content-primary'))}>Overview</h1>
-          <p className={cn('text-sm mt-1', textColorVar('content-tertiary'))}>
+          <h2 className={cn('text-base font-semibold', textColorVar('content-primary'))}>
+            {greeting}, {user?.name?.split(' ')[0] ?? 'Kamu'}
+          </h2>
+          <p className={cn('text-xs', textColorVar('content-tertiary'))}>
             {format(new Date(year, month - 1), 'MMMM yyyy', { locale: idLocale })}
           </p>
         </div>
         <Button
           type="button"
+          size="icon"
+          variant="ghost"
           onClick={() => generatePDF(month, year, displayIncome, displayExpenses)}
-          className="gap-2 w-full sm:w-auto"
-          variant="outline"
+          aria-label="Export PDF"
+          className={textColorVar('content-tertiary')}
         >
           <Download className="w-4 h-4" />
-          Export PDF
         </Button>
       </div>
 
@@ -247,96 +366,111 @@ export default function Overview() {
         <WalletChips wallets={wallets} walletId={walletId} setWalletId={setWalletId} />
       )}
 
-      {/* Summary Cards Grid - Desktop: 3 cols, Mobile: 1 col */}
+      {/* Section 3: "Sekilas Hari Ini" BriefingCards (3-col grid) */}
       <motion.div
         initial={prefersReduced ? { opacity: 0 } : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ staggerChildren: prefersReduced ? 0 : 0.05, delay: prefersReduced ? 0 : 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        className="grid grid-cols-3 gap-2.5"
       >
-        {/* Saldo Card */}
+        {/* Card 1: Aman Hari Ini */}
         <motion.div
           initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-            <CardContent className="pt-6">
-              <p className={cn('text-xs font-medium mb-2', textColorVar('content-tertiary'))}>Total Saldo</p>
-              <div className="flex items-center justify-between mb-3">
-                <div className={cn('font-mono text-2xl md:text-3xl font-bold', textColorVar('content-primary'))}>
-                  <PrivacyAmount value={formatRupiah(saldo)} />
-                </div>
-              </div>
-              <TrendChip current={displayIncome} previous={prevFilteredIncome} />
-            </CardContent>
-          </Card>
+          <BriefingCard
+            icon={<Zap className="w-4 h-4" />}
+            iconColorClass={cn('text-[var(--color-brand-primary)]')}
+            label="Aman Hari Ini"
+            value={<PrivacyAmount value={formatCompactRupiah(dailyBudget)} />}
+            subtitle={`${daysRemaining} hari tersisa`}
+            valueClassName={cn('font-mono', textColorVar('brand-primary'))}
+          />
         </motion.div>
 
-        {/* Pemasukan Card */}
+        {/* Card 2: Hari Gajian */}
         <motion.div
           initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className={cn('border-l-4', bgColorVar('bg-card'), 'border-l-[var(--color-sentiment-positive)]')}>
-            <CardContent className="pt-6">
-              <p className={cn('text-xs font-medium mb-2', textColorVar('content-tertiary'))}>Pemasukan</p>
-              <div className="font-mono text-2xl md:text-3xl font-bold">
-                <TextPositive>
-                  <PrivacyAmount value={formatRupiah(displayIncome)} />
-                </TextPositive>
-              </div>
-              <TrendingUp className={cn('w-5 h-5 mt-2 opacity-40', textColorVar('sentiment-positive'))} />
-            </CardContent>
-          </Card>
+          <BriefingCard
+            icon={<TrendingUp className="w-4 h-4" />}
+            iconColorClass={cn('text-[var(--color-sentiment-positive)]')}
+            label="Hari Gajian"
+            value={
+              daysUntilPayday === null
+                ? 'Belum diatur'
+                : daysUntilPayday === 0
+                  ? 'Besok!'
+                  : `${daysUntilPayday} hari lagi`
+            }
+            subtitle="Ke depan"
+            valueClassName={cn('font-semibold', daysUntilPayday && daysUntilPayday <= 3 ? 'text-[var(--color-brand-primary)]' : '')}
+          />
         </motion.div>
 
-        {/* Pengeluaran Card */}
+        {/* Card 3: Sisa Budget */}
         <motion.div
           initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className={cn('border-l-4', bgColorVar('bg-card'), 'border-l-[var(--color-sentiment-negative)]')}>
-            <CardContent className="pt-6">
-              <p className={cn('text-xs font-medium mb-2', textColorVar('content-tertiary'))}>Pengeluaran</p>
-              <div className="font-mono text-2xl md:text-3xl font-bold">
-                <TextNegative>
-                  <PrivacyAmount value={formatRupiah(displayExpenses)} />
-                </TextNegative>
-              </div>
-              <TrendingDown className={cn('w-5 h-5 mt-2 opacity-40', textColorVar('sentiment-negative'))} />
-            </CardContent>
-          </Card>
+          <BriefingCard
+            icon={<TrendingDown className="w-4 h-4" />}
+            iconColorClass={cn(
+              budgetRemainingPct !== null && budgetRemainingPct < 20
+                ? 'text-[var(--color-sentiment-negative)]'
+                : 'text-[var(--color-sentiment-positive)]'
+            )}
+            label="Sisa Budget"
+            value={budgetRemainingPct !== null ? `${Math.max(0, budgetRemainingPct)}%` : '—'}
+            subtitle="Bulan ini"
+            valueClassName={cn('font-mono font-bold')}
+          />
         </motion.div>
       </motion.div>
 
-      {/* Smart Daily Budget */}
+      {/* Section 4: KPI Strip (4-col horizontal) */}
       <motion.div
         initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
+        className={cn('grid grid-cols-4 divide-x', borderColorVar('divide-neutral'))}
       >
-        <Card className="bg-gradient-to-r from-[var(--color-brand-primary)]/10 to-[var(--color-brand-primary)]/5 border-[var(--color-brand-primary)]/30">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className={cn('text-xs font-medium mb-1 uppercase tracking-wide', textColorVar('content-tertiary'))}>Aman untuk dikeluarkan hari ini</p>
-                <div className="flex items-baseline gap-2">
-                  <div className={cn('font-mono text-3xl font-bold', textColorVar('brand-primary'))}>
-                    <PrivacyAmount value={formatRupiah(dailyBudget)} />
-                  </div>
-                  <span className={cn('text-sm', textColorVar('content-tertiary'))}>/ hari ({daysRemaining} hari tersisa)</span>
-                </div>
-              </div>
-              <Zap className={cn('w-5 h-5 opacity-60', textColorVar('brand-primary'))} />
-            </div>
-          </CardContent>
-        </Card>
+        {/* KPI 1: Saldo */}
+        <div className={cn('px-3 py-2.5', textColorVar('content-primary'))}>
+          <p className={cn('text-[10px] font-medium mb-1 uppercase', textColorVar('content-tertiary'))}>Saldo</p>
+          <p className={cn('text-sm font-mono font-bold')}>
+            <PrivacyAmount value={formatCompactRupiah(saldo)} />
+          </p>
+        </div>
+
+        {/* KPI 2: Pemasukan */}
+        <div className={cn('px-3 py-2.5')}>
+          <p className={cn('text-[10px] font-medium mb-1 uppercase', textColorVar('content-tertiary'))}>Pemasukan</p>
+          <p className={cn('text-sm font-mono font-bold', textColorVar('sentiment-positive'))}>
+            <PrivacyAmount value={formatCompactRupiah(displayIncome)} />
+          </p>
+        </div>
+
+        {/* KPI 3: Pengeluaran */}
+        <div className={cn('px-3 py-2.5')}>
+          <p className={cn('text-[10px] font-medium mb-1 uppercase', textColorVar('content-tertiary'))}>Pengeluaran</p>
+          <p className={cn('text-sm font-mono font-bold', textColorVar('sentiment-negative'))}>
+            <PrivacyAmount value={formatCompactRupiah(displayExpenses)} />
+          </p>
+        </div>
+
+        {/* KPI 4: Hari Tersisa */}
+        <div className={cn('px-3 py-2.5', textColorVar('content-primary'))}>
+          <p className={cn('text-[10px] font-medium mb-1 uppercase', textColorVar('content-tertiary'))}>Hari Tersisa</p>
+          <p className={cn('text-sm font-mono font-bold')}>{daysRemaining}</p>
+        </div>
       </motion.div>
 
-      {/* Calendar Heatmap */}
+      {/* Section 5.5: Compact Calendar Heatmap */}
       <motion.div
         initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
@@ -347,32 +481,46 @@ export default function Overview() {
             <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>Pengeluaran Per Hari</h3>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5">
               {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((d) => (
-                <div key={d} className={cn('text-center text-xs font-semibold py-2', textColorVar('content-tertiary'))}>
+                <div key={d} className={cn('text-center text-[10px] py-1 font-semibold', textColorVar('content-tertiary'))}>
                   {d}
                 </div>
               ))}
               {calendarDays.map((cell, i) => {
                 const getHeatColor = (amount: number) => {
-                  if (amount === 0) return 'bg-white dark:bg-[var(--color-bg-screen)]';
-                  if (amount <= 100_000) return 'bg-green-100 dark:bg-green-900/20';
-                  if (amount <= 500_000) return 'bg-yellow-100 dark:bg-yellow-900/20';
-                  return 'bg-red-100 dark:bg-red-900/20';
+                  if (amount === 0) return bgColorVar('bg-neutral');
+                  if (amount <= 50_000) return 'bg-green-100 dark:bg-green-900/30';
+                  if (amount <= 200_000) return 'bg-yellow-100 dark:bg-yellow-900/30';
+                  if (amount <= 500_000) return 'bg-orange-100 dark:bg-orange-900/30';
+                  return 'bg-red-100 dark:bg-red-900/30';
                 };
+
+                const isTodayColor = cell.day === new Date().getDate() && new Date().getMonth() === month - 1 && new Date().getFullYear() === year
+                  ? 'border-[var(--color-brand-primary)] border-2'
+                  : borderColorVar('border-neutral') + ' border';
 
                 return (
                   <div
                     key={i}
                     className={cn(
-                      'aspect-square rounded-lg p-1.5 flex items-center justify-center text-xs font-medium border',
+                      'h-8 rounded-sm p-0.5 relative flex items-center justify-center',
                       cell.day ? getHeatColor(cell.expense) : 'bg-transparent',
-                      borderColorVar('border-neutral')
+                      isTodayColor
                     )}
                     title={cell.day ? `${formatRupiah(cell.expense)}` : ''}
                   >
                     {cell.day && (
-                      <span className={textColorVar('content-primary')}>{cell.day}</span>
+                      <>
+                        <span className={cn('text-[10px] font-semibold', textColorVar('content-primary'))}>
+                          {cell.day}
+                        </span>
+                        {cell.expense > 0 && (
+                          <span className={cn('text-[7px] absolute bottom-0.5 right-0.5 font-mono', textColorVar('content-tertiary'))}>
+                            {formatCompact(cell.expense)}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -382,115 +530,44 @@ export default function Overview() {
         </Card>
       </motion.div>
 
-      {/* Health Score + Insights Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Financial Health Score */}
-        <motion.div
-          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
-          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
-          transition={fadeUp.transition}
-        >
-          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'), 'h-full')}>
-            <CardHeader>
-              <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>Kesehatan Keuangan</h3>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className={cn('relative h-2 rounded-full overflow-hidden', bgColorVar('bg-screen'))}>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${healthScore.score}%` }}
-                      transition={{ duration: 1, ease: 'easeOut' }}
-                      className={cn(
-                        'h-full transition-colors',
-                        healthScore.score >= 80 ? 'bg-[var(--color-sentiment-positive)]' :
-                        healthScore.score >= 60 ? 'bg-yellow-500' :
-                        'bg-[var(--color-sentiment-negative)]'
-                      )}
-                    />
-                  </div>
-                </div>
-                <span className={cn('font-mono font-bold text-lg', textColorVar('content-primary'))}>{healthScore.score}</span>
-              </div>
-
-              <div className="text-xs">
-                <p className={cn('font-semibold mb-2 capitalize', textColorVar('content-primary'))}>
-                  {healthScore.level === 'excellent' ? '⭐ Sangat Baik' :
-                   healthScore.level === 'good' ? '✓ Baik' :
-                   healthScore.level === 'fair' ? '→ Cukup' :
-                   '⚠️ Perlu Perbaikan'}
-                </p>
-                <div className={cn('space-y-1.5', textColorVar('content-tertiary'))}>
-                  <div className="flex justify-between">
-                    <span>Rasio Tabungan</span>
-                    <span className={cn('font-semibold', textColorVar('content-primary'))}>{healthScore.breakdown.savingsRatio}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Disiplin Anggaran</span>
-                    <span className={cn('font-semibold', textColorVar('content-primary'))}>{healthScore.breakdown.budgetDiscipline}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dana Darurat</span>
-                    <span className={cn('font-semibold', textColorVar('content-primary'))}>{healthScore.breakdown.emergencyRunway}%</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Insight Cards */}
-        <motion.div
-          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
-          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
-          transition={fadeUp.transition}
-          className="space-y-3"
-        >
-          <h3 className={cn('text-base font-semibold mt-7', textColorVar('content-primary'))}>Insight Pengeluaran</h3>
-          {insights.anomalies.slice(0, 3).length === 0 ? (
-            <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-              <CardContent className="pt-6">
-                <p className={cn('text-sm text-center py-4', textColorVar('content-tertiary'))}>Pengeluaran Anda sesuai pola historis</p>
-              </CardContent>
-            </Card>
-          ) : (
-            insights.anomalies.slice(0, 3).map((anomaly, idx) => (
-              <motion.div
-                key={anomaly.category}
-                initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
-              >
-                <Card className={cn(
-                  bgColorVar('bg-card'),
-                  'border',
-                  anomaly.severity === 'critical' ? 'border-[var(--color-sentiment-negative)]/30' : borderColorVar('border-neutral')
-                )}>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <div className="flex items-start gap-3">
-                      {anomaly.severity === 'critical' ? (
-                        <AlertTriangle className={cn('w-4 h-4 flex-shrink-0 mt-0.5', textColorVar('sentiment-negative'))} />
-                      ) : (
-                        <Lightbulb className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className={cn('text-sm font-medium', textColorVar('content-primary'))}>{getCategoryMeta(anomaly.category).emoji} {anomaly.category}</p>
-                        <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>{anomaly.reason}</p>
-                        <div className="flex gap-2 mt-2">
-                          <span className={cn('text-xs font-semibold', textColorVar('sentiment-negative'))}>
-                            +{Math.abs(anomaly.deviationPercent)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          )}
-        </motion.div>
-      </div>
+      {/* Section 5: AI Insight Feed */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <h3 className={cn('text-base font-semibold', textColorVar('content-primary'))}>AI Insight</h3>
+              <span className={cn('text-xs font-semibold px-2 py-1 rounded', 'bg-[var(--color-brand-primary)]/10', textColorVar('brand-primary'))}>
+                {healthScore.score}/100
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {buildInsightFeed(insights, financialHealth, budgetRecs).length === 0 ? (
+              <p className={cn('text-xs text-center py-3', textColorVar('content-tertiary'))}>
+                Tambah lebih banyak transaksi untuk mendapatkan rekomendasi AI
+              </p>
+            ) : (
+              <AnimatePresence>
+                {buildInsightFeed(insights, financialHealth, budgetRecs).map((item, idx) => (
+                  <AIInsightCard
+                    key={`${item.severity}-${idx}`}
+                    severity={item.severity}
+                    emoji={item.emoji}
+                    title={item.title}
+                    body={item.body}
+                    prefersReduced={prefersReduced}
+                    delay={prefersReduced ? 0 : idx * 0.08}
+                  />
+                ))}
+              </AnimatePresence>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Desktop: Chart + Upcoming Bills | Mobile: Full-width Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -559,9 +636,9 @@ export default function Overview() {
           </CardHeader>
           <CardContent>
             {recentTx.length === 0 ? (
-              <p className={cn('text-sm text-center py-6', textColorVar('content-tertiary'))}>Belum ada transaksi</p>
+              <p className={cn('text-sm text-center py-4', textColorVar('content-tertiary'))}>Belum ada transaksi</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <AnimatePresence>
                   {recentTx.slice(0, 5).map((tx, idx) => {
                     const meta = getCategoryMeta(tx.category);
@@ -571,7 +648,7 @@ export default function Overview() {
                         initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
                         animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         transition={{ delay: prefersReduced ? 0 : idx * 0.05 }}
-                        className={cn('flex items-center justify-between p-3 rounded-lg border', bgColorVar('bg-screen'), borderColorVar('border-neutral'))}
+                        className={cn('flex items-center justify-between p-2.5 rounded-lg border', bgColorVar('bg-screen'), borderColorVar('border-neutral'))}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <span className="text-lg flex-shrink-0">{meta.emoji}</span>
