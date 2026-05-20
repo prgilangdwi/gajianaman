@@ -25,7 +25,7 @@ import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredTransactions } from '@/hooks/data/useFilteredTransactions';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
-import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
@@ -43,7 +43,7 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
     <select
       value={walletId}
       onChange={(e) => setWalletId(e.target.value)}
-      className="px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
+      className={cn('px-3 py-2 rounded-lg border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]', bgColorVar('bg-screen'), textColorVar('content-primary'))}
     >
       <option value="all">Semua Wallet</option>
       {wallets.map((w) => (
@@ -58,6 +58,21 @@ function formatDateShort(dateStr: string) {
     day: 'numeric',
     month: 'short',
   }).format(new Date(dateStr));
+}
+
+function SkeletonRow() {
+  return (
+    <div className={cn('flex items-center justify-between py-3 border-b last:border-0', borderColorVar('border-neutral'))}>
+      <div className="flex items-center gap-3 flex-1">
+        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+        <div className="space-y-1 flex-1">
+          <div className={cn('h-4 w-32 rounded animate-pulse', bgColorVar('bg-neutral'))} />
+          <div className={cn('h-3 w-24 rounded animate-pulse', bgColorVar('bg-neutral'))} />
+        </div>
+      </div>
+      <div className={cn('h-4 w-20 rounded animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+    </div>
+  );
 }
 
 export default function Riwayat() {
@@ -141,25 +156,17 @@ export default function Riwayat() {
       >
         <div className="grid grid-cols-2 gap-2 sm:gap-4">
           {[0, 1].map((i) => (
-            <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
               <CardContent className="pt-6">
-                <div className="h-4 bg-[var(--color-bg-neutral)] rounded animate-pulse w-20 mb-3" />
-                <div className="h-7 bg-[var(--color-bg-neutral)] rounded animate-pulse w-32" />
+                <div className={cn('h-4 rounded animate-pulse w-20 mb-3', bgColorVar('bg-neutral'))} />
+                <div className={cn('h-7 rounded animate-pulse w-32', bgColorVar('bg-neutral'))} />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6 space-y-3">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-3 py-3">
-                <div className="w-10 h-10 rounded-full bg-[var(--color-bg-neutral)] animate-pulse flex-shrink-0" />
-                <div className="space-y-1 flex-1">
-                  <div className="h-4 bg-[var(--color-bg-neutral)] rounded w-40 animate-pulse" />
-                  <div className="h-3 bg-[var(--color-bg-neutral)] rounded w-24 animate-pulse" />
-                </div>
-              </div>
-            ))}
+            {[0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
           </CardContent>
         </Card>
       </motion.div>
@@ -185,10 +192,10 @@ export default function Riwayat() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
-              <p className="text-xs sm:text-sm font-medium text-[var(--color-content-tertiary)] mb-2 flex items-center gap-1">
-                <ArrowUpRight className="w-4 h-4 text-[var(--color-sentiment-positive)]" /> Pemasukan
+              <p className={cn('text-xs sm:text-sm font-medium mb-2 flex items-center gap-1', textColorVar('content-tertiary'))}>
+                <ArrowUpRight className={cn('w-4 h-4', textColorVar('sentiment-positive'))} /> Pemasukan
               </p>
               <div className="font-mono font-bold text-lg sm:text-2xl">
                 <TextPositive>
@@ -203,10 +210,10 @@ export default function Riwayat() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
-              <p className="text-xs sm:text-sm font-medium text-[var(--color-content-tertiary)] mb-2 flex items-center gap-1">
-                <ArrowDownRight className="w-4 h-4 text-[var(--color-sentiment-negative)]" /> Pengeluaran
+              <p className={cn('text-xs sm:text-sm font-medium mb-2 flex items-center gap-1', textColorVar('content-tertiary'))}>
+                <ArrowDownRight className={cn('w-4 h-4', textColorVar('sentiment-negative'))} /> Pengeluaran
               </p>
               <div className="font-mono font-bold text-lg sm:text-2xl">
                 <TextNegative>
@@ -241,12 +248,12 @@ export default function Riwayat() {
             </SelectContent>
           </Select>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-content-tertiary)]" />
+            <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', textColorVar('content-tertiary'))} />
             <Input
               placeholder="Cari catatan atau kategori…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 sm:h-10 text-sm bg-[var(--color-bg-screen)] border-[var(--color-border-neutral)] text-[var(--color-content-primary)]"
+              className={cn('pl-9 h-9 sm:h-10 text-sm', bgColorVar('bg-screen'), borderColorVar('border-neutral'), textColorVar('content-primary'))}
             />
           </div>
           <DropdownMenu>
@@ -286,8 +293,8 @@ export default function Riwayat() {
                 className={cn(
                   'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border',
                   selectedTags.has(tag)
-                    ? 'bg-[var(--color-brand-primary)] text-[var(--color-brand-primary-fg)] border-[var(--color-brand-primary)]'
-                    : 'border-[var(--color-border-neutral)] text-[var(--color-content-secondary)] hover:border-[var(--color-brand-primary)]'
+                    ? cn(bgColorVar('brand-primary'), textColorVar('brand-primary-fg'), borderColorVar('brand-primary'))
+                    : cn(borderColorVar('border-neutral'), textColorVar('content-secondary'), 'hover:border-[var(--color-brand-primary)]')
                 )}
               >
                 {tag}
@@ -297,7 +304,7 @@ export default function Riwayat() {
               <button
                 type="button"
                 onClick={() => setSelectedTags(new Set())}
-                className="px-3 py-1.5 rounded-full text-xs font-medium text-[var(--color-content-tertiary)] hover:text-[var(--color-content-primary)]"
+                className={cn('px-3 py-1.5 rounded-full text-xs font-medium', textColorVar('content-tertiary'), 'hover:text-[var(--color-content-primary)]')}
               >
                 Reset
               </button>
@@ -312,22 +319,22 @@ export default function Riwayat() {
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
       >
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg text-[var(--color-content-primary)]">
+            <CardTitle className={cn('text-base sm:text-lg', textColorVar('content-primary'))}>
               {filtered.length} Transaksi
               {search && ` · "${search}"`}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {filtered.length === 0 ? (
-              <p className="text-sm text-[var(--color-content-tertiary)] text-center py-12">
+              <p className={cn('text-sm text-center py-12', textColorVar('content-tertiary'))}>
                 {search || typeFilter !== 'all'
                   ? 'Tidak ada transaksi yang cocok dengan filter'
                   : COPY.emptyStates.history}
               </p>
             ) : (
-              <div className="divide-y divide-[var(--color-border-neutral)]">
+              <div className={cn('divide-y', `divide-[${colorVar('border-neutral')}]`)}>
                 <AnimatePresence>
                   {filtered.map((tx, idx) => {
                     const meta = getCategoryMeta(tx.category);
@@ -342,15 +349,15 @@ export default function Riwayat() {
                         className="flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto"
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-[var(--color-bg-neutral)] flex items-center justify-center text-lg flex-shrink-0">
+                          <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0', bgColorVar('bg-neutral'))}>
                             {meta.emoji}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-base sm:text-sm font-semibold text-[var(--color-content-primary)] truncate">
+                            <p className={cn('text-base sm:text-sm font-semibold truncate', textColorVar('content-primary'))}>
                               {tx.note || tx.category}
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                              <span className="text-xs sm:text-[12px] text-[var(--color-content-tertiary)]">
+                              <span className={cn('text-xs sm:text-[12px]', textColorVar('content-tertiary'))}>
                                 {formatDateShort(tx.date)}
                               </span>
                               <span
@@ -367,7 +374,7 @@ export default function Riwayat() {
                                   {tx.tags.map((tag) => (
                                     <span
                                       key={tag}
-                                      className="text-[9px] sm:text-[8px] h-4 px-1 rounded-full border border-[var(--color-border-neutral)] text-[var(--color-content-tertiary)]"
+                                      className={cn('text-[9px] sm:text-[8px] h-4 px-1 rounded-full border', borderColorVar('border-neutral'), textColorVar('content-tertiary'))}
                                     >
                                       {tag}
                                     </span>
@@ -379,9 +386,9 @@ export default function Riwayat() {
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
                           {isIncome ? (
-                            <ArrowUpRight className="w-4 h-4 text-[var(--color-sentiment-positive)]" />
+                            <ArrowUpRight className={cn('w-4 h-4', textColorVar('sentiment-positive'))} />
                           ) : (
-                            <ArrowDownRight className="w-4 h-4 text-[var(--color-content-tertiary)]" />
+                            <ArrowDownRight className={cn('w-4 h-4', textColorVar('content-tertiary'))} />
                           )}
                           <span className="font-mono font-bold text-base sm:text-sm flex-shrink-0">
                             {isIncome ? (

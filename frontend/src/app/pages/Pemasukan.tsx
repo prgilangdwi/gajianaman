@@ -20,7 +20,7 @@ import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useLaporanData } from '@/hooks/data/useLaporanData';
-import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { PrivacyAmount } from '../components/PrivacyAmount';
@@ -39,7 +39,7 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
     <select
       value={walletId}
       onChange={(e) => setWalletId(e.target.value)}
-      className="px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
+      className={cn('px-3 py-2 rounded-lg border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]', bgColorVar('bg-screen'), textColorVar('content-primary'))}
     >
       <option value="all">Semua Wallet</option>
       {wallets.map((w) => (
@@ -51,15 +51,15 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-[var(--color-border-neutral)] last:border-0">
+    <div className={cn('flex items-center justify-between py-3 border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className="w-10 h-10 rounded-full bg-[var(--color-bg-neutral)] animate-pulse flex-shrink-0" />
+        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
-          <div className="h-4 w-28 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
-          <div className="h-3 w-16 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
+          <div className={cn('h-4 w-28 rounded animate-pulse', bgColorVar('bg-neutral'))} />
+          <div className={cn('h-3 w-16 rounded animate-pulse', bgColorVar('bg-neutral'))} />
         </div>
       </div>
-      <div className="h-4 w-20 bg-[var(--color-bg-neutral)] rounded animate-pulse flex-shrink-0" />
+      <div className={cn('h-4 w-20 rounded animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
     </div>
   );
 }
@@ -153,10 +153,10 @@ export default function Pemasukan() {
         transition={{ duration: 0.2 }}
         className="flex flex-col items-center justify-center py-20 gap-4"
       >
-        <AlertCircle className="w-12 h-12 text-[var(--color-sentiment-negative)]" />
+        <AlertCircle className={cn('w-12 h-12', textColorVar('sentiment-negative'))} />
         <div className="text-center space-y-2">
-          <p className="text-lg font-semibold text-[var(--color-sentiment-negative)]">Gagal memuat data</p>
-          <p className="text-sm text-[var(--color-content-tertiary)]">
+          <p className={cn('text-lg font-semibold', textColorVar('sentiment-negative'))}>Gagal memuat data</p>
+          <p className={cn('text-sm', textColorVar('content-tertiary'))}>
             {error.message || 'Coba muat ulang halaman'}
           </p>
         </div>
@@ -174,10 +174,10 @@ export default function Pemasukan() {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map((i) => (
-            <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
               <CardContent className="pt-6">
-                <div className="h-4 bg-[var(--color-bg-neutral)] rounded animate-pulse w-24 mb-3" />
-                <div className="h-8 bg-[var(--color-bg-neutral)] rounded animate-pulse w-36" />
+                <div className={cn('h-4 rounded animate-pulse w-24 mb-3', bgColorVar('bg-neutral'))} />
+                <div className={cn('h-8 rounded animate-pulse w-36', bgColorVar('bg-neutral'))} />
               </CardContent>
             </Card>
           ))}
@@ -216,12 +216,12 @@ export default function Pemasukan() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+              <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Total Pemasukan
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-[var(--color-sentiment-positive)]" />
+              <TrendingUp className={cn('h-4 w-4', textColorVar('sentiment-positive'))} />
             </CardHeader>
             <CardContent>
               <div className="font-mono font-bold text-xl md:text-2xl">
@@ -229,7 +229,7 @@ export default function Pemasukan() {
                   <PrivacyAmount value={formatRupiah(totalIncome)} />
                 </TextPositive>
               </div>
-              <p className="text-xs text-[var(--color-content-tertiary)] mt-1">bulan ini</p>
+              <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>bulan ini</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -240,9 +240,9 @@ export default function Pemasukan() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+              <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Rata-rata Bulanan
               </CardTitle>
               <span className="text-xl">📊</span>
@@ -253,7 +253,7 @@ export default function Pemasukan() {
                   <PrivacyAmount value={formatRupiah(averageMonthlyIncome)} />
                 </TextPositive>
               </div>
-              <p className="text-xs text-[var(--color-content-tertiary)] mt-1">6 bulan terakhir</p>
+              <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>6 bulan terakhir</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -264,9 +264,9 @@ export default function Pemasukan() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+              <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Pertumbuhan
               </CardTitle>
               <span className="text-xl">{momGrowth >= 0 ? '📈' : '📉'}</span>
@@ -274,11 +274,11 @@ export default function Pemasukan() {
             <CardContent>
               <div className={cn(
                 'font-mono font-bold text-xl md:text-2xl',
-                momGrowth >= 0 ? 'text-[var(--color-sentiment-positive)]' : 'text-[var(--color-sentiment-negative)]'
+                momGrowth >= 0 ? textColorVar('sentiment-positive') : textColorVar('sentiment-negative')
               )}>
                 {momGrowth > 0 ? '+' : ''}{momGrowth}%
               </div>
-              <p className="text-xs text-[var(--color-content-tertiary)] mt-1">bulan ke bulan</p>
+              <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>bulan ke bulan</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -289,15 +289,15 @@ export default function Pemasukan() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+              <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Sumber Pemasukan
               </CardTitle>
               <span className="text-xl">💰</span>
             </CardHeader>
             <CardContent>
-              <div className="font-mono font-bold text-xl md:text-2xl text-[var(--color-content-primary)]">
+              <div className={cn('font-mono font-bold text-xl md:text-2xl', textColorVar('content-primary'))}>
                 {incomeBySource.length}
               </div>
               <p className="text-xs text-[var(--color-content-tertiary)] mt-1">kategori aktif</p>

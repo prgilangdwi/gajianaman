@@ -18,7 +18,7 @@ import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useWalletStats } from '@/hooks/data/useWalletStats';
 import { useCategoryTransactions } from '@/hooks/useCategoryTransactions';
-import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { CategoryDetailModal } from '../components/CategoryDetailModal';
 import { PrivacyAmount } from '../components/PrivacyAmount';
@@ -47,15 +47,15 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto border-b border-[var(--color-border-neutral)] last:border-0">
+    <div className={cn('flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className="w-10 h-10 rounded-full bg-[var(--color-bg-neutral)] animate-pulse flex-shrink-0" />
+        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
-          <div className="h-4 w-28 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
-          <div className="h-3 w-16 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
+          <div className={cn('h-4 w-28 rounded animate-pulse', bgColorVar('bg-neutral'))} />
+          <div className={cn('h-3 w-16 rounded animate-pulse', bgColorVar('bg-neutral'))} />
         </div>
       </div>
-      <div className="h-4 w-20 bg-[var(--color-bg-neutral)] rounded animate-pulse flex-shrink-0" />
+      <div className={cn('h-4 w-20 rounded animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
     </div>
   );
 }
@@ -110,10 +110,10 @@ export default function Pengeluaran() {
         transition={{ duration: 0.2 }}
         className="flex flex-col items-center justify-center py-20 gap-4"
       >
-        <AlertCircle className="w-12 h-12 text-[var(--color-sentiment-negative)]" />
+        <AlertCircle className={cn('w-12 h-12', textColorVar('sentiment-negative'))} />
         <div className="text-center space-y-2">
-          <p className="text-lg font-semibold text-[var(--color-sentiment-negative)]">Gagal memuat data</p>
-          <p className="text-sm text-[var(--color-content-tertiary)]">
+          <p className={cn('text-lg font-semibold', textColorVar('sentiment-negative'))}>Gagal memuat data</p>
+          <p className={cn('text-sm', textColorVar('content-tertiary'))}>
             {error.message || 'Coba muat ulang halaman'}
           </p>
         </div>
@@ -131,20 +131,20 @@ export default function Pengeluaran() {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[0, 1].map((i) => (
-            <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
               <CardContent className="pt-6">
-                <div className="h-4 bg-[var(--color-bg-neutral)] rounded animate-pulse w-24 mb-3" />
-                <div className="h-8 bg-[var(--color-bg-neutral)] rounded animate-pulse w-36" />
+                <div className={cn('h-4 rounded animate-pulse w-24 mb-3', bgColorVar('bg-neutral'))} />
+                <div className={cn('h-8 rounded animate-pulse w-36', bgColorVar('bg-neutral'))} />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6">
-            <div className="h-64 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
+            <div className={cn('h-64 rounded animate-pulse', bgColorVar('bg-neutral'))} />
           </CardContent>
         </Card>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6">
             {[0, 1, 2, 3].map((i) => <SkeletonRow key={i} />)}
           </CardContent>
@@ -182,12 +182,12 @@ export default function Pengeluaran() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+              <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Total Pengeluaran
               </CardTitle>
-              <TrendingDown className="h-4 w-4 text-[var(--color-sentiment-negative)]" />
+              <TrendingDown className={cn('h-4 w-4', textColorVar('sentiment-negative'))} />
             </CardHeader>
             <CardContent>
               <div className="font-mono font-bold text-xl md:text-2xl">
@@ -195,7 +195,7 @@ export default function Pengeluaran() {
                   <PrivacyAmount value={formatRupiah(expenses)} />
                 </TextNegative>
               </div>
-              <p className="text-xs text-[var(--color-content-tertiary)] mt-1">bulan ini</p>
+              <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>bulan ini</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -205,15 +205,15 @@ export default function Pengeluaran() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs md:text-sm font-semibold text-[var(--color-content-tertiary)]">
+              <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Kategori Teratas
               </CardTitle>
               <span className="text-xl">{categoryData[0] ? categoryData[0].emoji : '—'}</span>
             </CardHeader>
             <CardContent>
-              <div className="font-bold text-xl md:text-2xl text-[var(--color-content-primary)]">
+              <div className={cn('font-bold text-xl md:text-2xl', textColorVar('content-primary'))}>
                 {categoryData[0]?.name ?? '—'}
               </div>
               <p className="text-xs text-[var(--color-content-tertiary)] mt-1">
@@ -235,9 +235,9 @@ export default function Pengeluaran() {
           animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
           transition={fadeUp.transition}
         >
-          <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base sm:text-lg text-[var(--color-content-primary)]">
+              <CardTitle className={cn('text-base sm:text-lg', textColorVar('content-primary'))}>
                 Pengeluaran per Kategori
               </CardTitle>
             </CardHeader>
@@ -250,14 +250,14 @@ export default function Pengeluaran() {
                 >
                   <XAxis
                     type="number"
-                    stroke="var(--color-content-tertiary)"
+                    stroke={colorVar('content-tertiary')}
                     fontSize={11}
                     tickFormatter={createCompactAxisFormatter()}
                   />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    stroke="var(--color-content-tertiary)"
+                    stroke={colorVar('content-tertiary')}
                     fontSize={11}
                     width={90}
                     tickFormatter={(v: string) => (v.length > 12 ? `${v.slice(0, 12)}…` : v)}
@@ -265,8 +265,8 @@ export default function Pengeluaran() {
                   <Tooltip
                     formatter={(value: number) => [formatRupiah(value), 'Pengeluaran']}
                     contentStyle={{
-                      backgroundColor: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border-neutral)',
+                      backgroundColor: colorVar('bg-elevated'),
+                      border: `1px solid ${colorVar('border-neutral')}`,
                       borderRadius: '8px',
                     }}
                   />
@@ -288,15 +288,15 @@ export default function Pengeluaran() {
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
       >
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg text-[var(--color-content-primary)]">
+            <CardTitle className={cn('text-base sm:text-lg', textColorVar('content-primary'))}>
               Detail Kategori
             </CardTitle>
           </CardHeader>
           <CardContent>
             {categoryData.length === 0 ? (
-              <p className="text-sm text-[var(--color-content-tertiary)] text-center py-12">
+              <p className={cn('text-sm text-center py-12', textColorVar('content-tertiary'))}>
                 Belum ada pengeluaran untuk bulan ini
               </p>
             ) : (
