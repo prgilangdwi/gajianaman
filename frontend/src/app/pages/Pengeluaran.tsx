@@ -18,7 +18,7 @@ import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useWalletStats } from '@/hooks/data/useWalletStats';
 import { useCategoryTransactions } from '@/hooks/useCategoryTransactions';
-import { formatRupiah, cn } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { CategoryDetailModal } from '../components/CategoryDetailModal';
 import { PrivacyAmount } from '../components/PrivacyAmount';
@@ -35,7 +35,7 @@ function WalletFilterBar({ wallets, walletId, setWalletId }: {
     <select
       value={walletId}
       onChange={(e) => setWalletId(e.target.value)}
-      className="px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
+      className={cn('px-3 py-2 rounded-lg border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]', bgColorVar('bg-screen'), textColorVar('content-primary'))}
     >
       <option value="all">Semua Wallet</option>
       {wallets.map((w) => (

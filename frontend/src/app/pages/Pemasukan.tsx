@@ -20,7 +20,7 @@ import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useLaporanData } from '@/hooks/data/useLaporanData';
-import { formatRupiah, cn } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { PrivacyAmount } from '../components/PrivacyAmount';

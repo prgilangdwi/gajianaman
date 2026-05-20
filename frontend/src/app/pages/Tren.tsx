@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';

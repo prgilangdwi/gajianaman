@@ -25,7 +25,7 @@ import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredTransactions } from '@/hooks/data/useFilteredTransactions';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
-import { formatRupiah, cn } from '@/lib/utils';
+import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
