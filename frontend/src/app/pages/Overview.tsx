@@ -126,23 +126,28 @@ function buildInsightFeed(
   });
 
   // Add health insights (max 2)
-  healthData.insights?.slice(0, 2).forEach((insight) => {
-    items.push({
-      severity: insight.severity === 'critical' ? 'critical' : insight.severity === 'warning' ? 'warning' : 'info',
-      emoji: insight.emoji || '💡',
-      title: insight.title,
-      body: insight.body,
-    });
+  // healthData.insights is array of strings like "✅ Anda sangat disiplin..."
+  healthData.insights?.slice(0, 2).forEach((insightText) => {
+    const match = insightText.match(/^([\p{Emoji}]+)\s+(.+)$/u);
+    if (match) {
+      const [, emoji, text] = match;
+      items.push({
+        severity: 'info',
+        emoji,
+        title: 'Insight',
+        body: text,
+      });
+    }
   });
 
   // Add first budget recommendation if space
   if (items.length < 4 && budgetRecs.length > 0) {
     const rec = budgetRecs[0];
     items.push({
-      severity: 'info',
-      emoji: '💰',
-      title: rec.title,
-      body: rec.body,
+      severity: rec.priority === 'critical' ? 'critical' : rec.priority === 'high' ? 'warning' : 'info',
+      emoji: rec.isIncrease ? '📈' : '📉',
+      title: rec.category,
+      body: rec.reason,
     });
   }
 
