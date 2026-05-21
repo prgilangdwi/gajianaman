@@ -1,0 +1,110 @@
+import { useState } from 'react';
+import { Button } from '../ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Eye, EyeOff, Bell, SlidersHorizontal } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { cn, textColorVar, bgColorVar } from '@/lib/utils';
+import { NAV_SECTIONS, getActiveSectionFromPath } from '@/lib/navigationConfig';
+import { useLocation } from 'react-router';
+
+interface HeaderBarProps {
+  variant: 'mobile' | 'desktop';
+  onOpenFilters?: () => void;
+  pageTitle?: string;
+}
+
+export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps) {
+  const { user } = useAuth();
+  const location = useLocation();
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+
+  const userInitials = (user?.name ?? 'U').slice(0, 2).toUpperCase();
+  const avatarSeed = user?.name ?? 'user';
+
+  // Derive page title from current route
+  const derivedTitle = pageTitle ?? (() => {
+    const sectionId = getActiveSectionFromPath(location.pathname);
+    const section = NAV_SECTIONS.find((s) => s.id === sectionId);
+    if (!section) return 'Beranda';
+    const child = section.children.find((c) => location.pathname === c.path);
+    return child?.labelId ?? section.labelId;
+  })();
+
+  if (variant === 'mobile') {
+    return (
+      <header className="lg:hidden sticky top-0 z-40 w-full border-b border-[var(--color-border-neutral)] bg-[var(--color-bg-elevated)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg-elevated)]/60">
+        <div className="flex h-14 items-center justify-between px-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h1 className="font-bold tracking-tight text-sm text-[var(--color-content-primary)] truncate">
+              {derivedTitle}
+            </h1>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {onOpenFilters && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onOpenFilters}
+                aria-label="Buka filter"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+              aria-label={isPrivacyMode ? 'Tampilkan jumlah' : 'Sembunyikan jumlah'}
+            >
+              {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+            <Avatar className="w-7 h-7">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
+              <AvatarFallback>{userInitials}</AvatarFallback>
+            </Avatar>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Desktop header
+  return (
+    <header
+      className="hidden lg:block sticky top-0 z-30 w-full border-b border-[var(--color-border-neutral)] bg-[var(--color-bg-elevated)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg-elevated)]/60"
+      role="banner"
+    >
+      <div className="flex h-14 items-center justify-between px-6">
+        <h1 className="font-bold text-base text-[var(--color-content-primary)]">{derivedTitle}</h1>
+        <div className="flex items-center gap-3">
+          <select
+            value="current-month"
+            className="px-2.5 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-border-neutral)] bg-[var(--color-bg-screen)] text-xs font-medium text-[var(--color-content-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
+            aria-label="Filter bulan"
+          >
+            <option value="current-month">This Month</option>
+            <option value="last-month">Last Month</option>
+          </select>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+            aria-label={isPrivacyMode ? 'Tampilkan jumlah' : 'Sembunyikan jumlah'}
+            className="h-8 w-8"
+          >
+            {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Notifikasi" className="h-8 w-8">
+            <Bell className="w-4 h-4" />
+          </Button>
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} alt={user?.name} />
+            <AvatarFallback>{userInitials}</AvatarFallback>
+          </Avatar>
+        </div>
+      </div>
+    </header>
+  );
+}
