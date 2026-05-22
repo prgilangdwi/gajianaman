@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -95,6 +95,7 @@ export default function Riwayat() {
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
   const [sortBy, setSortBy] = useState<SortType>('date-desc');
+  const [displayCount, setDisplayCount] = useState(20);
 
   // Screen state: loading, error, empty, or loaded
   const screenState = useScreenState({
@@ -172,6 +173,12 @@ export default function Riwayat() {
   const totalExpense = sorted
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + Number(t.amount), 0);
+
+  const visibleTransactions = useMemo(() => sorted.slice(0, displayCount), [sorted, displayCount]);
+  const hasMore = displayCount < sorted.length;
+  const handleLoadMore = useCallback(() => {
+    setDisplayCount(prev => Math.min(prev + 20, sorted.length));
+  }, [sorted.length]);
 
   // Show error state if fetch failed
   if (screenState.error) {
@@ -384,22 +391,41 @@ export default function Riwayat() {
                   : COPY.emptyStates.history}
               </p>
             ) : (
-              <div className={cn('divide-y', `divide-[${colorVar('border-neutral')}]`)}>
-                <AnimatePresence>
-                  {sorted.map((tx, idx) => {
-                    const walletData = wallets?.find((w) => w.id === tx.wallet_id);
-                    return (
-                      <ExpandableTransactionRow
-                        key={tx.id}
-                        tx={tx}
-                        index={idx}
-                        prefersReduced={prefersReduced}
-                        wallet={walletData ? { id: walletData.id, name: walletData.name } : null}
-                      />
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
+              <>
+                <div className={cn('divide-y', `divide-[${colorVar('border-neutral')}]`)}>
+                  <AnimatePresence>
+                    {visibleTransactions.map((tx, idx) => {
+                      const walletData = wallets?.find((w) => w.id === tx.wallet_id);
+                      return (
+                        <ExpandableTransactionRow
+                          key={tx.id}
+                          tx={tx}
+                          index={idx}
+                          prefersReduced={prefersReduced}
+                          wallet={walletData ? { id: walletData.id, name: walletData.name } : null}
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+                {hasMore && (
+                  <motion.div
+                    initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                    animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="pt-4 flex justify-center"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLoadMore}
+                      className="gap-2"
+                    >
+                      Muat {Math.min(20, sorted.length - displayCount)} lagi ({displayCount}/{sorted.length})
+                    </Button>
+                  </motion.div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

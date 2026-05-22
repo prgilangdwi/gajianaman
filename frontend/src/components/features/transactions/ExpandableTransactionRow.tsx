@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { cn, bgColorVar, textColorVar, borderColorVar, formatRupiah } from '@/lib/utils';
@@ -30,13 +30,16 @@ export interface ExpandableTransactionRowProps {
   wallet?: { id: string; name: string } | null;
 }
 
-export function ExpandableTransactionRow({
+function ExpandableTransactionRowComponent({
   tx,
   index,
   prefersReduced,
   wallet,
 }: ExpandableTransactionRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
   const meta = getCategoryMeta(tx.category);
   const isIncome = tx.type === 'income';
 
@@ -50,7 +53,8 @@ export function ExpandableTransactionRow({
     >
       {/* Collapsed Header */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        type="button"
+        onClick={toggleExpanded}
         className={cn(
           'w-full flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto',
           'hover:opacity-75 transition-opacity text-left'
@@ -228,3 +232,5 @@ export function ExpandableTransactionRow({
     </motion.div>
   );
 }
+
+export const ExpandableTransactionRow = React.memo(ExpandableTransactionRowComponent);
