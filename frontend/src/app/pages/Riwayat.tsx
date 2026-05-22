@@ -29,7 +29,7 @@ import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
-import { ExpandableTransactionRow } from '../components/features/transactions/ExpandableTransactionRow';
+import { ExpandableTransactionRow } from '@/components/features/transactions/ExpandableTransactionRow';
 import {
   DropdownMenu,
   DropdownMenuContent,

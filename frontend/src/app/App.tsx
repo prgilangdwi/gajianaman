@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { Suspense, lazy } from 'react';
 import { Toaster } from './components/ui/sonner';
 import { Layout } from './components/Layout';
 import { NavigationProvider } from '@/hooks/useNavigation';
@@ -6,43 +7,46 @@ import { AuthProvider, RequireAuth, useAuth } from '@/hooks/useAuth';
 import { MonthFilterProvider } from '@/hooks/useMonthFilter';
 import { PrivacyProvider } from '@/hooks/usePrivacy';
 import { WalletFilterProvider } from '@/hooks/useWalletFilter';
-import Overview from './pages/Overview';
-import Pengeluaran from './pages/Pengeluaran';
-import Pemasukan from './pages/Pemasukan';
-import Budget from './pages/Budget';
-import Goals from './pages/Goals';
-import Riwayat from './pages/Riwayat';
-import Laporan from './pages/Laporan';
-import SmartAlerts from './pages/SmartAlerts';
-import Recurring from './pages/Recurring';
-import BudgetRecommendations from './pages/BudgetRecommendations';
-import Asisten from './pages/Asisten';
-import Login from './pages/Login';
-import AuthCallback from './pages/AuthCallback';
-import LinkTelegram from './pages/LinkTelegram';
-import WalletPage from './pages/Wallet';
-import Kalender from './pages/Kalender';
-import Langganan from './pages/Langganan';
-import Landing from './pages/Landing';
-import Gajian from './pages/Gajian';
-import SplitBill from './pages/SplitBill';
-import SplitBillShare from './pages/SplitBillShare';
-import SpendingPatterns from './pages/SpendingPatterns';
-import Tren from './pages/Tren';
-import Forecasting from './pages/Forecasting';
-import CategoryBrowser from './pages/CategoryBrowser';
-import CategoryDetail from './pages/CategoryDetail';
-import Profile from './pages/Profile';
-import Onboarding from './pages/Onboarding';
-import CaraKerja from './pages/CaraKerja';
-import Fitur from './pages/Fitur';
-import Keamanan from './pages/Keamanan';
-import Testimonial from './pages/Testimonial';
-import FAQ from './pages/FAQ';
-import Blog from './pages/Blog';
-import TentangKami from './pages/TentangKami';
-import SyaratKetentuan from './pages/SyaratKetentuan';
-import KebijakanPrivasi from './pages/KebijakanPrivasi';
+import { LoadingState } from './components/ScreenStates';
+
+// Lazy-loaded pages
+const Overview = lazy(() => import('./pages/Overview'));
+const Pengeluaran = lazy(() => import('./pages/Pengeluaran'));
+const Pemasukan = lazy(() => import('./pages/Pemasukan'));
+const Budget = lazy(() => import('./pages/Budget'));
+const Goals = lazy(() => import('./pages/Goals'));
+const Riwayat = lazy(() => import('./pages/Riwayat'));
+const Laporan = lazy(() => import('./pages/Laporan'));
+const SmartAlerts = lazy(() => import('./pages/SmartAlerts'));
+const Recurring = lazy(() => import('./pages/Recurring'));
+const BudgetRecommendations = lazy(() => import('./pages/BudgetRecommendations'));
+const Asisten = lazy(() => import('./pages/Asisten'));
+const Login = lazy(() => import('./pages/Login'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const LinkTelegram = lazy(() => import('./pages/LinkTelegram'));
+const WalletPage = lazy(() => import('./pages/Wallet'));
+const Kalender = lazy(() => import('./pages/Kalender'));
+const Langganan = lazy(() => import('./pages/Langganan'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Gajian = lazy(() => import('./pages/Gajian'));
+const SplitBill = lazy(() => import('./pages/SplitBill'));
+const SplitBillShare = lazy(() => import('./pages/SplitBillShare'));
+const SpendingPatterns = lazy(() => import('./pages/SpendingPatterns'));
+const Tren = lazy(() => import('./pages/Tren'));
+const Forecasting = lazy(() => import('./pages/Forecasting'));
+const CategoryBrowser = lazy(() => import('./pages/CategoryBrowser'));
+const CategoryDetail = lazy(() => import('./pages/CategoryDetail'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const CaraKerja = lazy(() => import('./pages/CaraKerja'));
+const Fitur = lazy(() => import('./pages/Fitur'));
+const Keamanan = lazy(() => import('./pages/Keamanan'));
+const Testimonial = lazy(() => import('./pages/Testimonial'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const Blog = lazy(() => import('./pages/Blog'));
+const TentangKami = lazy(() => import('./pages/TentangKami'));
+const SyaratKetentuan = lazy(() => import('./pages/SyaratKetentuan'));
+const KebijakanPrivasi = lazy(() => import('./pages/KebijakanPrivasi'));
 
 function SmartHome() {
   const { user, isLoading } = useAuth();
@@ -59,7 +63,8 @@ export default function App() {
           <WalletFilterProvider>
             <MonthFilterProvider>
               <NavigationProvider>
-                <Routes>
+                <Suspense fallback={<LoadingState />}>
+                  <Routes>
                   <Route path="/" element={<SmartHome />} />
 
                   <Route path="/login" element={<Login />} />
@@ -150,6 +155,7 @@ export default function App() {
                   {/* Catch all */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                </Suspense>
                 <Toaster position="top-center" richColors />
               </NavigationProvider>
             </MonthFilterProvider>

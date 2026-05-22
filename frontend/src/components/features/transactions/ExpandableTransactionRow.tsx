@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { cn, bgColorVar, textColorVar, borderColorVar, formatRupiah } from '@/lib/utils';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
-import { PrivacyAmount } from '../PrivacyAmount';
-import { TextNegative, TextPositive } from '../Markup';
+import { PrivacyAmount } from '@/app/components/PrivacyAmount';
+import { TextNegative, TextPositive } from '@/app/components/Markup';
 import type { Transaction } from '@/lib/supabase';
 
 function formatDateShort(dateStr: string) {
