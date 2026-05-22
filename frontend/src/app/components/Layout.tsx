@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Outlet } from 'react-router';
 import { Plus } from 'lucide-react';
 import { Button } from './ui/button';
@@ -9,10 +9,20 @@ import { SectionTabBar } from './layout/SectionTabBar';
 import { BottomNavigation } from './BottomNavigation';
 import { MobileFilterSheet } from './layout/MobileFilterSheet';
 import { QuickAddSheet } from '@/components/features/transactions/QuickAddSheet';
+import { useTransactionEventStore } from '@/stores/transactionEventStore';
+import type { Transaction } from '@/lib/supabase';
 
 export function Layout() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const addTransaction = useTransactionEventStore((s) => s.addTransaction);
+
+  const handleQuickAddSuccess = useCallback(
+    (transaction: Transaction) => {
+      addTransaction(transaction);
+    },
+    [addTransaction]
+  );
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-screen)]">
@@ -90,6 +100,7 @@ export function Layout() {
       <QuickAddSheet
         isOpen={isQuickAddOpen}
         onClose={() => setIsQuickAddOpen(false)}
+        onSuccess={handleQuickAddSuccess}
         type="expense"
       />
     </div>

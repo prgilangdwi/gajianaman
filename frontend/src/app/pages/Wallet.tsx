@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Plus, Star, Trash2, Wallet as WalletIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWallets, setPrimaryWallet, deleteWallet } from '@/hooks/useWallets';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, cn, textColorVar, bgColorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { WalletOnboardingModal } from '../components/WalletOnboardingModal';
-import { COPY } from '@/lib/copy';
+import { WalletCard } from '@/components/features/wallets/WalletCard';
+import { useTransactionEventStore } from '@/stores/transactionEventStore';
 import type { Wallet, Transaction } from '@/lib/supabase';
 
 function estimatedBalance(wallet: Wallet, transactions: Transaction[]): number {
@@ -26,8 +26,16 @@ export default function WalletPage() {
   const { month, year } = useMonthFilter();
   const { wallets, isLoading, refetch } = useWallets(user?.userId);
   const { transactions } = useTransactions(month, year);
+  const lastAddedTransaction = useTransactionEventStore((s) => s.lastAddedTransaction);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Refetch wallets when transaction is added
+  useMemo(() => {
+    if (lastAddedTransaction) {
+      refetch();
+    }
+  }, [lastAddedTransaction, refetch]);
 
   const handleSetPrimary = async (wallet: Wallet) => {
     if (!user) return;
@@ -85,96 +93,48 @@ export default function WalletPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Wallet Summary Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Card className="border-l-4 border-l-green-500">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Total Saldo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  <PrivacyAmount value={formatRupiah(wallets.reduce((sum, w) => sum + estimatedBalance(w, transactions), 0))} />
+          {/* Hero Balance Card */}
+          <Card className={cn('overflow-hidden', bgColorVar('brand-primary-light'))}>
+            <CardContent className="p-6 space-y-3">
+              <p className={cn('text-sm font-medium uppercase tracking-wide', textColorVar('content-tertiary'))}>
+                Total Saldo Semua Dompet
+              </p>
+              <p className="text-4xl font-bold font-mono text-[var(--color-content-primary)]">
+                <PrivacyAmount value={formatRupiah(wallets.reduce((sum, w) => sum + estimatedBalance(w, transactions), 0))} />
+              </p>
+              <div className="flex items-center gap-4 text-sm">
+                <div>
+                  <span className={cn('text-xs', textColorVar('content-tertiary'))}>Dompet Aktif</span>
+                  <p className={cn('font-semibold', textColorVar('content-primary'))}>{wallets.length}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{wallets.length} wallet aktif</p>
-              </CardContent>
-            </Card>
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Wallet Utama</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-lg font-bold text-blue-600">
-                  {wallets.find((w) => w.is_primary)?.name || '—'}
+                <div>
+                  <span className={cn('text-xs', textColorVar('content-tertiary'))}>Dompet Utama</span>
+                  <p className={cn('font-semibold truncate', textColorVar('content-primary'))}>
+                    {wallets.find((w) => w.is_primary)?.name || '—'}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">untuk transaksi default</p>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Wallet Cards Grid */}
           <div>
-            <h2 className="text-sm font-semibold mb-4">Daftar Dompet</h2>
+            <h2 className={cn('text-sm font-semibold mb-4', textColorVar('content-primary'))}>
+              Daftar Dompet Anda
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {wallets.map((wallet) => {
                 const balance = estimatedBalance(wallet, transactions);
                 return (
-                  <Card key={wallet.id} className={`relative ${wallet.is_primary ? 'border-2 border-primary' : ''}`}>
-                    {wallet.is_primary && (
-                      <div className="absolute top-3 right-3">
-                        <Badge className="bg-primary/20 text-primary gap-1 text-xs">
-                          <Star className="w-3 h-3 fill-primary" />
-                          Utama
-                        </Badge>
-                      </div>
-                    )}
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
-                          {wallet.icon ?? (wallet.type === 'bank' ? '🏦' : wallet.type === 'ewallet' ? '💳' : '💵')}
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{wallet.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground capitalize">{wallet.type}</p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Estimasi Saldo</p>
-                    <p className="font-mono font-bold text-xl">
-                      <PrivacyAmount value={formatRupiah(balance)} />
-                    </p>
-                  </div>
-                  <div className="border-t pt-3 flex gap-2">
-                    {!wallet.is_primary && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleSetPrimary(wallet)}
-                      >
-                        <Star className="w-3 h-3 mr-1" />
-                        Jadikan Utama
-                      </Button>
-                    )}
-                    {wallet.is_primary && (
-                      <div className="flex-1 text-center">
-                        <p className="text-xs text-muted-foreground">Wallet Utama</p>
-                      </div>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
-                      onClick={() => handleDelete(wallet)}
-                      disabled={deleting === wallet.id}
-                      title="Hapus wallet"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  <WalletCard
+                    key={wallet.id}
+                    wallet={wallet}
+                    balance={balance}
+                    isPrimary={wallet.is_primary || false}
+                    transactions={transactions}
+                    onSetPrimary={handleSetPrimary}
+                    onDelete={handleDelete}
+                  />
                 );
               })}
             </div>
@@ -182,7 +142,7 @@ export default function WalletPage() {
 
           {/* Quick Action */}
           <div>
-            <Button onClick={() => setModalOpen(true)} variant="outline" className="w-full gap-2">
+            <Button onClick={() => setModalOpen(true)} variant="outline" className="w-full h-11 gap-2">
               <Plus className="w-4 h-4" />
               Tambah Wallet Baru
             </Button>
