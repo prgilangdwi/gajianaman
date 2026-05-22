@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2 } from 'lucide-react';
+import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2, ArrowUpDown } from 'lucide-react';
 import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -29,12 +29,19 @@ import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
-import { TransactionRow } from '../components/TransactionRow';
+import { ExpandableTransactionRow } from '../components/features/transactions/ExpandableTransactionRow';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
 import { useScreenState } from '@/hooks/useScreenState';
 import { COPY } from '@/lib/copy';
 
 type FilterType = 'all' | 'income' | 'expense';
+type SortType = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
 function WalletFilterBar({ wallets, walletId, setWalletId }: {
   wallets: import('@/lib/supabase').Wallet[];
@@ -87,6 +94,7 @@ export default function Riwayat() {
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
+  const [sortBy, setSortBy] = useState<SortType>('date-desc');
 
   // Screen state: loading, error, empty, or loaded
   const screenState = useScreenState({
@@ -142,10 +150,26 @@ export default function Riwayat() {
     tags: selectedTags,
   });
 
-  const totalIncome = filtered
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    switch (sortBy) {
+      case 'date-asc':
+        return arr.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      case 'date-desc':
+        return arr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      case 'amount-asc':
+        return arr.sort((a, b) => Number(a.amount) - Number(b.amount));
+      case 'amount-desc':
+        return arr.sort((a, b) => Number(b.amount) - Number(a.amount));
+      default:
+        return arr;
+    }
+  }, [filtered, sortBy]);
+
+  const totalIncome = sorted
     .filter((t) => t.type === 'income')
     .reduce((s, t) => s + Number(t.amount), 0);
-  const totalExpense = filtered
+  const totalExpense = sorted
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + Number(t.amount), 0);
 
@@ -262,9 +286,31 @@ export default function Riwayat() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={downloading} className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2 h-9 sm:h-10">
+                <ArrowUpDown className="w-4 h-4" />
+                <span className="hidden sm:inline">Urutkan</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortBy('date-desc')}>
+                📅 Terbaru dulu {sortBy === 'date-desc' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('date-asc')}>
+                📅 Terakhir dulu {sortBy === 'date-asc' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('amount-desc')}>
+                💰 Jumlah terbesar {sortBy === 'amount-desc' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('amount-asc')}>
+                💰 Jumlah terkecil {sortBy === 'amount-asc' && '✓'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={downloading} className="gap-2 h-9 sm:h-10">
                 {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -326,12 +372,12 @@ export default function Riwayat() {
         <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardHeader className="pb-3">
             <CardTitle className={cn('text-base sm:text-lg', textColorVar('content-primary'))}>
-              {filtered.length} Transaksi
+              {sorted.length} Transaksi
               {search && ` · "${search}"`}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <p className={cn('text-sm text-center py-12', textColorVar('content-tertiary'))}>
                 {search || typeFilter !== 'all'
                   ? 'Tidak ada transaksi yang cocok dengan filter'
@@ -340,9 +386,18 @@ export default function Riwayat() {
             ) : (
               <div className={cn('divide-y', `divide-[${colorVar('border-neutral')}]`)}>
                 <AnimatePresence>
-                  {filtered.map((tx, idx) => (
-                    <TransactionRow key={tx.id} tx={tx} index={idx} prefersReduced={prefersReduced} />
-                  ))}
+                  {sorted.map((tx, idx) => {
+                    const walletData = wallets?.find((w) => w.id === tx.wallet_id);
+                    return (
+                      <ExpandableTransactionRow
+                        key={tx.id}
+                        tx={tx}
+                        index={idx}
+                        prefersReduced={prefersReduced}
+                        wallet={walletData ? { id: walletData.id, name: walletData.name } : null}
+                      />
+                    );
+                  })}
                 </AnimatePresence>
               </div>
             )}
