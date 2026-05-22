@@ -228,7 +228,7 @@ export default function Pengeluaran() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={Math.max(categoryData.length * 40, 120)}>
+              <ResponsiveContainer width="100%" height={Math.max(categoryData.length * 40, 120)} role="img" aria-label="Pengeluaran bulanan berdasarkan kategori">
                 <BarChart
                   data={categoryData}
                   layout="vertical"

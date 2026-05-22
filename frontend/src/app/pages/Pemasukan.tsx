@@ -320,29 +320,31 @@ export default function Pemasukan() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={incomeTrend}>
+              <div role="img" aria-label="Tren pemasukan bulanan 6 bulan terakhir">
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={incomeTrend}>
                   <XAxis
                     dataKey="month"
-                    stroke="var(--color-content-tertiary)"
+                    stroke={colorVar('content-tertiary')}
                     fontSize={11}
                   />
                   <YAxis
-                    stroke="var(--color-content-tertiary)"
+                    stroke={colorVar('content-tertiary')}
                     fontSize={11}
                     tickFormatter={createCompactAxisFormatter()}
                   />
                   <Tooltip
                     formatter={(value: number) => [formatRupiah(value), 'Pemasukan']}
                     contentStyle={{
-                      backgroundColor: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border-neutral)',
+                      backgroundColor: colorVar('bg-elevated'),
+                      border: `1px solid ${colorVar('border-neutral')}`,
                       borderRadius: '8px',
                     }}
                   />
-                  <Bar dataKey="income" fill="var(--color-sentiment-positive)" radius={[4, 4, 0, 0]} isAnimationActive={!prefersReduced} />
+                  <Bar dataKey="income" fill={colorVar('sentiment-positive')} radius={[4, 4, 0, 0]} isAnimationActive={!prefersReduced} />
                 </BarChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -364,8 +366,9 @@ export default function Pemasukan() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
+                <div role="img" aria-label="Komposisi sumber pemasukan menurut kategori">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
                     <Pie
                       data={pieData}
                       cx="50%"
@@ -373,7 +376,7 @@ export default function Pemasukan() {
                       labelLine={false}
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       outerRadius={80}
-                      fill="#8884d8"
+                      fill={colorVar('brand-primary')}
                       dataKey="value"
                       isAnimationActive={!prefersReduced}
                     >
@@ -382,7 +385,8 @@ export default function Pemasukan() {
                       ))}
                     </Pie>
                   </PieChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

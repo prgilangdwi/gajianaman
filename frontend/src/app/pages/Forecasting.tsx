@@ -1,5 +1,5 @@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useExpenseForecastingWithHistory } from '@/hooks/data/useExpenseForecastingWithHistory';
 import { useWeeklyForecasting } from '@/hooks/data/useWeeklyForecasting';
 import { useBudgets } from '@/hooks/useBudgets';
-import { formatRupiah } from '@/lib/utils';
+import { cn, formatRupiah, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { Progress } from '../components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -41,14 +41,14 @@ function calculateVolatility(values: number[]): 'Low' | 'Medium' | 'High' {
   return 'High';
 }
 
-function getTrendArrow(trend: 'up' | 'down' | 'stable'): { icon: React.ReactNode; color: string; label: string } {
+function getTrendArrow(trend: 'up' | 'down' | 'stable'): { icon: React.ReactNode; colorClass: string; label: string } {
   switch (trend) {
     case 'up':
-      return { icon: <TrendingUp className="w-4 h-4" />, color: 'text-red-500', label: '↑' };
+      return { icon: <TrendingUp className="w-4 h-4" />, colorClass: textColorVar('sentiment-negative'), label: '↑' };
     case 'down':
-      return { icon: <TrendingDown className="w-4 h-4" />, color: 'text-green-500', label: '↓' };
+      return { icon: <TrendingDown className="w-4 h-4" />, colorClass: textColorVar('sentiment-positive'), label: '↓' };
     case 'stable':
-      return { icon: <Minus className="w-4 h-4" />, color: 'text-gray-500', label: '→' };
+      return { icon: <Minus className="w-4 h-4" />, colorClass: textColorVar('content-tertiary'), label: '→' };
   }
 }
 
@@ -74,9 +74,9 @@ export default function Forecasting() {
         className="space-y-6"
       >
         {[0, 1, 2].map((i) => (
-          <Card key={i} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card key={i} className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')}`}>
             <CardContent className="pt-6">
-              <div className="h-32 bg-[var(--color-bg-neutral)] rounded animate-pulse" />
+              <div className={`h-32 rounded animate-pulse ${bgColorVar('bg-neutral')}`} />
             </CardContent>
           </Card>
         ))}
@@ -92,10 +92,10 @@ export default function Forecasting() {
         transition={{ duration: 0.2 }}
         className="flex flex-col items-center justify-center py-20 gap-4"
       >
-        <AlertCircle className="w-12 h-12 text-[var(--color-sentiment-warning)]" />
+        <AlertCircle className={`w-12 h-12 ${textColorVar('sentiment-warning')}`} />
         <div className="text-center space-y-2">
-          <p className="text-lg font-semibold text-[var(--color-content-primary)]">Data tidak cukup</p>
-          <p className="text-sm text-[var(--color-content-tertiary)] max-w-xs">
+          <p className={`text-lg font-semibold ${textColorVar('content-primary')}`}>Data tidak cukup</p>
+          <p className={`text-sm ${textColorVar('content-tertiary')} max-w-xs`}>
             Prakiraan memerlukan minimal 3 bulan data historis. Terus catat pengeluaran untuk mendapatkan prakiraan yang akurat.
           </p>
         </div>
@@ -112,9 +112,9 @@ export default function Forecasting() {
     >
       {/* Tab Switcher */}
       <Tabs value={forecastMode} onValueChange={(value) => setForecastMode(value as 'monthly' | 'weekly')}>
-        <TabsList className="grid w-full grid-cols-2 bg-[var(--color-bg-neutral)]">
-          <TabsTrigger value="monthly" className="data-[state=active]:bg-[var(--color-brand-primary)]">Bulanan</TabsTrigger>
-          <TabsTrigger value="weekly" className="data-[state=active]:bg-[var(--color-brand-primary)]">Mingguan</TabsTrigger>
+        <TabsList className={`grid w-full grid-cols-2 ${bgColorVar('bg-neutral')}`}>
+          <TabsTrigger value="monthly" className={`data-[state=active]:${bgColorVar('bg-brand-primary')}`}>Bulanan</TabsTrigger>
+          <TabsTrigger value="weekly" className={`data-[state=active]:${bgColorVar('bg-brand-primary')}`}>Mingguan</TabsTrigger>
         </TabsList>
 
         {/* Monthly View */}
@@ -139,8 +139,8 @@ export default function Forecasting() {
                     onClick={() => setSelectedWeek(week)}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       selectedWeek === week
-                        ? 'bg-[var(--color-brand-primary)] text-[var(--color-brand-primary-fg)]'
-                        : 'bg-[var(--color-bg-neutral)] text-[var(--color-content-secondary)] hover:bg-[var(--color-border-neutral)]'
+                        ? `${bgColorVar('bg-brand-primary')} text-white`
+                        : `${bgColorVar('bg-neutral')} ${textColorVar('content-secondary')} hover:${borderColorVar('border-neutral')}`
                     }`}
                   >
                     Minggu {week}
@@ -167,46 +167,69 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
 
   return (
     <div className="space-y-6">
+      {/* Methodology Explanation */}
+      <Card className={`${bgColorVar('bg-elevated')} ${borderColorVar('border-neutral')} border-l-4 border-l-brand-primary`}>
+        <CardContent className="pt-6">
+          <p className={`text-sm font-semibold ${textColorVar('content-primary')} mb-2`}>💡 Cara Kerja Prakiraan</p>
+          <p className={`text-xs ${textColorVar('content-secondary')} mb-2`}>
+            Prakiraan ini menganalisis pola pengeluaran Anda dari 3 bulan terakhir menggunakan rata-rata bergerak (moving average) dan trend analysis. Semakin konsisten pola pengeluaran, semakin akurat prakiraan.
+          </p>
+          <p className={`text-xs ${textColorVar('content-tertiary')}`}>
+            <strong>Badge Volatilitas:</strong> Menunjukkan seberapa stabil pengeluaran kategori — Low (stabil) memberikan prakiraan yang lebih dapat diandalkan.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')}`}>
           <CardContent className="pt-6">
-            <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Total Prakiraan Bulan Ini</p>
-            <p className="text-2xl font-bold font-mono text-[var(--color-content-primary)] mt-2">{formatRupiah(forecast.nextMonthForecast)}</p>
+            <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Total Prakiraan Bulan Ini</p>
+            <p className={`text-2xl font-bold font-mono ${textColorVar('content-primary')} mt-2`}>{formatRupiah(forecast.nextMonthForecast)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')}`}>
           <CardContent className="pt-6">
-            <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Bulan Lalu</p>
-            <p className="text-2xl font-bold font-mono text-[var(--color-content-primary)] mt-2">{formatRupiah(lastMonthTotal)}</p>
+            <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Bulan Lalu</p>
+            <p className={`text-2xl font-bold font-mono ${textColorVar('content-primary')} mt-2`}>{formatRupiah(lastMonthTotal)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')}`}>
           <CardContent className="pt-6">
-            <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Selisih</p>
-            <p className={`text-2xl font-bold font-mono mt-2 flex items-center gap-2 ${selisih > 0 ? 'text-[var(--color-sentiment-negative)]' : 'text-[var(--color-sentiment-positive)]'}`}>
+            <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Selisih</p>
+            <p className={`text-2xl font-bold font-mono mt-2 flex items-center gap-2 ${selisih > 0 ? textColorVar('sentiment-negative') : textColorVar('sentiment-positive')}`}>
               {selisih > 0 ? '+' : ''}{formatRupiah(Math.abs(selisih))}
               {selisih > 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
             </p>
-            <p className="text-xs text-[var(--color-content-tertiary)] mt-1">{selisihPercent > 0 ? '+' : ''}{Math.round(selisihPercent)}%</p>
+            <p className={`text-xs ${textColorVar('content-tertiary')} mt-1`}>{selisihPercent > 0 ? '+' : ''}{Math.round(selisihPercent)}%</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Current Pacing Indicator */}
+      {/* Current Pacing Indicator + Budget Alert */}
       {currentPacing && (
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')} ${currentPacing.onTrack ? '' : 'border-l-4 border-l-sentiment-warning'}`}>
           <CardContent className="pt-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[var(--color-content-primary)]">Pacing Bulan Ini</p>
-                <p className="text-xs font-mono text-[var(--color-content-tertiary)]">{currentPacing.daysPassed}/{currentPacing.daysInMonth} hari ({Math.round(burnRatePercent)}%)</p>
+                <p className={`text-sm font-medium ${textColorVar('content-primary')}`}>Pacing Bulan Ini</p>
+                <p className={`text-xs font-mono ${textColorVar('content-tertiary')}`}>{currentPacing.daysPassed}/{currentPacing.daysInMonth} hari ({Math.round(burnRatePercent)}%)</p>
               </div>
               <Progress value={Math.min(burnRatePercent, 100)} className="h-2" />
-              <div className="flex items-center justify-between text-xs text-[var(--color-content-tertiary)]">
-                <span>Rate: {formatRupiah(Math.round(currentPacing.currentDailyRate))}/hari</span>
-                <span>{currentPacing.onTrack ? '✅ On Track' : '⚠️ Ahead of pace'}</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className={textColorVar('content-tertiary')}>Rate: {formatRupiah(Math.round(currentPacing.currentDailyRate))}/hari</span>
+                <span className={currentPacing.onTrack ? textColorVar('sentiment-positive') : textColorVar('sentiment-warning')}>
+                  {currentPacing.onTrack ? '✅ On Track' : '⚠️ Ahead of pace'}
+                </span>
               </div>
+              {!currentPacing.onTrack && (
+                <div className={`p-2 rounded-lg ${bgColorVar('bg-screen')} border ${borderColorVar('border-neutral')}`}>
+                  <p className={`text-xs ${textColorVar('content-secondary')}`}>
+                    <AlertTriangle className="w-3 h-3 inline mr-1" />
+                    Pengeluaran Anda mencapai {Math.round(burnRatePercent)}% dari anggaran bulanan. Pertimbangkan untuk mengurangi pengeluaran jika ingin tetap sesuai target.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -223,24 +246,29 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
           const budgetPercent = budgetAmount > 0 ? (cat.predicted / budgetAmount) * 100 : 0;
 
           const volatilityColor =
-            volatility === 'Low' ? 'bg-[var(--color-sentiment-positive)] text-white' :
-            volatility === 'Medium' ? 'bg-[var(--color-sentiment-warning)] text-white' :
-            'bg-[var(--color-sentiment-negative)] text-white';
+            volatility === 'Low' ? `${bgColorVar('sentiment-positive')} text-white` :
+            volatility === 'Medium' ? `${bgColorVar('sentiment-warning')} text-white` :
+            `${bgColorVar('sentiment-negative')} text-white`;
 
           return (
-            <Card key={cat.category} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+            <Card key={cat.category} className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')}`}>
               <CardContent className="pt-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{getCategoryEmoji(cat.category)}</span>
-                    <span className="font-semibold text-[var(--color-content-primary)]">{cat.category}</span>
+                    <div>
+                      <span className={`font-semibold ${textColorVar('content-primary')} block`}>{cat.category}</span>
+                      <p className={`text-xs ${textColorVar('content-tertiary')} mt-0.5`}>
+                        {volatility === 'Low' ? 'Pengeluaran sangat konsisten' : volatility === 'Medium' ? 'Pengeluaran cukup variabel' : 'Pengeluaran sangat berfluktuasi'}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={`text-xs ${volatilityColor}`}>
                       {volatility}
                     </Badge>
-                    <div className={`flex items-center gap-1 ${trend.color}`}>
+                    <div className={`flex items-center gap-1 ${trend.colorClass}`}>
                       {trend.icon}
                     </div>
                   </div>
@@ -249,33 +277,43 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
                 {/* Three Data Points */}
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div>
-                    <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Bulan Lalu</p>
-                    <p className="text-lg font-bold font-mono text-[var(--color-content-primary)] mt-1">{formatRupiah(cat.historical[0])}</p>
+                    <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Bulan Lalu</p>
+                    <p className={`text-lg font-bold font-mono ${textColorVar('content-primary')} mt-1`}>{formatRupiah(cat.historical[0])}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Rata-rata 3 Bln</p>
-                    <p className="text-lg font-bold font-mono text-[var(--color-content-primary)] mt-1">{formatRupiah(Math.round(avgHistorical))}</p>
+                    <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Rata-rata 3 Bln</p>
+                    <p className={`text-lg font-bold font-mono ${textColorVar('content-primary')} mt-1`}>{formatRupiah(Math.round(avgHistorical))}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Prakiraan Bln Ini</p>
-                    <p className="text-lg font-bold font-mono text-[var(--color-content-primary)] mt-1">{formatRupiah(cat.predicted)}</p>
+                    <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Prakiraan Bln Ini</p>
+                    <p className={`text-lg font-bold font-mono ${textColorVar('content-primary')} mt-1`}>{formatRupiah(cat.predicted)}</p>
                   </div>
                 </div>
+
+                {/* Budget Alert */}
+                {budgetForCategory && budgetPercent > 100 && (
+                  <div className={`p-3 rounded-lg mb-4 ${bgColorVar('bg-screen')} border ${borderColorVar('border-neutral')}`}>
+                    <p className={`text-xs font-semibold ${textColorVar('sentiment-negative')} flex items-center gap-1`}>
+                      <AlertTriangle className="w-3 h-3" /> Prakiraan melampaui budget sebesar {Math.round(budgetPercent - 100)}%
+                    </p>
+                  </div>
+                )}
 
                 {/* Budget Progress Bar */}
                 {budgetForCategory && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[var(--color-content-tertiary)]">Budget Progress</span>
-                      <span className="text-xs font-medium text-[var(--color-content-secondary)]">{Math.round(budgetPercent)}% dari budget</span>
+                      <span className={`text-xs ${textColorVar('content-tertiary')}`}>Budget Progress</span>
+                      <span className={`text-xs font-medium ${budgetPercent > 100 ? textColorVar('sentiment-negative') : textColorVar('content-secondary')}`}>{Math.round(budgetPercent)}% dari budget</span>
                     </div>
                     <Progress value={Math.min(budgetPercent, 100)} className="h-2" />
                   </div>
                 )}
 
-                {/* Sparkline Chart */}
-                <div className="mt-4 pt-4 border-t border-[var(--color-border-neutral)]">
-                  <ResponsiveContainer width="100%" height={50}>
+                {/* Sparkline Chart with Accessibility */}
+                <div className={`mt-4 pt-4 border-t ${borderColorVar('border-neutral')}`}>
+                  <div role="img" aria-label={`Trend historis 3 bulan untuk ${cat.category}: dari ${formatRupiah(cat.historical[2])} menjadi prakiraan ${formatRupiah(cat.predicted)}`}>
+                    <ResponsiveContainer width="100%" height={50}>
                     <LineChart data={[
                       { name: '3 bln lalu', value: cat.historical[2] },
                       { name: '2 bln lalu', value: cat.historical[1] },
@@ -285,12 +323,13 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
                       <Line
                         type="monotone"
                         dataKey="value"
-                        stroke="var(--color-brand-primary)"
+                        stroke={colorVar('brand-primary')}
                         dot={false}
                         strokeWidth={2}
                       />
                     </LineChart>
-                  </ResponsiveContainer>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -299,9 +338,9 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
       </div>
 
       {/* Info Box */}
-      <Card className="bg-[var(--color-bg-elevated)] border-[var(--color-border-neutral)]">
+      <Card className={cn(bgColorVar('bg-elevated'), borderColorVar('border-neutral'))}>
         <CardContent className="pt-6">
-          <p className="text-sm text-[var(--color-content-secondary)]">
+          <p className={cn('text-sm', textColorVar('content-secondary'))}>
             <strong>💡 Tips:</strong> Prakiraan ini berdasarkan pola 3 bulan terakhir. Badge volatilitas menunjukkan konsistensi pengeluaran. Semakin konsisten, semakin akurat prakiraan.
           </p>
         </CardContent>
@@ -318,70 +357,72 @@ function renderWeeklyView(forecast: any, budgets: any[]) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6">
-            <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Prakiraan Minggu Ini</p>
-            <p className="text-2xl font-bold font-mono text-[var(--color-content-primary)] mt-2">{formatRupiah(forecast.predictedTotal)}</p>
+            <p className={cn('text-xs font-medium', textColorVar('content-tertiary'))}>Prakiraan Minggu Ini</p>
+            <p className={cn('text-2xl font-bold font-mono mt-2', textColorVar('content-primary'))}>{formatRupiah(forecast.predictedTotal)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6">
-            <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Minggu Lalu</p>
-            <p className="text-2xl font-bold font-mono text-[var(--color-content-primary)] mt-2">{formatRupiah(forecast.lastWeekTotal)}</p>
+            <p className={cn('text-xs font-medium', textColorVar('content-tertiary'))}>Minggu Lalu</p>
+            <p className={cn('text-2xl font-bold font-mono mt-2', textColorVar('content-primary'))}>{formatRupiah(forecast.lastWeekTotal)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6">
-            <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Selisih</p>
-            <p className={`text-2xl font-bold font-mono mt-2 flex items-center gap-2 ${variance > 0 ? 'text-[var(--color-sentiment-negative)]' : 'text-[var(--color-sentiment-positive)]'}`}>
+            <p className={cn('text-xs font-medium', textColorVar('content-tertiary'))}>Selisih</p>
+            <p className={cn('text-2xl font-bold font-mono mt-2 flex items-center gap-2', variance > 0 ? textColorVar('sentiment-negative') : textColorVar('sentiment-positive'))}>
               {variance > 0 ? '+' : ''}{formatRupiah(Math.abs(variance))}
               {variance > 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
             </p>
-            <p className="text-xs text-[var(--color-content-tertiary)] mt-1">{variancePercent > 0 ? '+' : ''}{Math.round(variancePercent)}%</p>
+            <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>{variancePercent > 0 ? '+' : ''}{Math.round(variancePercent)}%</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Daily Breakdown Chart */}
-      <Card className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+      <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
         <CardHeader>
-          <CardTitle className="text-[var(--color-content-primary)]">Pengeluaran per Hari</CardTitle>
+          <CardTitle className={textColorVar('content-primary')}>Pengeluaran per Hari</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={forecast.dailyBreakdown}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-neutral)" />
-              <XAxis dataKey="day" stroke="var(--color-content-tertiary)" fontSize={11} />
-              <YAxis tickFormatter={createCompactAxisFormatter()} stroke="var(--color-content-tertiary)" fontSize={11} />
+          <div role="img" aria-label="Prakiraan pengeluaran harian minggu ini">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={forecast.dailyBreakdown}>
+              <CartesianGrid strokeDasharray="3 3" stroke={colorVar('border-neutral')} />
+              <XAxis dataKey="day" stroke={colorVar('content-tertiary')} fontSize={11} />
+              <YAxis tickFormatter={createCompactAxisFormatter()} stroke={colorVar('content-tertiary')} fontSize={11} />
               <Tooltip
                 formatter={(value: number) => [formatRupiah(value), '']}
                 contentStyle={{
-                  backgroundColor: 'var(--color-bg-elevated)',
-                  border: '1px solid var(--color-border-neutral)',
+                  backgroundColor: colorVar('bg-elevated'),
+                  border: `1px solid ${colorVar('border-neutral')}`,
                   borderRadius: '8px',
                 }}
               />
-              <Bar dataKey="total" fill="var(--color-sentiment-negative)" />
+              <Bar dataKey="total" fill={colorVar('sentiment-negative')} />
             </BarChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
       {/* Category Breakdown */}
       <div className="grid gap-4">
         {forecast.categoryForecasts.map((cat: any) => (
-          <Card key={cat.category} className="bg-[var(--color-bg-card)] border-[var(--color-border-neutral)]">
+          <Card key={cat.category} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getCategoryEmoji(cat.category)}</span>
-                  <span className="font-semibold text-[var(--color-content-primary)]">{cat.category}</span>
+                  <span className={cn('font-semibold', textColorVar('content-primary'))}>{cat.category}</span>
                 </div>
-                <div className={`flex items-center gap-1 ${
-                  cat.trend === 'up' ? 'text-[var(--color-sentiment-negative)]' :
-                  cat.trend === 'down' ? 'text-[var(--color-sentiment-positive)]' :
-                  'text-[var(--color-content-tertiary)]'
-                }`}>
+                <div className={cn('flex items-center gap-1',
+                  cat.trend === 'up' ? textColorVar('sentiment-negative') :
+                  cat.trend === 'down' ? textColorVar('sentiment-positive') :
+                  textColorVar('content-tertiary')
+                )}>
                   {cat.trend === 'up' && <TrendingUp className="w-4 h-4" />}
                   {cat.trend === 'down' && <TrendingDown className="w-4 h-4" />}
                   {cat.trend === 'stable' && <Minus className="w-4 h-4" />}
@@ -389,12 +430,12 @@ function renderWeeklyView(forecast: any, budgets: any[]) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Minggu Lalu</p>
-                  <p className="text-lg font-bold font-mono text-[var(--color-content-primary)] mt-1">{formatRupiah(cat.lastWeekAvg)}</p>
+                  <p className={cn('text-xs font-medium', textColorVar('content-tertiary'))}>Minggu Lalu</p>
+                  <p className={cn('text-lg font-bold font-mono mt-1', textColorVar('content-primary'))}>{formatRupiah(cat.lastWeekAvg)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--color-content-tertiary)] font-medium">Prakiraan Minggu Ini</p>
-                  <p className="text-lg font-bold font-mono text-[var(--color-content-primary)] mt-1">{formatRupiah(cat.predicted)}</p>
+                  <p className={cn('text-xs font-medium', textColorVar('content-tertiary'))}>Prakiraan Minggu Ini</p>
+                  <p className={cn('text-lg font-bold font-mono mt-1', textColorVar('content-primary'))}>{formatRupiah(cat.predicted)}</p>
                 </div>
               </div>
             </CardContent>
@@ -404,11 +445,11 @@ function renderWeeklyView(forecast: any, budgets: any[]) {
 
       {/* Insights */}
       {forecast.insights.length > 0 && (
-        <Card className="bg-[var(--color-bg-elevated)] border-[var(--color-border-neutral)]">
+        <Card className={cn(bgColorVar('bg-elevated'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-6">
             <div className="space-y-2">
               {forecast.insights.map((insight: string, idx: number) => (
-                <p key={idx} className="text-sm text-[var(--color-content-secondary)]">
+                <p key={idx} className={cn('text-sm', textColorVar('content-secondary'))}>
                   {insight}
                 </p>
               ))}
