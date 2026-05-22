@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useTransactions } from '@/hooks/useTransactions';
 import { ChatBubble, ChatInput, TypingIndicator } from '@/components/chat';
-import { useChatStore, useChatActions, useChatError } from '@/stores/chatStore';
+import { SuggestedActions } from '@/components/features/ai/SuggestedActions';
+import { useChatStore, useChatActions, useChatError, useChatSuggestedActions } from '@/stores/chatStore';
 import { cn } from '@/lib/utils';
 
 export default function Asisten() {
@@ -17,7 +18,8 @@ export default function Asisten() {
   const messages = useChatStore((state) => state.messages);
   const isLoading = useChatStore((state) => state.isLoading);
   const error = useChatError();
-  const { addMessage, setLoading, setError } = useChatActions();
+  const suggestedActions = useChatSuggestedActions();
+  const { sendMessage } = useChatActions();
 
   // Auto-scroll to bottom when new messages arrive (Principle 04: Progressive Disclosure)
   useEffect(() => {
@@ -27,58 +29,23 @@ export default function Asisten() {
   const handleSendMessage = async (userMessage: string) => {
     if (!userMessage.trim() || !user) return;
 
-    // Add user message to chat
-    const userMsg = {
-      id: Date.now().toString(),
-      content: userMessage,
-      sender: 'user' as const,
-      timestamp: new Date(),
-    };
-    addMessage(userMsg);
-    setLoading(true);
-    setError(null);
+    await sendMessage(
+      userMessage,
+      user.userId,
+      month,
+      year,
+      transactions.map((t) => ({
+        amount: t.amount,
+        type: t.type,
+        category: t.category,
+        date: t.date,
+      })),
+      messages
+    );
+  };
 
-    try {
-      // TODO(Phase 06 Batch 3): Wire actual Claude Haiku API call here
-      // For now, stub response to demonstrate multi-turn chat
-      const response = await fetch('/api/ask-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.userId,
-          question: userMessage,
-          month,
-          year,
-          conversationHistory: messages, // Pass conversation context
-          transactions: transactions.map((t) => ({
-            amount: t.amount,
-            type: t.type,
-            category: t.category,
-            date: t.date,
-          })),
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to get response');
-
-      const data = await response.json();
-      const assistantMsg = {
-        id: (Date.now() + 1).toString(),
-        content: data.response || data.answer || 'Maaf, terjadi kesalahan memproses pertanyaan Anda.',
-        sender: 'assistant' as const,
-        timestamp: new Date(),
-      };
-      addMessage(assistantMsg);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      setError({
-        message: 'Gagal mengirim pesan. Coba lagi?',
-        code: 'SEND_ERROR',
-      });
-      console.error('Chat error:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleSuggestedActionClick = async (prompt: string) => {
+    await handleSendMessage(prompt);
   };
 
   const quickPrompts = [
@@ -150,13 +117,22 @@ export default function Asisten() {
         )}
       </div>
 
-      {/* Input Area */}
-      <div className="flex-shrink-0 border-t border-[var(--color-bg-neutral)]">
-        <ChatInput
-          onSend={handleSendMessage}
-          disabled={isLoading}
-          placeholder="Tanya sesuatu..."
-        />
+      {/* Suggested Actions & Input Area */}
+      <div className="flex-shrink-0 bg-[var(--color-bg-screen)]">
+        {!isEmpty && suggestedActions.length > 0 && (
+          <SuggestedActions
+            actions={suggestedActions}
+            onActionClick={handleSuggestedActionClick}
+            isLoading={isLoading}
+          />
+        )}
+        <div className="border-t border-[var(--color-bg-neutral)]">
+          <ChatInput
+            onSend={handleSendMessage}
+            disabled={isLoading}
+            placeholder="Tanya sesuatu..."
+          />
+        </div>
       </div>
     </div>
   );
