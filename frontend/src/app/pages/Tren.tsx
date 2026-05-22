@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
@@ -18,6 +19,7 @@ export default function Tren() {
   const { month, year } = useMonthFilter();
   const { monthlyData, categoryTrend, isLoading, error } = useLaporanData(user?.userId);
   const prefersReduced = useReducedMotion();
+  const [timePeriod, setTimePeriod] = useState<'3' | '6' | '12'>('6');
 
   // Screen state: loading, error, empty, or loaded
   const screenState = useScreenState({
@@ -29,15 +31,18 @@ export default function Tren() {
   const trendData = useMemo(() => {
     if (!monthlyData || monthlyData.length === 0) return null;
 
-    const incomeVsExpense = monthlyData.map((d: MonthlyPoint) => ({
+    const periodMonths = parseInt(timePeriod);
+    const slicedData = monthlyData.slice(0, periodMonths);
+
+    const incomeVsExpense = slicedData.map((d: MonthlyPoint) => ({
       month: d.month,
       income: d.income,
       expense: d.expenses,
     }));
 
-    const savingsGrowth = monthlyData.map((d: MonthlyPoint, idx: number) => {
+    const savingsGrowth = slicedData.map((d: MonthlyPoint, idx: number) => {
       const savings = d.income - d.expenses;
-      const cumulative = monthlyData
+      const cumulative = slicedData
         .slice(0, idx + 1)
         .reduce((sum: number, m: MonthlyPoint) => sum + (m.income - m.expenses), 0);
       return {
@@ -52,7 +57,7 @@ export default function Tren() {
       categoryTrendChart: categoryTrend || [],
       savingsGrowth,
     };
-  }, [monthlyData, categoryTrend]);
+  }, [monthlyData, categoryTrend, timePeriod]);
 
   // Show error state if fetch failed
   if (screenState.error) {
@@ -95,14 +100,39 @@ export default function Tren() {
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
         transition={fadeUp.transition}
       >
-        <h1 className={cn('text-3xl font-bold flex items-center gap-2', textColorVar('content-primary'))}>
-          <TrendingUp className="w-8 h-8" />
-          Analisis Tren
-        </h1>
-        <p className={cn('mt-1', textColorVar('content-tertiary'))}>Lihat pola keuangan Anda dalam 6 bulan terakhir</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className={cn('text-3xl font-bold flex items-center gap-2', textColorVar('content-primary'))}>
+              <TrendingUp className="w-8 h-8" />
+              Analisis Tren
+            </h1>
+            <p className={cn('mt-1', textColorVar('content-tertiary'))}>Pola keuangan Anda dalam periode waktu yang dipilih</p>
+          </div>
+        </div>
       </motion.div>
 
-      {/* Income vs Expense Trend */}
+      {/* Time Period Toggle */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <div className="flex gap-2">
+          {(['3', '6', '12'] as const).map((period) => (
+            <Button
+              key={period}
+              variant={timePeriod === period ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimePeriod(period)}
+              className="text-xs"
+            >
+              {period} Bulan
+            </Button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Hero Income vs Expense Stacked Area Chart */}
       <motion.div
         initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
         animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
@@ -113,8 +143,8 @@ export default function Tren() {
             <CardTitle className={textColorVar('content-primary')}>Pemasukan vs Pengeluaran</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendData.incomeVsExpense}>
+            <ResponsiveContainer width="100%" height={350} role="img" aria-label={`Tren pemasukan dan pengeluaran dalam ${timePeriod} bulan terakhir`}>
+              <AreaChart data={trendData.incomeVsExpense}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colorVar('border-neutral')} />
                 <XAxis dataKey="month" stroke={colorVar('content-tertiary')} fontSize={11} />
                 <YAxis tickFormatter={createCompactAxisFormatter()} stroke={colorVar('content-tertiary')} fontSize={11} />
@@ -127,9 +157,27 @@ export default function Tren() {
                   }}
                 />
                 <Legend />
-                <Line type="monotone" dataKey="income" stroke={colorVar('sentiment-positive')} strokeWidth={2} name="Pemasukan" isAnimationActive={!prefersReduced} />
-                <Line type="monotone" dataKey="expense" stroke={colorVar('sentiment-negative')} strokeWidth={2} name="Pengeluaran" isAnimationActive={!prefersReduced} />
-              </LineChart>
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  name="Pemasukan"
+                  stroke={colorVar('sentiment-positive')}
+                  fill={colorVar('sentiment-positive')}
+                  stackId="1"
+                  opacity={0.6}
+                  isAnimationActive={!prefersReduced}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expense"
+                  name="Pengeluaran"
+                  stroke={colorVar('sentiment-negative')}
+                  fill={colorVar('sentiment-negative')}
+                  stackId="1"
+                  opacity={0.6}
+                  isAnimationActive={!prefersReduced}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -147,7 +195,7 @@ export default function Tren() {
               <CardTitle className={textColorVar('content-primary')}>Tren Kategori (3 Bulan)</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={300} role="img" aria-label="Tren pengeluaran berdasarkan kategori dalam 3 bulan terakhir">
                 <AreaChart data={trendData.categoryTrendChart}>
                   <CartesianGrid strokeDasharray="3 3" stroke={colorVar('border-neutral')} />
                   <XAxis dataKey="month" stroke={colorVar('content-tertiary')} fontSize={11} />
@@ -198,7 +246,7 @@ export default function Tren() {
             <CardTitle className={textColorVar('content-primary')}>Pertumbuhan Tabungan</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300} role="img" aria-label={`Pertumbuhan tabungan bulanan dan kumulatif dalam ${timePeriod} bulan terakhir`}>
               <BarChart data={trendData.savingsGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colorVar('border-neutral')} />
                 <XAxis dataKey="month" stroke={colorVar('content-tertiary')} fontSize={11} />
