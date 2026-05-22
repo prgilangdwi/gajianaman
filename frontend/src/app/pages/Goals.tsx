@@ -18,7 +18,7 @@ import {
 import { Plus, Target, ChevronDown, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { useGoals, addGoal } from '@/hooks/useGoals';
+import { useGoals, addGoal, updateGoalSaved } from '@/hooks/useGoals';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
@@ -28,7 +28,7 @@ import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive } from '../components/Markup';
 import { pageEnter, fadeUp, slideInRight, useReducedMotion } from '@/lib/transitions';
-import { GoalCard } from '../components/GoalCard';
+import { GoalMilestone } from '@/components/features/goals/GoalMilestone';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Goals() {
@@ -69,6 +69,14 @@ export default function Goals() {
       setDialogOpen(false);
       refetch();
     }
+  };
+
+  const handleContribute = async (goalId: string, contributionAmount: number) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) return;
+    const newSavedAmount = Number(goal.saved_amount) + contributionAmount;
+    await updateGoalSaved(Number(goalId), newSavedAmount);
+    refetch();
   };
 
   const achieved = goals.filter(
@@ -201,15 +209,18 @@ export default function Goals() {
           </Card>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+        <div className="space-y-4">
           <AnimatePresence>
-            {goals.map((goal, idx) => (
-              <GoalCard
+            {goals.map((goal) => (
+              <GoalMilestone
                 key={goal.id}
-                goal={goal}
-                index={idx}
-                onRefetch={refetch}
-                prefersReduced={prefersReduced}
+                goalId={goal.id}
+                name={goal.name}
+                target={Number(goal.target_amount)}
+                saved={Number(goal.saved_amount)}
+                deadline={goal.deadline}
+                onContribute={(amount) => handleContribute(goal.id, amount)}
+                isLoading={saving}
               />
             ))}
           </AnimatePresence>
