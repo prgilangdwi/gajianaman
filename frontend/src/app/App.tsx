@@ -9,43 +9,30 @@ import { PrivacyProvider } from '@/hooks/usePrivacy';
 import { WalletFilterProvider } from '@/hooks/useWalletFilter';
 import { LoadingState } from './components/ScreenStates';
 
-// Lazy-loaded pages
+// Lazy-loaded pages (15 core + 3 public = 18 total)
+// Core pages
 const Overview = lazy(() => import('./pages/Overview'));
 const Pengeluaran = lazy(() => import('./pages/Pengeluaran'));
-const Pemasukan = lazy(() => import('./pages/Pemasukan'));
 const Budget = lazy(() => import('./pages/Budget'));
 const Goals = lazy(() => import('./pages/Goals'));
 const Riwayat = lazy(() => import('./pages/Riwayat'));
 const Laporan = lazy(() => import('./pages/Laporan'));
-const SmartAlerts = lazy(() => import('./pages/SmartAlerts'));
 const Recurring = lazy(() => import('./pages/Recurring'));
-const BudgetRecommendations = lazy(() => import('./pages/BudgetRecommendations'));
 const Asisten = lazy(() => import('./pages/Asisten'));
 const Login = lazy(() => import('./pages/Login'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const LinkTelegram = lazy(() => import('./pages/LinkTelegram'));
 const WalletPage = lazy(() => import('./pages/Wallet'));
-const Kalender = lazy(() => import('./pages/Kalender'));
-const Langganan = lazy(() => import('./pages/Langganan'));
-const Landing = lazy(() => import('./pages/Landing'));
-const Gajian = lazy(() => import('./pages/Gajian'));
-const SplitBill = lazy(() => import('./pages/SplitBill'));
-const SplitBillShare = lazy(() => import('./pages/SplitBillShare'));
-const SpendingPatterns = lazy(() => import('./pages/SpendingPatterns'));
 const Tren = lazy(() => import('./pages/Tren'));
 const Forecasting = lazy(() => import('./pages/Forecasting'));
-const CategoryBrowser = lazy(() => import('./pages/CategoryBrowser'));
-const CategoryDetail = lazy(() => import('./pages/CategoryDetail'));
-const Profile = lazy(() => import('./pages/Profile'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
-const CaraKerja = lazy(() => import('./pages/CaraKerja'));
-const Fitur = lazy(() => import('./pages/Fitur'));
-const Keamanan = lazy(() => import('./pages/Keamanan'));
-const Testimonial = lazy(() => import('./pages/Testimonial'));
+
+// Categories (Tools section)
+const Categories = lazy(() => import('./pages/Categories'));
+
+// Public pages (3)
+const Landing = lazy(() => import('./pages/Landing'));
 const FAQ = lazy(() => import('./pages/FAQ'));
-const Blog = lazy(() => import('./pages/Blog'));
-const TentangKami = lazy(() => import('./pages/TentangKami'));
-const SyaratKetentuan = lazy(() => import('./pages/SyaratKetentuan'));
 const KebijakanPrivasi = lazy(() => import('./pages/KebijakanPrivasi'));
 
 function SmartHome() {
@@ -75,14 +62,7 @@ export default function App() {
                   <Route path="/split/:token" element={<SplitBillShare />} />
 
                   {/* Public Pages */}
-                  <Route path="/cara-kerja" element={<CaraKerja />} />
-                  <Route path="/fitur" element={<Fitur />} />
-                  <Route path="/keamanan" element={<Keamanan />} />
-                  <Route path="/testimonial" element={<Testimonial />} />
                   <Route path="/faq" element={<FAQ />} />
-                  <Route path="/blog" element={<Blog />} />
-                  <Route path="/tentang-kami" element={<TentangKami />} />
-                  <Route path="/syarat-ketentuan" element={<SyaratKetentuan />} />
                   <Route path="/kebijakan-privasi" element={<KebijakanPrivasi />} />
 
                   {/* Protected Routes - New Structure */}
@@ -112,23 +92,15 @@ export default function App() {
                     {/* Tools Section */}
                     <Route path="/tools/wallets" element={<WalletPage />} />
                     <Route path="/tools/recurring" element={<Recurring />} />
-                    <Route path="/tools/split" element={<SplitBill />} />
-                    <Route path="/tools/categories" element={<CategoryBrowser />} />
+                    <Route path="/tools/categories" element={<Categories />} />
                     <Route path="/tools" element={<Navigate to="/tools/wallets" replace />} />
 
                     {/* AI Section */}
                     <Route path="/ai/chat" element={<Asisten />} />
                     <Route path="/ai" element={<Navigate to="/ai/chat" replace />} />
 
-                    {/* Other protected routes (unchanged paths) */}
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/langganan" element={<Langganan />} />
-                    <Route path="/gajian" element={<Gajian />} />
-                    <Route path="/category/:category" element={<CategoryDetail />} />
-                    <Route path="/kalender" element={<Kalender />} />
-                    <Route path="/smart-alerts" element={<SmartAlerts />} />
-                    <Route path="/budget-recommendations" element={<BudgetRecommendations />} />
-                    <Route path="/spending-patterns" element={<SpendingPatterns />} />
+                    {/* History (Riwayat) */}
+                    <Route path="/tools/history" element={<Riwayat />} />
                   </Route>
 
                   {/* Backward Compatibility Redirects */}
@@ -138,7 +110,7 @@ export default function App() {
                   <Route path="/budget" element={<Navigate to="/spend/budget" replace />} />
                   <Route path="/goals" element={<Navigate to="/spend/goals" replace />} />
                   <Route path="/goal-progress" element={<Navigate to="/spend/goals" replace />} />
-                  <Route path="/riwayat" element={<Navigate to="/home/overview" replace />} />
+                  <Route path="/riwayat" element={<Navigate to="/tools/history" replace />} />
                   <Route path="/laporan" element={<Navigate to="/analytics/laporan" replace />} />
                   <Route path="/monthly-report" element={<Navigate to="/analytics/laporan" replace />} />
                   <Route path="/tren" element={<Navigate to="/analytics/tren" replace />} />
@@ -146,11 +118,7 @@ export default function App() {
                   <Route path="/categories" element={<Navigate to="/tools/categories" replace />} />
                   <Route path="/wallet" element={<Navigate to="/tools/wallets" replace />} />
                   <Route path="/recurring" element={<Navigate to="/tools/recurring" replace />} />
-                  <Route path="/split" element={<Navigate to="/tools/split" replace />} />
                   <Route path="/asisten" element={<Navigate to="/ai/chat" replace />} />
-                  <Route path="/spending-patterns" element={<Navigate to="/analytics/tren" replace />} />
-                  <Route path="/kalender" element={<Navigate to="/home/overview" replace />} />
-                  <Route path="/smart-alerts" element={<Navigate to="/home/overview" replace />} />
 
                   {/* Catch all */}
                   <Route path="*" element={<Navigate to="/" replace />} />

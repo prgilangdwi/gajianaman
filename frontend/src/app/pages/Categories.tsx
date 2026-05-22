@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../components/ui/dialog';
-import { Plus, Trash2, Merge2 } from 'lucide-react';
+import { Plus, Trash2, Merge } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -160,7 +160,7 @@ export default function Categories() {
             variant="outline"
             className="gap-2"
           >
-            <Merge2 className="w-4 h-4" /> Gabungkan
+            <Merge className="w-4 h-4" /> Gabungkan
           </Button>
           <Button
             onClick={() => setShowAddDialog(true)}
