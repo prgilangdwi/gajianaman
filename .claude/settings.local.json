@@ -92,7 +92,10 @@
       "Bash(git -C \"c:\\\\Users\\\\Gilang Dwi\\\\OneDrive\\\\Documents\\\\00. Claude AI\\\\Claude Project\\\\4. Fintrack\" add frontend/src/app/components/TransactionModal.tsx frontend/src/app/pages/Overview.tsx frontend/src/app/pages/Riwayat.tsx frontend/src/app/pages/Pengeluaran.tsx)",
       "Bash(git -C \"c:\\\\Users\\\\Gilang Dwi\\\\OneDrive\\\\Documents\\\\00. Claude AI\\\\Claude Project\\\\4. Fintrack\" commit -m \"feat\\(wallet\\): add wallet dropdown to TransactionModal + wallet filter to Overview/Riwayat/Pengeluaran\")",
       "Bash(python -c \"from bot.handlers.commands import cmd_wallet; print\\('OK'\\)\")",
-      "Bash(python -m py_compile bot/handlers/commands.py)"
+      "Bash(python -m py_compile bot/handlers/commands.py)",
+      "Bash(gh repo *)",
+      "Bash(bash ~/claude-flow/setup.sh --skip-templates)",
+      "Bash(bun pm *)"
     ]
   }
 }

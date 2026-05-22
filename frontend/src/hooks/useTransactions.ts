@@ -27,10 +27,16 @@ export function useTransactions(month: number, year: number) {
     setIsLoading(false);
   }, [user, startDate, endDate]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
-  const income = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  const expenses = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  const income = transactions
+    .filter((t) => t.type === 'income')
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const expenses = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((s, t) => s + Number(t.amount), 0);
 
   return { transactions, income, expenses, isLoading, error, refetch: fetch };
 }

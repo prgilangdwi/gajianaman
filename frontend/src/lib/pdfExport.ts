@@ -5,10 +5,7 @@ interface ExportOptions {
   title?: string;
 }
 
-export async function exportLaporanToPDF(
-  elementId: string,
-  options: ExportOptions = {},
-) {
+export async function exportLaporanToPDF(elementId: string, options: ExportOptions = {}) {
   const {
     filename = `Laporan-Keuangan-${new Date().toISOString().split('T')[0]}.pdf`,
     title = 'Laporan Keuangan',

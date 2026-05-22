@@ -8,10 +8,10 @@ import { HeaderBar } from './layout/HeaderBar';
 import { SectionTabBar } from './layout/SectionTabBar';
 import { BottomNavigation } from './BottomNavigation';
 import { MobileFilterSheet } from './layout/MobileFilterSheet';
-import { TransactionModal } from './TransactionModal';
+import { QuickAddSheet } from '@/components/features/transactions/QuickAddSheet';
 
 export function Layout() {
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   return (
@@ -70,26 +70,27 @@ export function Layout() {
         onClose={() => setIsFilterSheetOpen(false)}
       />
 
-      {/* Transaction Modal FAB Button */}
+      {/* Quick Add FAB Button — positioned to avoid BottomNav collision */}
       <motion.div
         className="fixed bottom-20 right-4 md:bottom-8 md:right-6 z-30"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >
         <Button
-          onClick={() => setIsTransactionModalOpen(true)}
+          onClick={() => setIsQuickAddOpen(true)}
           size="lg"
           className="h-14 w-14 rounded-full shadow-lg bg-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary-dark)] text-white"
-          aria-label="Tambah transaksi"
+          aria-label="Tambah transaksi cepat"
         >
           <Plus className="h-6 w-6" />
         </Button>
       </motion.div>
 
-      {/* Transaction Modal */}
-      <TransactionModal
-        isOpen={isTransactionModalOpen}
-        onClose={() => setIsTransactionModalOpen(false)}
+      {/* QuickAddSheet for mobile-first transaction entry */}
+      <QuickAddSheet
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        type="expense"
       />
     </div>
   );

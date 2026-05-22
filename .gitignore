@@ -59,3 +59,5 @@ node_modules/
 *.zip
 .claude/settings.local.json
 dashboard/.streamlit/secrets.toml
+.planning/
+.ralph/

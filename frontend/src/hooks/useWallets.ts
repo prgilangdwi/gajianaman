@@ -7,7 +7,10 @@ export function useWallets(userId: number | undefined) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    if (!userId) { setIsLoading(false); return; }
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const { data, error } = await supabase
       .from('wallets')
@@ -20,7 +23,9 @@ export function useWallets(userId: number | undefined) {
     setIsLoading(false);
   }, [userId]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   return { wallets, isLoading, refetch: fetch };
 }
@@ -42,7 +47,10 @@ export async function createWallet(
   return { error: error?.message };
 }
 
-export async function setPrimaryWallet(walletId: string, userId: number): Promise<{ error?: string }> {
+export async function setPrimaryWallet(
+  walletId: string,
+  userId: number
+): Promise<{ error?: string }> {
   await supabase.from('wallets').update({ is_primary: false }).eq('user_id', userId);
   const { error } = await supabase.from('wallets').update({ is_primary: true }).eq('id', walletId);
   return { error: error?.message };

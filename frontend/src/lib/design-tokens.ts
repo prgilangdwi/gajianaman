@@ -315,4 +315,3 @@ export const categoryColorMap: Record<string, string> = {
 export function getCategoryColor(category: string): string {
   return categoryColorMap[category] || colors.category.food;
 }
-
