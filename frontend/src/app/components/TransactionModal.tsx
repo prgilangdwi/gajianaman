@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -445,7 +445,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     }
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAiInput('');
     setParsedData(null);
     resetPhoto();
@@ -457,7 +457,13 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     setTransactionType('pengeluaran');
     setInputMethod('ai');
     onClose();
-  };
+  }, [onClose, form]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  }, [handleClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -479,7 +485,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold tracking-tight">Tambah Transaksi</DialogTitle>
         </DialogHeader>
@@ -543,12 +549,14 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                 )}
                 {multiParsedTxs.length === 0 && !parsedData ? (
                   <div className="space-y-3">
-                    <Label className="font-body">Ketik bebas (satu atau banyak transaksi), AI akan parsing untuk kamu</Label>
+                    <Label htmlFor="ai-input-pengeluaran" className="font-body">Ketik bebas (satu atau banyak transaksi), AI akan parsing untuk kamu</Label>
                     <Textarea
+                      id="ai-input-pengeluaran"
                       placeholder="Contoh:&#10;beli kopi 25rb tadi pagi&#10;atau:&#10;makan soto 50k 17 mei, isi bensin 100k hari ini, dari Adi 50rb"
                       className="min-h-[120px] resize-none"
                       value={aiInput}
                       onChange={(e) => setAiInput(e.target.value)}
+                      aria-describedby="ai-hint-pengeluaran"
                     />
                     <Button
                       onClick={handleParseAI}
@@ -853,6 +861,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       value={manualAmount}
                       onChange={(e) => setManualAmount(e.target.value)}
                       className="font-mono"
+                      aria-label="Jumlah uang transaksi"
                     />
                   </div>
 
@@ -863,6 +872,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       value={manualCategory}
                       onChange={(e) => setManualCategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      aria-label="Pilih kategori transaksi"
                     >
                       {displayCategories.map((cat) => (
                         <option key={cat.id} value={cat.id}>{cat.emoji} {cat.id}</option>
@@ -878,6 +888,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       value={manualNote}
                       onChange={(e) => setManualNote(e.target.value)}
                       className="resize-none"
+                      aria-label="Catatan atau deskripsi transaksi"
                     />
                   </div>
 
@@ -888,6 +899,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       type="date"
                       value={manualDate}
                       onChange={(e) => setManualDate(e.target.value)}
+                      aria-label="Tanggal transaksi"
                     />
                   </div>
                 </div>

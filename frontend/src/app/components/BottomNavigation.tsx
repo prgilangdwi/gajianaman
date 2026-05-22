@@ -4,6 +4,7 @@ import { NAV_SECTIONS } from '@/lib/navigationConfig';
 import { useNavigation } from '@/hooks/useNavigation';
 import { cn } from '@/lib/utils';
 import { useReducedMotion } from '@/lib/transitions';
+import { useRef, useCallback } from 'react';
 
 interface BottomNavigationProps {
   badges?: Record<string, number>; // sectionId → badge count
@@ -14,14 +15,33 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const { activeSection, navigateToSection, getActiveTab } = useNavigation();
   const prefersReduced = useReducedMotion();
+  const navRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+
+    e.preventDefault();
+    const currentIndex = NAV_SECTIONS.findIndex(s => s.id === activeSection);
+    let nextIndex = currentIndex;
+
+    if (e.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % NAV_SECTIONS.length;
+    } else if (e.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + NAV_SECTIONS.length) % NAV_SECTIONS.length;
+    }
+
+    const nextSection = NAV_SECTIONS[nextIndex];
+    navigateToSection(nextSection.id);
+  }, [activeSection, navigateToSection]);
 
   return (
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-[var(--color-border-neutral)] bg-[var(--color-bg-elevated)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg-elevated)]/60"
       role="navigation"
       aria-label="Navigasi utama"
+      onKeyDown={handleKeyDown}
     >
-      <div className="flex items-stretch justify-around h-16 max-w-md mx-auto">
+      <div className="flex items-stretch justify-around h-16 max-w-md mx-auto" ref={navRef}>
         {NAV_SECTIONS.map((section) => {
           const isActive = activeSection === section.id;
           const Icon = section.icon;

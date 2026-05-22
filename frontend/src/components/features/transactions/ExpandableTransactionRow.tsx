@@ -55,9 +55,12 @@ function ExpandableTransactionRowComponent({
       <button
         type="button"
         onClick={toggleExpanded}
+        aria-expanded={isExpanded ? 'true' : 'false'}
+        aria-label={`${isExpanded ? 'Tutup' : 'Buka'} detail transaksi: ${tx.note || tx.category}`}
         className={cn(
           'w-full flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto',
-          'hover:opacity-75 transition-opacity text-left'
+          'hover:opacity-75 transition-opacity text-left',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand-primary)]'
         )}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">

@@ -5,7 +5,8 @@
       "Bash(git merge *)",
       "Bash(bash c:/tmp/claude-flow/setup.sh --skip-templates)",
       "Bash(bash c:/tmp/claude-flow/setup.sh --skip-global --skip-templates)",
-      "Bash(gh pr create --title 'refactor\\(analytics\\): update Forecasting, Spending, and Income drill-downs \\(Phase 05 Batch 3\\)' --body ' *)"
+      "Bash(gh pr create --title 'refactor\\(analytics\\): update Forecasting, Spending, and Income drill-downs \\(Phase 05 Batch 3\\)' --body ' *)",
+      "Bash(grep -r \"console\\\\\\\\.error\\\\|TODO\\\\|FIXME\" --include=\"*.tsx\" --include=\"*.ts\" frontend/src/app/)"
     ],
     "autoApproveTools": false,
     "requireHumanValidationFor": [
