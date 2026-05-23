@@ -210,7 +210,7 @@ export default function Login() {
       </div>
 
       {/* Footer */}
-      <section style={{ background: '#ffffff', padding: '48px 24px' }}>
+      <section className={cn('px-6 py-12', bgColorVar('sidebar-bg'))}>
         <Footer />
       </section>
     </div>

@@ -65,9 +65,10 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved?: () => void;
+  transaction?: import('@/lib/supabase').Transaction;
 }
 
-export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSaved, transaction }: TransactionModalProps) {
   const { user } = useAuth();
   const { wallets } = useWallets(user?.userId);
   const { categories: dbCategories, isLoading: categoriesLoading } = useCategories('expense');
@@ -119,6 +120,8 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [allUserTags, setAllUserTags] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  const isEditMode = !!transaction;
+
   const loadTagSuggestions = async () => {
     if (!user) return;
     try {
@@ -139,6 +142,18 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
       // Silently fail if tags column doesn't exist
     }
   };
+
+  // Initialize form with transaction data in edit mode
+  useEffect(() => {
+    if (isEditMode && transaction) {
+      setTransactionType(transaction.type === 'income' ? 'pemasukan' : 'pengeluaran');
+      setManualAmount(String(transaction.amount));
+      setManualCategory(transaction.category);
+      setManualNote(transaction.note || '');
+      setManualDate(transaction.date);
+      setInputMethod('manual');
+    }
+  }, [isEditMode, transaction]);
 
   // ───── AI Parsing ─────
   const isMultiTransaction = (text: string) => {
@@ -415,8 +430,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
     setIsSaving(true);
     try {
-      const insertData = {
-        user_id: user.userId,
+      const transactionData = {
         type: form.form.type,
         amount: Number(form.form.amount),
         category: form.form.category,
@@ -430,14 +444,34 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
         }),
       };
 
-      const { error } = await supabase.from('transactions').insert(insertData);
+      let error;
+      if (isEditMode && transaction) {
+        // Update existing transaction
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update(transactionData)
+          .eq('id', transaction.id);
+        error = updateError;
+        if (!error) {
+          toast.success('Transaksi diperbarui');
+        }
+      } else {
+        // Insert new transaction
+        const { error: insertError } = await supabase.from('transactions').insert({
+          user_id: user.userId,
+          ...transactionData,
+        });
+        error = insertError;
+        if (!error) {
+          toast.success(COPY.success.transactionAdded);
+        }
+      }
 
       if (error) {
         toast.error('Gagal menyimpan: ' + error.message);
         return;
       }
 
-      toast.success(COPY.success.transactionAdded);
       onSaved?.();
       handleClose();
     } finally {

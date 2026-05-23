@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronDown, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { ChevronDown, ArrowDownRight, ArrowUpRight, Trash2, PenLine } from 'lucide-react';
 import { cn, bgColorVar, textColorVar, borderColorVar, formatRupiah } from '@/lib/utils';
 import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { PrivacyAmount } from '@/app/components/PrivacyAmount';
 import { TextNegative, TextPositive } from '@/app/components/Markup';
+import { Button } from '@/app/components/ui/button';
 import type { Transaction } from '@/lib/supabase';
 
 function formatDateShort(dateStr: string) {
@@ -28,6 +29,8 @@ export interface ExpandableTransactionRowProps {
   index: number;
   prefersReduced: boolean;
   wallet?: { id: string; name: string } | null;
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (transactionId: string) => void;
 }
 
 function ExpandableTransactionRowComponent({
@@ -35,6 +38,8 @@ function ExpandableTransactionRowComponent({
   index,
   prefersReduced,
   wallet,
+  onEdit,
+  onDelete,
 }: ExpandableTransactionRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const toggleExpanded = useCallback(() => {
@@ -226,6 +231,36 @@ function ExpandableTransactionRowComponent({
                   <span className={cn('text-right font-mono', textColorVar('content-primary'))}>
                     {Math.round(Number(tx.ai_confidence) * 100)}%
                   </span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {(onEdit || onDelete) && (
+                <div className={cn('flex gap-2 pt-4 border-t', borderColorVar('border-neutral'))}>
+                  {onEdit && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit(tx)}
+                      className="flex-1 gap-2"
+                    >
+                      <PenLine className="w-4 h-4" />
+                      <span className="hidden sm:inline">Ubah</span>
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDelete(tx.id)}
+                      className="flex-1 gap-2 hover:border-red-300 hover:text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Hapus</span>
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

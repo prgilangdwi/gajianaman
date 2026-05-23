@@ -9,10 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2, ArrowUpDown } from 'lucide-react';
 import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
@@ -24,6 +34,8 @@ import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } 
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
 import { ExpandableTransactionRow } from '@/components/features/transactions/ExpandableTransactionRow';
+import { TransactionModal } from '../components/TransactionModal';
+import type { Transaction } from '@/lib/supabase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,7 +89,7 @@ export default function Riwayat() {
   const { month, year } = useMonthFilter();
   const { walletId, setWalletId } = useWalletFilter();
   const { wallets } = useWallets(user?.userId);
-  const { transactions, isLoading, error } = useTransactions(month, year);
+  const { transactions, isLoading, error, refetch } = useTransactions(month, year);
   const prefersReduced = useReducedMotion();
 
   const filteredTransactions = walletId === 'all'
@@ -90,6 +102,11 @@ export default function Riwayat() {
   const [downloading, setDownloading] = useState(false);
   const [sortBy, setSortBy] = useState<SortType>('date-desc');
   const [displayCount, setDisplayCount] = useState(20);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
 
   // Screen state: loading, error, empty, or loaded
   const screenState = useScreenState({
@@ -126,6 +143,47 @@ export default function Riwayat() {
       toast.error('Gagal download. Coba lagi ya.');
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleEdit = useCallback((tx: Transaction) => {
+    setTransactionToEdit(tx);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const handleEditSaved = useCallback(() => {
+    setIsEditModalOpen(false);
+    setTransactionToEdit(null);
+    refetch();
+  }, [refetch]);
+
+  const handleDeleteClick = useCallback((transactionId: string) => {
+    const tx = transactions.find(t => t.id === transactionId);
+    if (tx) {
+      setTransactionToDelete(tx);
+      setDeleteConfirmOpen(true);
+    }
+  }, [transactions]);
+
+  const handleConfirmDelete = async () => {
+    if (!transactionToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transactionToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Transaksi dihapus');
+      setDeleteConfirmOpen(false);
+      setTransactionToDelete(null);
+      refetch();
+    } catch {
+      toast.error('Gagal menghapus transaksi');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -397,6 +455,8 @@ export default function Riwayat() {
                           index={idx}
                           prefersReduced={prefersReduced}
                           wallet={walletData ? { id: walletData.id, name: walletData.name } : null}
+                          onEdit={handleEdit}
+                          onDelete={handleDeleteClick}
                         />
                       );
                     })}
@@ -424,6 +484,43 @@ export default function Riwayat() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Hapus Transaksi?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {transactionToDelete && (
+              <>
+                Apakah Anda yakin ingin menghapus transaksi <strong>{transactionToDelete.note || transactionToDelete.category}</strong> sebesar <strong>{formatRupiah(Number(transactionToDelete.amount))}</strong>?
+                <br />
+                <span className="text-xs mt-2 block">Tindakan ini tidak dapat dibatalkan.</span>
+              </>
+            )}
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Menghapus...' : 'Hapus'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Transaction Modal */}
+      <TransactionModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setTransactionToEdit(null);
+        }}
+        onSaved={handleEditSaved}
+        transaction={transactionToEdit || undefined}
+      />
     </motion.div>
   );
 }
