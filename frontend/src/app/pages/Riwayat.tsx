@@ -9,12 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu';
 import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2, ArrowUpDown } from 'lucide-react';
 import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';

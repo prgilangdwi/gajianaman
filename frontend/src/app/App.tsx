@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Suspense, lazy } from 'react';
 import { Toaster } from './components/ui/sonner';
 import { Layout } from './components/Layout';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { NavigationProvider } from '@/hooks/useNavigation';
 import { AuthProvider, RequireAuth, useAuth } from '@/hooks/useAuth';
 import { MonthFilterProvider } from '@/hooks/useMonthFilter';
@@ -59,7 +60,6 @@ export default function App() {
                   <Route path="/auth/v1/callback" element={<AuthCallback />} />
                   <Route path="/link-telegram" element={<LinkTelegram />} />
                   <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/split/:token" element={<SplitBillShare />} />
 
                   {/* Public Pages */}
                   <Route path="/faq" element={<FAQ />} />
@@ -68,9 +68,11 @@ export default function App() {
                   {/* Protected Routes - New Structure */}
                   <Route
                     element={
-                      <RequireAuth>
-                        <Layout />
-                      </RequireAuth>
+                      <ErrorBoundary>
+                        <RequireAuth>
+                          <Layout />
+                        </RequireAuth>
+                      </ErrorBoundary>
                     }
                   >
                     {/* Home Section */}

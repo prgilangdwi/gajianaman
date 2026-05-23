@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Button } from '../components/ui/button';
 import {
   Collapsible,
@@ -73,7 +74,7 @@ function calculateHealthScore(monthlyData: MonthlyPoint[]): HealthScore {
   return { score: Math.min(100, score), savingsRate, status };
 }
 
-export default function Laporan() {
+function LaporanContent() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { monthlyData, categoryTrend, topCategories, isLoading } = useLaporanData(user?.userId);
@@ -717,5 +718,13 @@ export default function Laporan() {
       )}
       </div>
     </div>
+  );
+}
+
+export default function Laporan() {
+  return (
+    <ErrorBoundary>
+      <LaporanContent />
+    </ErrorBoundary>
   );
 }

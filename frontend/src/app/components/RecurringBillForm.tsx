@@ -86,7 +86,7 @@ export function RecurringBillForm({
               id="amount"
               type="number"
               min="0"
-              step="100"
+              step="1"
               placeholder="0"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
