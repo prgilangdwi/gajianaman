@@ -65,6 +65,7 @@ export function Layout() {
         {/* Main Content with padding for mobile bottom nav */}
         <main
           id="main-content"
+          role="main"
           className="flex-1 overflow-y-auto pb-20 md:pb-6 px-3 md:px-6 py-4 md:py-6"
         >
           <Outlet />

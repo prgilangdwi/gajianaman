@@ -20,11 +20,11 @@
   --color-sidebar-muted: rgba(255, 255, 255, 0.55);
   --color-sidebar-label: rgba(255, 255, 255, 0.35);
 
-  /* ─── CONTENT (text hierarchy) ───────────────────── */
+  /* ─── CONTENT (text hierarchy) — WCAG AAA (7:1) adjusted ─── */
   --color-content-primary: #1a2b1a;
-  --color-content-secondary: #454745;
-  --color-content-tertiary: #3d3f3d;
-  --color-content-link: #163d24;
+  --color-content-secondary: #3d3f3d;
+  --color-content-tertiary: #595b59;
+  --color-content-link: #0f2818;
 
   /* ─── INTERACTIVE ────────────────────────────────── */
   --color-interactive-primary: #0d2818;
@@ -202,8 +202,8 @@
     --color-sidebar-label: rgba(255, 255, 255, 0.35);
 
     --color-content-primary: #f0f0f0;
-    --color-content-secondary: #b5b5b5;
-    --color-content-tertiary: #a0a0a0;
+    --color-content-secondary: #c8c8c8;
+    --color-content-tertiary: #b0b0b0;
     --color-content-link: #4ae54a;
 
     --color-interactive-primary: #ffffff;
