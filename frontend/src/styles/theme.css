@@ -185,6 +185,103 @@
   --font-weight-normal: 400;
 }
 
+/* System preference dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* New semantic tokens — dark mode */
+    --color-brand-primary: #4ae54a;
+    --color-brand-primary-dark: #38c438;
+    --color-brand-primary-light: #1a4620;
+    --color-brand-primary-fg: #ffffff;
+
+    --color-sidebar-bg: #0d2818;
+    --color-sidebar-active-bg: #1f4a2d;
+    --color-sidebar-hover-bg: rgba(74, 229, 74, 0.12);
+    --color-sidebar-text: #ffffff;
+    --color-sidebar-muted: rgba(255, 255, 255, 0.55);
+    --color-sidebar-label: rgba(255, 255, 255, 0.35);
+
+    --color-content-primary: #f0f0f0;
+    --color-content-secondary: #b5b5b5;
+    --color-content-tertiary: #a0a0a0;
+    --color-content-link: #4ae54a;
+
+    --color-interactive-primary: #ffffff;
+    --color-interactive-accent: #4ae54a;
+    --color-interactive-secondary: #808080;
+    --color-interactive-control: #0d2818;
+
+    --color-bg-screen: #0f1110;
+    --color-bg-card: #1a1a1a;
+    --color-bg-card-hover: #242424;
+    --color-bg-elevated: #1a1a1a;
+    --color-bg-neutral: rgba(74, 229, 74, 0.12);
+    --color-bg-overlay: rgba(22, 51, 0, 0.24);
+
+    --color-border-neutral: rgba(255, 255, 255, 0.12);
+    --color-border-overlay: rgba(255, 255, 255, 0.12);
+
+    --color-sentiment-positive: #95fd9a;
+    --color-sentiment-positive-bg: #1b3a1b;
+    --color-sentiment-negative: #ff9999;
+    --color-sentiment-negative-bg: #3d2120;
+    --color-sentiment-warning: #f5d642;
+    --color-sentiment-warning-bg: #2d2a1a;
+
+    /* Category colors in dark mode */
+    --color-cat-food: #f59e0b;
+    --color-cat-transport: #3b82f6;
+    --color-cat-groceries: #10b981;
+    --color-cat-shopping: #ec4899;
+    --color-cat-bills: #8b5cf6;
+    --color-cat-health: #ef4444;
+    --color-cat-entertainment: #f97316;
+    --color-cat-education: #06b6d4;
+    --color-cat-income: #059669;
+    --color-cat-savings: #0891b2;
+
+    /* Legacy dark tokens — brand aligned */
+    --background: #0f1110;
+    --foreground: #f0f0f0;
+    --card: #1a1a1a;
+    --card-foreground: #f0f0f0;
+    --popover: #1a1a1a;
+    --popover-foreground: #f0f0f0;
+    --primary: #4ae54a;
+    --primary-foreground: #0d2818;
+    --primary-dark: #38c428;
+    --primary-light: #1a4620;
+    --secondary: #163d24;
+    --secondary-foreground: #ffffff;
+    --muted: #454745;
+    --muted-foreground: #b5b5b5;
+    --accent: #1a4620;
+    --accent-foreground: #f0f0f0;
+    --destructive: #fecaca;
+    --destructive-foreground: #3d2120;
+    --border: #454745;
+    --input: #242424;
+    --input-background: #1a1a1a;
+    --ring: #4ae54a;
+    --font-weight-medium: 500;
+    --font-weight-normal: 400;
+    --chart-1: #4ae54a;
+    --chart-2: #3b82f6;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ec4899;
+    --sidebar: #0d2818;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #4ae54a;
+    --sidebar-primary-foreground: #0d2818;
+    --sidebar-accent: #1f4a2d;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1f4a2d;
+    --sidebar-ring: #4ae54a;
+  }
+}
+
+/* Manual dark mode override — when user toggles dark theme */
 .dark {
   /* New semantic tokens — dark mode */
   --color-brand-primary: #4ae54a;
