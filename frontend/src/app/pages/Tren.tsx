@@ -1,15 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
+import ChartInsight from '@/app/components/ChartInsight';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { useLaporanData } from '@/hooks/data/useLaporanData';
+import { useTransactions } from '@/hooks/useTransactions';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
 import { useScreenState } from '@/hooks/useScreenState';
 import type { MonthlyPoint } from '@/hooks/data/useLaporanData';
@@ -18,8 +20,11 @@ export default function Tren() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { monthlyData, categoryTrend, isLoading, error } = useLaporanData(user?.userId);
+  const { transactions } = useTransactions();
   const prefersReduced = useReducedMotion();
   const [timePeriod, setTimePeriod] = useState<'3' | '6' | '12'>('6');
+  const [trendInsight, setTrendInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
 
   // Screen state: loading, error, empty, or loaded
   const screenState = useScreenState({
@@ -58,6 +63,37 @@ export default function Tren() {
       savingsGrowth,
     };
   }, [monthlyData, categoryTrend, timePeriod]);
+
+  useEffect(() => {
+    const generateTrendInsight = async () => {
+      if (!transactions || transactions.length === 0) return;
+
+      setInsightLoading(true);
+      try {
+        const response = await fetch('/api/ask-assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: `Analisis tren ${timePeriod} bulan terakhir saya. Jelaskan arah tren pengeluaran, tingkat pertumbuhan, dan proyeksi budget bulan depan berdasarkan pola historis.`,
+            transactions,
+            month,
+            year,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setTrendInsight(result.response);
+        }
+      } catch (error) {
+        console.error('Failed to generate trend insight:', error);
+      } finally {
+        setInsightLoading(false);
+      }
+    };
+
+    generateTrendInsight();
+  }, [transactions, timePeriod, month, year]);
 
   // Show error state if fetch failed
   if (screenState.error) {
@@ -181,6 +217,20 @@ export default function Tren() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Trend Insight */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <ChartInsight
+          insight={trendInsight || undefined}
+          icon="📈"
+          loading={insightLoading}
+          error={!insightLoading && !trendInsight}
+        />
       </motion.div>
 
       {/* Category Trend */}

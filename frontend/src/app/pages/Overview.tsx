@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useDashboardData } from '@/hooks/data/useDashboardData';
+import { useTransactions } from '@/hooks/useTransactions';
 import {
   StatCard,
   ChartCard,
@@ -12,6 +14,7 @@ import {
   DashboardSkeleton,
   CollapsibleSection,
 } from '@/app/components/dashboard';
+import ChartInsight from '@/app/components/ChartInsight';
 import { formatRupiah, cn, bgColorVar, textColorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { format } from 'date-fns';
@@ -24,6 +27,40 @@ export default function Overview() {
   const prefersReduced = useReducedMotion();
 
   const data = useDashboardData();
+  const { transactions } = useTransactions();
+  const [chartInsight, setChartInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+
+  useEffect(() => {
+    const generateInsight = async () => {
+      if (!transactions || transactions.length === 0) return;
+
+      setInsightLoading(true);
+      try {
+        const response = await fetch('/api/ask-assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: 'Analisis ringkas pola pengeluaran saya bulan ini. Fokus pada kategori terbesar, tren pengeluaran, dan saran penghematan praktis.',
+            transactions,
+            month,
+            year,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setChartInsight(result.response);
+        }
+      } catch (error) {
+        console.error('Failed to generate chart insight:', error);
+      } finally {
+        setInsightLoading(false);
+      }
+    };
+
+    generateInsight();
+  }, [transactions, month, year]);
 
   // Loading state
   if (data.isLoading) {
@@ -216,6 +253,20 @@ export default function Overview() {
             )}
           </ChartCard>
         </CollapsibleSection>
+      </motion.div>
+
+      {/* 5.5. Chart Insight */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+        animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+        transition={fadeUp.transition}
+      >
+        <ChartInsight
+          insight={chartInsight || undefined}
+          icon="📊"
+          loading={insightLoading}
+          error={!insightLoading && !chartInsight}
+        />
       </motion.div>
 
       {/* 6. Top 3 Categories */}
