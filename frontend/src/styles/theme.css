@@ -23,7 +23,7 @@
   /* ─── CONTENT (text hierarchy) ───────────────────── */
   --color-content-primary: #1a2b1a;
   --color-content-secondary: #454745;
-  --color-content-tertiary: #6a6c6a;
+  --color-content-tertiary: #3d3f3d;
   --color-content-link: #163d24;
 
   /* ─── INTERACTIVE ────────────────────────────────── */
@@ -45,11 +45,11 @@
   --color-border-overlay: rgba(14, 15, 12, 0.12);
 
   /* ─── SENTIMENT ──────────────────────────────────── */
-  --color-sentiment-positive: #2f5711;
+  --color-sentiment-positive: #1d4b09;
   --color-sentiment-positive-bg: #f0fdf4;
-  --color-sentiment-negative: #a8200d;
+  --color-sentiment-negative: #7a1c0a;
   --color-sentiment-negative-bg: #fef2f2;
-  --color-sentiment-warning: #edc843;
+  --color-sentiment-warning: #8b6a00;
   --color-sentiment-warning-bg: #fffbeb;
 
   /* ─── CATEGORY COLORS ────────────────────────────── */
@@ -201,7 +201,7 @@
 
   --color-content-primary: #f0f0f0;
   --color-content-secondary: #b5b5b5;
-  --color-content-tertiary: #808080;
+  --color-content-tertiary: #a0a0a0;
   --color-content-link: #4ae54a;
 
   --color-interactive-primary: #ffffff;
@@ -219,11 +219,11 @@
   --color-border-neutral: rgba(255, 255, 255, 0.12);
   --color-border-overlay: rgba(255, 255, 255, 0.12);
 
-  --color-sentiment-positive: #86efac;
+  --color-sentiment-positive: #95fd9a;
   --color-sentiment-positive-bg: #1b3a1b;
-  --color-sentiment-negative: #fecaca;
+  --color-sentiment-negative: #ff9999;
   --color-sentiment-negative-bg: #3d2120;
-  --color-sentiment-warning: #edc843;
+  --color-sentiment-warning: #f5d642;
   --color-sentiment-warning-bg: #2d2a1a;
 
   /* Category colors in dark mode */

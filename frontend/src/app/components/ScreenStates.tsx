@@ -72,10 +72,10 @@ export function EmptyState({
       transition={{ duration: 0.2 }}
       className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4"
     >
-      {icon || <TrendingUp className={cn('w-12 h-12 opacity-40', textColorVar('content-tertiary'))} />}
+      {icon || <TrendingUp className={cn('w-12 h-12 opacity-60', textColorVar('content-secondary'))} />}
       <div className="text-center space-y-2">
         <p className={cn('text-lg font-semibold', textColorVar('content-primary'))}>{title}</p>
-        <p className={cn('text-sm max-w-sm', textColorVar('content-tertiary'))}>{message}</p>
+        <p className={cn('text-sm max-w-sm', textColorVar('content-secondary'))}>{message}</p>
       </div>
       {onAction && actionLabel && (
         <Button onClick={onAction} variant="default" className="mt-2">
