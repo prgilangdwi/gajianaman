@@ -31,6 +31,9 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 // Categories (Tools section)
 const Categories = lazy(() => import('./pages/Categories'));
 
+// Settings
+const Settings = lazy(() => import('./pages/Settings'));
+
 // Public pages (3)
 const Landing = lazy(() => import('./pages/Landing'));
 const FAQ = lazy(() => import('./pages/FAQ'));
@@ -103,6 +106,9 @@ export default function App() {
 
                     {/* History (Riwayat) */}
                     <Route path="/tools/history" element={<Riwayat />} />
+
+                    {/* Settings */}
+                    <Route path="/settings" element={<Settings />} />
                   </Route>
 
                   {/* Backward Compatibility Redirects */}

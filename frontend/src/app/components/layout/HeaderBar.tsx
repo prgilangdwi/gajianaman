@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Eye, EyeOff, Bell, SlidersHorizontal } from 'lucide-react';
+import { Eye, EyeOff, Bell, SlidersHorizontal, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn, textColorVar, bgColorVar } from '@/lib/utils';
 import { NAV_SECTIONS, getActiveSectionFromPath } from '@/lib/navigationConfig';
@@ -99,6 +100,11 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
           <Button variant="ghost" size="icon" aria-label="Notifikasi" className="h-8 w-8">
             <Bell className="w-4 h-4" />
           </Button>
+          <Link to="/settings">
+            <Button variant="ghost" size="icon" aria-label="Pengaturan" className="h-8 w-8">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
           <Avatar className="h-8 w-8">
             <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} alt={user?.name} />
             <AvatarFallback>{userInitials}</AvatarFallback>

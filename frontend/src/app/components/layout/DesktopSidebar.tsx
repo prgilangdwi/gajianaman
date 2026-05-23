@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { LogOut, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronRight, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAV_SECTIONS, type NavSection } from '@/lib/navigationConfig';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -84,12 +84,25 @@ export function DesktopSidebar({ isRailMode = false }: DesktopSidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className={cn('shrink-0 border-t border-[var(--color-border-neutral)] p-2', isRailMode && 'p-1')}>
+        <div className={cn('shrink-0 border-t border-[var(--color-border-neutral)] p-2 space-y-1', isRailMode && 'p-1')}>
           {!isRailMode && (
             <p className="text-[10px] text-[var(--color-content-tertiary)] text-center mb-2">
               Powered by Claude · Supabase
             </p>
           )}
+          <Link to="/settings">
+            <Button
+              variant="ghost"
+              className={cn(
+                'w-full text-[var(--color-content-tertiary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-content-primary)]',
+                isRailMode ? 'justify-center p-2' : 'justify-start text-xs'
+              )}
+              aria-label="Settings"
+            >
+              <SettingsIcon className={cn('w-4 h-4', !isRailMode && 'mr-2')} />
+              {!isRailMode && 'Settings'}
+            </Button>
+          </Link>
           <Button
             variant="ghost"
             onClick={logout}
