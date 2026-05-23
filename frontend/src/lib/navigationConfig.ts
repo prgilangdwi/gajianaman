@@ -67,6 +67,13 @@ export const NAV_SECTIONS: NavSection[] = [
         path: '/spend/spending',
       },
       {
+        id: 'income',
+        label: 'Income',
+        labelId: 'Pemasukan',
+        icon: TrendingUp,
+        path: '/spend/income',
+      },
+      {
         id: 'budget',
         label: 'Budget',
         labelId: 'Anggaran',
@@ -171,7 +178,7 @@ export const NAV_SECTIONS: NavSection[] = [
 export const ROUTE_REDIRECTS: Record<string, string> = {
   '/overview': '/home/overview',
   '/pengeluaran': '/spend/spending',
-  '/pemasukan': '/spend/spending', // Merged into spending view
+  '/pemasukan': '/spend/income',
   '/budget': '/spend/budget',
   '/goals': '/spend/goals',
   '/goal-progress': '/spend/goals',

@@ -14,6 +14,7 @@ import { LoadingState } from './components/ScreenStates';
 // Core pages
 const Overview = lazy(() => import('./pages/Overview'));
 const Pengeluaran = lazy(() => import('./pages/Pengeluaran'));
+const Pemasukan = lazy(() => import('./pages/Pemasukan'));
 const Budget = lazy(() => import('./pages/Budget'));
 const Goals = lazy(() => import('./pages/Goals'));
 const Riwayat = lazy(() => import('./pages/Riwayat'));
@@ -84,6 +85,7 @@ export default function App() {
 
                     {/* Spend Section */}
                     <Route path="/spend/spending" element={<Pengeluaran />} />
+                    <Route path="/spend/income" element={<Pemasukan />} />
                     <Route path="/spend/budget" element={<Budget />} />
                     <Route path="/spend/goals" element={<Goals />} />
                     <Route path="/spend" element={<Navigate to="/spend/spending" replace />} />

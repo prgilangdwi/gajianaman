@@ -4,6 +4,8 @@ import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Eye, EyeOff, Bell, SlidersHorizontal, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallets } from '@/hooks/useWallets';
+import { useDompetFilter } from '@/hooks/useDompetFilter';
 import { cn, textColorVar, bgColorVar } from '@/lib/utils';
 import { NAV_SECTIONS, getActiveSectionFromPath } from '@/lib/navigationConfig';
 import { useLocation } from 'react-router';
@@ -18,6 +20,8 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
   const { user } = useAuth();
   const location = useLocation();
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  const { wallets = [] } = useWallets(user?.userId);
+  const { selectedDompet, setDompet } = useDompetFilter();
 
   const userInitials = (user?.name ?? 'U').slice(0, 2).toUpperCase();
   const avatarSeed = user?.name ?? 'user';
@@ -80,6 +84,17 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
       <div className="flex h-14 items-center justify-between px-6">
         <h1 className="font-bold text-base text-[var(--color-content-primary)]">{derivedTitle}</h1>
         <div className="flex items-center gap-3">
+          <select
+            value={selectedDompet || 'all'}
+            onChange={(e) => setDompet(e.target.value === 'all' ? null : e.target.value)}
+            className="px-2.5 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-border-neutral)] bg-[var(--color-bg-screen)] text-xs font-medium text-[var(--color-content-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
+            aria-label="Filter dompet"
+          >
+            <option value="all">Semua Dompet</option>
+            {wallets.map((w) => (
+              <option key={w.id} value={w.id}>{w.name}{w.is_primary ? ' ⭐' : ''}</option>
+            ))}
+          </select>
           <select
             value="current-month"
             className="px-2.5 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-border-neutral)] bg-[var(--color-bg-screen)] text-xs font-medium text-[var(--color-content-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
