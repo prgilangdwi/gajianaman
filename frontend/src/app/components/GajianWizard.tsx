@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useBudgetRecommendation } from '@/hooks/useBudgetRecommendation';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -83,6 +85,9 @@ export default function GajianWizard({ onBack }: GajianWizardProps) {
   });
   // tracks whether user has attempted to advance from step 2 without valid data
   const [step2Attempted, setStep2Attempted] = useState(false);
+
+  const navigate = useNavigate();
+  const { isLoading, generateBudget } = useBudgetRecommendation();
 
   // ── Validation ──────────────────────────────────────────────────────────────
 
@@ -175,10 +180,16 @@ export default function GajianWizard({ onBack }: GajianWizardProps) {
 
   // ── Submit ───────────────────────────────────────────────────────────────────
 
-  const handleSubmit = useCallback(() => {
-    console.log('[GajianWizard] formData:', formData);
-    toast('Fitur ini akan tersedia di update berikutnya! 🎉');
-  }, [formData]);
+  const handleSubmit = useCallback(async () => {
+    const result = await generateBudget(formData);
+    if (result.budgetItems.length === 0) {
+      toast.error('Gagal menghasilkan anggaran. Silakan coba lagi.', {
+        action: { label: 'Coba Lagi', onClick: handleSubmit },
+      });
+      return;
+    }
+    navigate('/gajian/confirm', { state: { recommendation: result, formData } });
+  }, [formData, generateBudget, navigate]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -274,11 +285,18 @@ export default function GajianWizard({ onBack }: GajianWizardProps) {
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={!canProceedStep3()}
+              disabled={!canProceedStep3() || isLoading}
               className="bg-[var(--color-brand-primary)] text-white hover:opacity-90"
               aria-label="Hasilkan rekomendasi anggaran"
             >
-              Hasilkan Anggaran
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  Memproses...
+                </span>
+              ) : (
+                'Hasilkan Anggaran'
+              )}
             </Button>
           )}
         </div>
