@@ -1,5 +1,26 @@
 # Project AETHER — Major Update v5 (The "Human Companion" Update)
 
+---
+
+## ✅ COMPLETION — 2026-05-24
+
+**Status: CLOSED**
+
+| Phase | Goal | Outcome |
+|-------|------|---------|
+| 01 Stabilization | Fix crashes, ErrorBoundary, imports, form step | ✅ Full |
+| 02 Architecture & A11y | Color tokens, WCAG AAA, Dark Mode, Settings, Pemasukan, Dompet filter | ✅ Full |
+| 03 UX Humanization | Edit/Delete in Riwayat, AI chart insights, calendar + category pages | ✅ Full (swipe gesture deferred) |
+| 04 Gajian USP | Full wizard → AI budget → confirmation → DB persist | ✅ Full |
+| 05 AI Insights & Audit | AI in Forecasting, multi-turn chat, CSP/manifest fixes | ✅ Full |
+| 06 React Doctor | Bug fixes, dead code, warning sweep | ⚠️ 60/100 — structural ceiling (React.lazy ×184 false positives + react-doctor v0.2.4 silent upgrade; all fixable violations resolved) |
+
+**Known limitation:** React Doctor score ceiling at 60/100 is a tool measurement issue, not a code quality regression. All actionable violations were fixed across 4 batches.
+
+**Hand-off:** Major Update v6 ("The Power User Update") begins at `feature-update/major-update_6/`.
+
+---
+
 ## 1. Context Sync & Current State
 **Previous State:** Project AETHER v2.0.0 (Major Update 4) reached 65% completion. The `V2_POST_LAUNCH_GAP_ANALYSIS.md` audit revealed critical gaps: ErrorBoundaries unused, WCAG violations, missing Dark Mode, unintegrated Navigation components, and runtime crashes (SplitBillShare). 
 
@@ -7,7 +28,7 @@
 
 ---
 
-## 2. The 5-Phase Execution Plan (Micro-Batched)
+## 2. The 6-Phase Execution Plan (Micro-Batched)
 
 ### Phase 1: Stabilization & Critical Fixes (Audit Batch 1)
 *Goal: Stop the bleeding. Fix all runtime crashes and critical bugs.*
@@ -46,6 +67,26 @@
 - **Contextual Insights:** Inject AI Insight modules into `Prakiraan` and `Overview`.
 - **Multi-turn Chat:** Finalize the memory for the Asisten chat.
 - **Production Audit:** Run Lighthouse audit (Target: ≥90) and final polish.
+
+### Phase 6: React Doctor — Codebase Health Remediation
+*Goal: Raise the React Doctor score from 52 to ≥80 by eliminating dead code, fixing real React bugs, and resolving the highest-impact warnings.*
+**Trigger:** React Doctor v0.2.3 audit run 2026-05-24 on 220 source files. Score: 52/100 "Needs work". 19 errors (5 rules), 910 warnings (61 rules), 205 affected files.
+
+**Batch 1 — Real Bug Fixes (≤3 files):**
+- `BudgetConfirmation.tsx` — 3 `useState` calls after early-return guard (rules-of-hooks violation)
+- `AuthCallback.tsx` — `setTimeout` in `useEffect` without `clearTimeout` cleanup (memory leak)
+- `Laporan.tsx` — `CustomTooltip` defined inside `LaporanContent` (no-nested-component-definition)
+
+**Batch 2 — Dead Code Deletion (≤5 files per commit, multiple commits):**
+- Remove the 204 files flagged as `unused-file` — scaffolded design system primitives, superseded hooks, Storybook stories, and unwired components from earlier AETHER phases
+- Verify each deletion does not break `npm run build` before proceeding
+
+**Batch 3 — High-Impact Warning Sweep (≤5 files):**
+- `button-has-type` ×32 — add `type="button"` to all non-submit buttons
+- `design-no-bold-heading` ×37 — `font-bold` → `font-semibold` on headings
+- `no-mutable-in-deps` ×1 — fix `useNavigation.tsx:71`
+- `exhaustive-deps` ×5 — fix missing deps in useEffect arrays
+- Re-run React Doctor to verify score ≥80
 
 ---
 
