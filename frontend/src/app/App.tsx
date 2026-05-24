@@ -35,6 +35,12 @@ const Categories = lazy(() => import('./pages/Categories'));
 // Settings
 const Settings = lazy(() => import('./pages/Settings'));
 
+// Gajian Section + Phase 3 carryovers
+const Gajian = lazy(() => import('./pages/Gajian'));
+const BudgetConfirmation = lazy(() => import('./components/BudgetConfirmation'));
+const PolaWaktu = lazy(() => import('./pages/PolaWaktu'));
+const DetailKategori = lazy(() => import('./pages/DetailKategori'));
+
 // Public pages (3)
 const Landing = lazy(() => import('./pages/Landing'));
 const FAQ = lazy(() => import('./pages/FAQ'));
@@ -111,6 +117,14 @@ export default function App() {
 
                     {/* Settings */}
                     <Route path="/settings" element={<Settings />} />
+
+                    {/* Gajian Section */}
+                    <Route path="/gajian" element={<Gajian />} />
+                    <Route path="/gajian/confirm" element={<BudgetConfirmation />} />
+
+                    {/* Analytics carryovers from Phase 3 */}
+                    <Route path="/analytics/pola-waktu" element={<PolaWaktu />} />
+                    <Route path="/analytics/detail/:category" element={<DetailKategori />} />
                   </Route>
 
                   {/* Backward Compatibility Redirects */}
