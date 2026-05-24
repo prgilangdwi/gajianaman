@@ -19,7 +19,7 @@ export default function Asisten() {
   const isLoading = useChatStore((state) => state.isLoading);
   const error = useChatError();
   const suggestedActions = useChatSuggestedActions();
-  const { sendMessage } = useChatActions();
+  const { sendMessage, clearMessages } = useChatActions();
 
   // Auto-scroll to bottom when new messages arrive (Principle 04: Progressive Disclosure)
   useEffect(() => {
@@ -65,6 +65,20 @@ export default function Asisten() {
           <h1 className="text-lg font-semibold text-[var(--color-content-primary)]">
             Asisten AI
           </h1>
+          {!isEmpty && (
+            <button
+              type="button"
+              onClick={clearMessages}
+              className={cn(
+                'ml-auto text-xs px-2 py-1 rounded-md transition-colors',
+                'text-[var(--color-content-tertiary)]',
+                'hover:text-[var(--color-content-secondary)]',
+                'hover:bg-[var(--color-bg-neutral)]',
+              )}
+            >
+              Bersihkan Chat
+            </button>
+          )}
         </div>
         <p className="text-xs text-[var(--color-content-tertiary)]">
           Tanyakan apa saja tentang keuanganmu

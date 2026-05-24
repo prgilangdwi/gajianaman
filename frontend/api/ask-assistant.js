@@ -7,11 +7,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { question, transactions, month, year } = req.body;
+  const { question, transactions, month, year, conversationHistory } = req.body;
 
   if (!question || !Array.isArray(transactions)) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  const historyMessages = Array.isArray(conversationHistory)
+    ? conversationHistory
+        .slice(-10)
+        .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content }))
+    : [];
 
   try {
     // Aggregate transaction data for context
@@ -49,11 +55,10 @@ Berikan jawaban yang singkat, praktis, dan dalam Bahasa Indonesia. Fokus pada in
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
+      system: 'Kamu adalah asisten keuangan pribadi untuk pengguna Indonesia. Berikan saran yang singkat, praktis, dan actionable.',
       messages: [
-        {
-          role: 'user',
-          content: contextStr,
-        },
+        ...historyMessages,
+        { role: 'user', content: contextStr },
       ],
     });
 
