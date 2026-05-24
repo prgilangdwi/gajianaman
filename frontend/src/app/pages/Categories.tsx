@@ -234,6 +234,7 @@ export default function Categories() {
                       </div>
                       {!category.is_default && (
                         <button
+                          type="button"
                           onClick={() => handleDeleteCategory(category.id)}
                           className={cn(
                             'w-full flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg',
@@ -327,6 +328,7 @@ export default function Categories() {
               <div className="grid grid-cols-4 gap-2">
                 {COLOR_PALETTE.map((color) => (
                   <button
+                    type="button"
                     key={color}
                     onClick={() => setNewCategoryColor(color)}
                     className={cn(

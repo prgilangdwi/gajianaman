@@ -88,6 +88,7 @@ export function BudgetRow({ category, icon, budget, spent, onSave, isLoading = f
             />
           ) : (
             <button
+              type="button"
               onClick={() => setIsEditing(true)}
               disabled={isLoading}
               className="text-right font-mono font-semibold text-sm hover:opacity-75 transition-opacity"

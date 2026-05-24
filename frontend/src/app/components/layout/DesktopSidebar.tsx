@@ -44,7 +44,7 @@ export function DesktopSidebar({ isRailMode = false }: DesktopSidebarProps) {
             </div>
             {!isRailMode && (
               <div className="flex flex-col min-w-0">
-                <h1 className="text-sm font-extrabold tracking-tight text-[var(--color-content-primary)] truncate">
+                <h1 className="text-sm font-semibold tracking-tight text-[var(--color-content-primary)] truncate">
                   Gajian Aman
                 </h1>
                 <p className="text-[10px] text-[var(--color-content-tertiary)]">

@@ -201,6 +201,7 @@ export default function Onboarding() {
                       { type: 'cash' as const, icon: '💵', label: 'Cash' },
                     ].map((option) => (
                       <button
+                        type="button"
                         key={option.type}
                         onClick={() => setWalletSetup({ ...walletSetup, type: option.type, icon: option.icon })}
                         className={`p-3 rounded-lg border-2 transition-all text-center ${

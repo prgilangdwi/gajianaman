@@ -61,6 +61,7 @@ export function WalletOnboardingModal({ isOpen, onClose, onSaved, userId, isPrim
           <div className="grid grid-cols-3 gap-2">
             {QUICK_WALLETS.map((w) => (
               <button
+                type="button"
                 key={w.name}
                 onClick={() => setSelected(w.name)}
                 className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
@@ -74,6 +75,7 @@ export function WalletOnboardingModal({ isOpen, onClose, onSaved, userId, isPrim
               </button>
             ))}
             <button
+              type="button"
               onClick={() => setSelected('Lainnya')}
               className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-sm font-medium ${
                 selected === 'Lainnya'

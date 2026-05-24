@@ -68,7 +68,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       }
       return { activeSection: sectionId, activeTabs: newTabs };
     });
-  }, [location.pathname]);
+  }, [location]);
 
   // Persist to sessionStorage on change
   useEffect(() => {

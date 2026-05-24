@@ -46,7 +46,7 @@ export function QuickActions({ onAddTransaction }: QuickActionsProps) {
           );
         }
         return (
-          <button key={i} onClick={action.onClick} className={classes}>
+          <button type="button" key={i} onClick={action.onClick} className={classes}>
             {action.icon}
             {action.label}
           </button>

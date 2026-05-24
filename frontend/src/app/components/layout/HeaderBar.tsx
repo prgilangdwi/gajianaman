@@ -40,7 +40,7 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
       <header className="lg:hidden sticky top-0 z-40 w-full border-b border-[var(--color-border-neutral)] bg-[var(--color-bg-elevated)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-bg-elevated)]/60" role="banner">
         <div className="flex h-14 items-center justify-between px-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h1 className="font-bold tracking-tight text-sm text-[var(--color-content-primary)] truncate">
+            <h1 className="font-semibold tracking-tight text-sm text-[var(--color-content-primary)] truncate">
               {derivedTitle}
             </h1>
           </div>
@@ -82,7 +82,7 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
       role="banner"
     >
       <div className="flex h-14 items-center justify-between px-6">
-        <h1 className="font-bold text-base text-[var(--color-content-primary)]">{derivedTitle}</h1>
+        <h1 className="font-semibold text-base text-[var(--color-content-primary)]">{derivedTitle}</h1>
         <div className="flex items-center gap-3">
           <select
             value={selectedDompet || 'all'}

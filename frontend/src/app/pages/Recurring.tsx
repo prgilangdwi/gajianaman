@@ -124,7 +124,7 @@ export default function RecurringPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Tagihan</h1>
+          <h1 className="text-3xl font-semibold">Tagihan</h1>
           <p className="text-sm text-muted-foreground mt-1">Kelola tagihan dan pembayaran berulang Anda</p>
         </div>
         <Button onClick={() => handleOpenForm()} className="gap-2">

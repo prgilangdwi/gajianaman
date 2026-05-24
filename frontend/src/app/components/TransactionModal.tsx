@@ -122,7 +122,7 @@ export function TransactionModal({ isOpen, onClose, onSaved, transaction }: Tran
 
   const isEditMode = !!transaction;
 
-  const loadTagSuggestions = async () => {
+  const loadTagSuggestions = useCallback(async () => {
     if (!user) return;
     try {
       const { data } = await supabase
@@ -141,7 +141,7 @@ export function TransactionModal({ isOpen, onClose, onSaved, transaction }: Tran
     } catch {
       // Silently fail if tags column doesn't exist
     }
-  };
+  }, [user]);
 
   // Initialize form with transaction data in edit mode
   useEffect(() => {
@@ -503,7 +503,7 @@ export function TransactionModal({ isOpen, onClose, onSaved, transaction }: Tran
     if (isOpen) {
       loadTagSuggestions();
     }
-  }, [isOpen]);
+  }, [isOpen, loadTagSuggestions]);
 
   const confidenceColor = { high: 'text-green-600', medium: 'text-yellow-600', low: 'text-red-500' };
   const confidenceLabel = { high: 'Tinggi', medium: 'Sedang', low: 'Rendah' };
@@ -751,6 +751,7 @@ export function TransactionModal({ isOpen, onClose, onSaved, transaction }: Tran
                       <img src={photoPreviewUrl} alt="Preview" className="w-full max-h-48 object-contain" />
                       {photoPhase === 'preview' && (
                         <button
+                          type="button"
                           onClick={resetPhoto}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
                           title="Pilih foto lain"
@@ -1127,6 +1128,7 @@ export function TransactionModal({ isOpen, onClose, onSaved, transaction }: Tran
                       <img src={photoPreviewUrl} alt="Preview" className="w-full max-h-48 object-contain" />
                       {photoPhase === 'preview' && (
                         <button
+                          type="button"
                           onClick={resetPhoto}
                           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
                         >

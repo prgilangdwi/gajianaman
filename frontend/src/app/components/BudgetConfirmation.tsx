@@ -99,7 +99,7 @@ export default function BudgetConfirmation() {
         </button>
 
         <div className="space-y-1">
-          <h1 className="text-xl font-bold text-[var(--color-content-primary)]">
+          <h1 className="text-xl font-semibold text-[var(--color-content-primary)]">
             Rekomendasi Anggaran
           </h1>
           <p className="text-sm text-[var(--color-content-secondary)]">

@@ -185,7 +185,7 @@ export default function Goals() {
         transition={slideInRight.transition}
         className="flex items-center justify-between"
       >
-        <h2 className="text-lg font-bold text-[var(--color-content-primary)]">Daftar Goals</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-content-primary)]">Daftar Goals</h2>
         <Button onClick={() => setDialogOpen(true)} className="gap-1">
           <Plus className="w-4 h-4" /> Tambah Goal
         </Button>

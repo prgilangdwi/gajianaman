@@ -240,7 +240,7 @@ function LaporanContent() {
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">📊 Analytics & Insights</h1>
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">📊 Analytics & Insights</h1>
             <p className={`text-sm mt-1 ${textColorVar('content-tertiary')}`}>Analisis mendalam untuk pemahaman finansial yang lebih baik</p>
           </div>
           <Button

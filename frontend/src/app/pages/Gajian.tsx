@@ -88,7 +88,7 @@ export default function Gajian() {
         </motion.div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-content-primary)]">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--color-content-primary)]">
             Wizard Gajian
           </h1>
           <p className="text-base text-[var(--color-content-secondary)] max-w-sm mx-auto leading-relaxed">

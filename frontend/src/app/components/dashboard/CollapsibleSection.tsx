@@ -38,6 +38,7 @@ export function CollapsibleSection({
   return (
     <div className={className}>
       <button
+        type="button"
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
         className="flex items-center gap-2 w-full text-left py-2 group"

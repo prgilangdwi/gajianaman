@@ -63,7 +63,7 @@ export default function WalletPage() {
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">💳 Dompet Saya</h1>
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">💳 Dompet Saya</h1>
             <p className="text-sm text-muted-foreground mt-1">Kelola semua sumber dana dan akun keuangan Anda</p>
           </div>
           <Button onClick={() => setModalOpen(true)} className="gap-2 flex-shrink-0">

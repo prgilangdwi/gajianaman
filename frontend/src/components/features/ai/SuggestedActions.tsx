@@ -34,6 +34,7 @@ export function SuggestedActions({
     >
       {actions.map((action) => (
         <button
+          type="button"
           key={action.id}
           onClick={() => onActionClick(action.prompt)}
           disabled={isLoading || isUserTyping}

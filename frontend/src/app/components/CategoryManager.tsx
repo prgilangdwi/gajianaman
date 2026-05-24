@@ -116,6 +116,7 @@ export default function CategoryManager() {
               {/* Group Header */}
               <div className="flex items-center justify-between mb-4">
                 <button
+                  type="button"
                   onClick={() => toggleGroup(group.id)}
                   className="flex items-center gap-2 flex-1 text-left hover:bg-accent p-2 rounded-md"
                 >

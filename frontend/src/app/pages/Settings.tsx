@@ -67,7 +67,7 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[var(--color-content-primary)]">
+        <h1 className="text-3xl font-semibold text-[var(--color-content-primary)]">
           {t.title}
         </h1>
       </div>

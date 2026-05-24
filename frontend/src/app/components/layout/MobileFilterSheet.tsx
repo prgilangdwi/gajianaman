@@ -104,6 +104,7 @@ export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
                   <label className="text-xs font-medium text-[var(--color-content-secondary)]">Dompet</label>
                   <div className="flex flex-wrap gap-2">
                     <button
+                      type="button"
                       onClick={() => setSelectedWallet('all')}
                       className={cn(
                         'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-brand-primary)]',
@@ -117,6 +118,7 @@ export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
                     </button>
                     {wallets.map((w: any) => (
                       <button
+                        type="button"
                         key={w.id}
                         onClick={() => setSelectedWallet(w.id)}
                         className={cn(

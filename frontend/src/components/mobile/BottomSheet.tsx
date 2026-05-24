@@ -145,6 +145,7 @@ export function BottomSheet({
                   </h2>
                 )}
                 <button
+                  type="button"
                   onClick={onClose}
                   className="ml-auto p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                   aria-label="Tutup"

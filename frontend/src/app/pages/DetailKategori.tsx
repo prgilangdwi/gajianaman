@@ -153,6 +153,7 @@ export default function DetailKategori() {
         className="flex items-center gap-3"
       >
         <button
+          type="button"
           onClick={() => navigate('/pengeluaran')}
           className="p-2 rounded-lg hover:bg-[var(--color-bg-neutral)] transition-colors"
           title="Kembali"

@@ -85,6 +85,7 @@ export default function Overview() {
             Mulai dengan menambahkan transaksi pertama Anda untuk melihat ringkasan keuangan.
           </p>
           <button
+            type="button"
             onClick={() => setWalletId('all')}
             className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-[var(--color-brand-primary-fg)] text-sm font-medium"
           >
@@ -113,6 +114,7 @@ export default function Overview() {
             {data.error.message || 'Terjadi kesalahan. Silakan coba lagi.'}
           </p>
           <button
+            type="button"
             onClick={() => window.location.reload()}
             className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-[var(--color-brand-primary-fg)] text-sm font-medium"
           >

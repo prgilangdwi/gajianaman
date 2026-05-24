@@ -295,6 +295,7 @@ export default function Pemasukan() {
                     transition={{ delay: prefersReduced ? 0 : idx * 0.02 }}
                   >
                     <button
+                      type="button"
                       onClick={() => toggleExpand(cat.name)}
                       className={cn(
                         'w-full flex items-center justify-between py-4 px-3 border-b rounded-lg transition-colors hover:bg-[var(--color-bg-elevated)]',

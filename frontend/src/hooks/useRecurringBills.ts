@@ -9,35 +9,41 @@ export function useRecurringBills() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecurringBills = async () => {
+  useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
 
-    try {
-      setIsLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('recurring_transactions')
-        .select('*')
-        .eq('user_id', user?.userId)
-        .eq('is_active', true)
-        .order('next_due_date', { ascending: true });
+    let cancelled = false;
 
-      if (fetchError) throw fetchError;
+    const fetchRecurringBills = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error: fetchError } = await supabase
+          .from('recurring_transactions')
+          .select('*')
+          .eq('user_id', user.userId)
+          .eq('is_active', true)
+          .order('next_due_date', { ascending: true });
 
-      setRecurringBills(data || []);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch recurring bills');
-      setRecurringBills([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (cancelled) return;
+        if (fetchError) throw fetchError;
 
-  useEffect(() => {
+        setRecurringBills(data || []);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch recurring bills');
+          setRecurringBills([]);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
     fetchRecurringBills();
+    return () => { cancelled = true; };
   }, [user]);
 
   const createRecurringBill = async (bill: Omit<RecurringTransaction, 'id' | 'created_at'>) => {

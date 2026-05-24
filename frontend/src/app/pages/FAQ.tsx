@@ -56,13 +56,14 @@ export default function FAQ() {
       <div className="bg-slate-50 border-b">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <button
+            type="button"
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
             Kembali
           </button>
-          <h1 className="text-4xl font-bold text-slate-900">FAQ</h1>
+          <h1 className="text-4xl font-semibold text-slate-900">FAQ</h1>
           <p className="text-lg text-slate-600 mt-2">
             Pertanyaan yang sering diajukan
           </p>
@@ -75,6 +76,7 @@ export default function FAQ() {
           {faqs.map((faq, idx) => (
             <div key={idx} className="border border-slate-200 rounded-lg">
               <button
+                type="button"
                 onClick={() => setExpanded(expanded === idx ? null : idx)}
                 className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition"
               >
@@ -98,7 +100,7 @@ export default function FAQ() {
       {/* Contact CTA */}
       <div className="bg-emerald-50 border-t border-emerald-200">
         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Pertanyaan lain?</h2>
+          <h2 className="text-2xl font-semibold text-slate-900 mb-4">Pertanyaan lain?</h2>
           <p className="text-slate-600 mb-6">
             Hubungi kami di support@gajianaman.xyz atau /feedback di Telegram
           </p>

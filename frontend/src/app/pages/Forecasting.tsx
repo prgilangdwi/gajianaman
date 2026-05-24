@@ -179,6 +179,7 @@ export default function Forecasting() {
               >
                 {[1, 2, 3, 4].map((week) => (
                   <button
+                    type="button"
                     key={week}
                     onClick={() => setSelectedWeek(week)}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${

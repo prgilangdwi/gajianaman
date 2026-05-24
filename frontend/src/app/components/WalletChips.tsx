@@ -20,6 +20,7 @@ export function WalletChips({ wallets, walletId, setWalletId }: WalletChipsProps
       <div className="flex gap-2 pb-2">
         {chips.map((chip) => (
           <button
+            type="button"
             key={chip.id}
             onClick={() => setWalletId(chip.id)}
             className={cn(
