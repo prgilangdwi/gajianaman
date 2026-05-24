@@ -119,8 +119,8 @@ export default function Onboarding() {
                 {/* Benefits */}
                 <div className="space-y-3">
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-4 h-4 text-green-600" />
+ <div className="size-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+ <Check className="size-4 text-green-600" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">Catat transaksi dari mana saja</p>
@@ -129,8 +129,8 @@ export default function Onboarding() {
                   </div>
 
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-4 h-4 text-blue-600" />
+ <div className="size-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+ <Check className="size-4 text-blue-600" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">Lihat laporan real-time</p>
@@ -139,8 +139,8 @@ export default function Onboarding() {
                   </div>
 
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-4 h-4 text-purple-600" />
+ <div className="size-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+ <Check className="size-4 text-purple-600" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">Kelola budget & goals</p>
@@ -154,7 +154,7 @@ export default function Onboarding() {
                   onClick={() => setStep('wallet')}
                   className="w-full h-12 font-semibold gap-2"
                 >
-                  Mulai Setup <ChevronRight className="w-4 h-4" />
+ Mulai Setup <ChevronRight className="size-4 " />
                 </Button>
 
                 <Button
@@ -262,9 +262,9 @@ export default function Onboarding() {
                     className="flex-1 gap-2"
                   >
                     {isCreating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+ <Loader2 className="size-4 animate-spin" />
                     ) : (
-                      <PlusCircle className="w-4 h-4" />
+ <PlusCircle className="size-4 " />
                     )}
                     Buat Wallet
                   </Button>
@@ -320,7 +320,7 @@ export default function Onboarding() {
                   onClick={() => setStep('ready')}
                   className="w-full h-12 font-semibold gap-2"
                 >
-                  Lanjut <ChevronRight className="w-4 h-4" />
+ Lanjut <ChevronRight className="size-4 " />
                 </Button>
               </CardContent>
             </Card>
@@ -371,7 +371,7 @@ export default function Onboarding() {
                     onClick={() => navigate('/overview', { replace: true })}
                     className="flex-1 h-12 font-semibold gap-2"
                   >
-                    Masuk Dashboard <ArrowRight className="w-4 h-4" />
+ Masuk Dashboard <ArrowRight className="size-4 " />
                   </Button>
                 </div>
 
@@ -380,7 +380,7 @@ export default function Onboarding() {
                   variant="outline"
                   className="w-full"
                 >
-                  <Zap className="w-4 h-4 mr-2" />
+ <Zap className="size-4 mr-2" />
                   Coba Split Bill
                 </Button>
               </CardContent>

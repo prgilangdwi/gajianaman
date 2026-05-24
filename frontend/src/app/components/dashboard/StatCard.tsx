@@ -70,9 +70,9 @@ export function StatCard({
             trend.direction === 'flat' && textColorVar('content-tertiary'),
           )}
         >
-          {trend.direction === 'up' && <TrendingUp className="w-3 h-3" />}
-          {trend.direction === 'down' && <TrendingDown className="w-3 h-3" />}
-          {trend.direction === 'flat' && <Minus className="w-3 h-3" />}
+ {trend.direction === 'up' && <TrendingUp className="size-3 " />}
+ {trend.direction === 'down' && <TrendingDown className="size-3 " />}
+ {trend.direction === 'flat' && <Minus className="size-3 " />}
           <span className="text-[10px] font-medium">{trend.value}</span>
         </div>
       )}

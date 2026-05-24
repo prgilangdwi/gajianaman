@@ -79,12 +79,12 @@ export default function Gajian() {
             ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
           className={cn(
-            'w-20 h-20 rounded-2xl mx-auto flex items-center justify-center',
+ 'size-20 rounded-2xl mx-auto flex items-center justify-center',
             'bg-[var(--color-brand-primary)]',
           )}
           aria-hidden="true"
         >
-          <Sparkles className="w-10 h-10 text-white" />
+ <Sparkles className="size-10 text-white" />
         </motion.div>
 
         <div className="space-y-2">
@@ -105,9 +105,9 @@ export default function Gajian() {
           )}
           aria-label="Mulai Wizard Gajian untuk membuat rekomendasi anggaran"
         >
-          <Sparkles className="w-5 h-5" />
+ <Sparkles className="size-5 " />
           Mulai Wizard
-          <ChevronRight className="w-4 h-4" />
+ <ChevronRight className="size-4 " />
         </Button>
       </motion.div>
 
@@ -144,7 +144,7 @@ export default function Gajian() {
                 <CardContent className="pt-5 space-y-3">
                   <div
                     className={cn(
-                      'w-10 h-10 rounded-xl flex items-center justify-center',
+ 'size-10 rounded-xl flex items-center justify-center',
                       bgColorVar('bg-elevated'),
                     )}
                     aria-hidden="true"
@@ -196,12 +196,12 @@ export default function Gajian() {
                   >
                     <div
                       className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+ 'size-8 rounded-lg flex items-center justify-center flex-shrink-0',
                         bgColorVar('bg-elevated'),
                       )}
                       aria-hidden="true"
                     >
-                      <Icon className="w-4 h-4 text-[var(--color-brand-primary)]" />
+ <Icon className="size-4 text-[var(--color-brand-primary)]" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[var(--color-content-primary)]">
@@ -223,7 +223,7 @@ export default function Gajian() {
                 className="w-full sm:w-auto gap-2"
                 aria-label="Mulai Wizard Gajian"
               >
-                <Sparkles className="w-4 h-4" />
+ <Sparkles className="size-4 " />
                 Mulai Sekarang
               </Button>
             </div>

@@ -57,7 +57,7 @@ export default function Settings() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-pulse text-[var(--color-content-secondary)]">
-          Loading settings...
+          Loading settings…
         </div>
       </div>
     );
@@ -80,9 +80,9 @@ export default function Settings() {
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 {isDarkMode ? (
-                  <Moon className="w-5 h-5 text-[var(--color-brand-primary)]" />
+ <Moon className="size-5 text-[var(--color-brand-primary)]" />
                 ) : (
-                  <Sun className="w-5 h-5 text-[var(--color-brand-primary)]" />
+ <Sun className="size-5 text-[var(--color-brand-primary)]" />
                 )}
                 <h2 className="text-lg font-semibold text-[var(--color-content-primary)]">
                   {t.darkMode}
@@ -111,7 +111,7 @@ export default function Settings() {
         <div className="rounded-lg border border-[var(--color-border-neutral)] bg-[var(--color-bg-elevated)] p-6">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Globe className="w-5 h-5 text-[var(--color-brand-primary)]" />
+ <Globe className="size-5 text-[var(--color-brand-primary)]" />
               <div>
                 <h2 className="text-lg font-semibold text-[var(--color-content-primary)]">
                   {t.language}

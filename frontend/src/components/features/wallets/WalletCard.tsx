@@ -56,8 +56,8 @@ export function WalletCard({
             </p>
           </div>
           {isPrimary && (
-            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--color-brand-primary)]">
-              <Star className="w-4 h-4 text-[var(--color-brand-primary-fg)] fill-current" />
+ <div className="flex-shrink-0 size-8 rounded-full flex items-center justify-center bg-[var(--color-brand-primary)]">
+ <Star className="size-4 text-[var(--color-brand-primary-fg)] fill-current" />
             </div>
           )}
         </div>
@@ -75,7 +75,7 @@ export function WalletCard({
         {/* Transaction Summary */}
         <div className="flex items-center justify-between gap-2 text-sm">
           <div className="flex items-center gap-1">
-            <ArrowDownLeft className="w-4 h-4 text-[var(--color-sentiment-positive)]" />
+ <ArrowDownLeft className="size-4 text-[var(--color-sentiment-positive)]" />
             <span className={cn('font-medium', textColorVar('sentiment-positive'))}>
               {formatRupiah(walletIncome)}
             </span>
@@ -84,7 +84,7 @@ export function WalletCard({
             {walletTxCount} transaksi
           </div>
           <div className="flex items-center gap-1">
-            <ArrowUpRight className="w-4 h-4 text-[var(--color-sentiment-negative)]" />
+ <ArrowUpRight className="size-4 text-[var(--color-sentiment-negative)]" />
             <span className={cn('font-medium', textColorVar('sentiment-negative'))}>
               {formatRupiah(walletExpense)}
             </span>
@@ -100,7 +100,7 @@ export function WalletCard({
               onClick={() => onSetPrimary(wallet)}
               className="flex-1 h-10"
             >
-              <Star className="w-4 h-4 mr-1" />
+ <Star className="size-4 mr-1" />
               Utamakan
             </Button>
           )}
@@ -110,7 +110,7 @@ export function WalletCard({
             onClick={() => onDelete(wallet)}
             className="h-10 text-[var(--color-sentiment-negative)]"
           >
-            <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
           </Button>
         </div>
       </div>

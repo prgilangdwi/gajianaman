@@ -59,7 +59,7 @@ export function CollapsibleSection({
             'group-hover:text-[var(--color-content-secondary)] transition-colors',
           )}
         >
-          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+ {isOpen ? <ChevronUp className="size-4 " /> : <ChevronDown className="size-4 " />}
         </span>
       </button>
 

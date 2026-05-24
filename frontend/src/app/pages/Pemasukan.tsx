@@ -51,7 +51,7 @@ function SkeletonRow() {
   return (
     <div className={cn('flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+ <div className={cn('size-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
           <div className={cn('h-4 w-28 rounded animate-pulse', bgColorVar('bg-neutral'))} />
           <div className={cn('h-3 w-16 rounded animate-pulse', bgColorVar('bg-neutral'))} />
@@ -175,7 +175,7 @@ export default function Pemasukan() {
               <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Total Pemasukan
               </CardTitle>
-              <TrendingUp className={cn('h-4 w-4', textColorVar('sentiment-positive'))} />
+ <TrendingUp className={cn('size-4 ', textColorVar('sentiment-positive'))} />
             </CardHeader>
             <CardContent>
               <div className="font-mono font-bold text-xl md:text-2xl">
@@ -319,7 +319,7 @@ export default function Pemasukan() {
                         transition={{ duration: 0.2 }}
                         className="flex-shrink-0"
                       >
-                        <ChevronDown className={cn('w-4 h-4', textColorVar('content-tertiary'))} />
+ <ChevronDown className={cn('size-4 ', textColorVar('content-tertiary'))} />
                       </motion.div>
                     </button>
 

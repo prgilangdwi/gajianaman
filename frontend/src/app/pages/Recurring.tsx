@@ -128,7 +128,7 @@ export default function RecurringPage() {
           <p className="text-sm text-muted-foreground mt-1">Kelola tagihan dan pembayaran berulang Anda</p>
         </div>
         <Button onClick={() => handleOpenForm()} className="gap-2">
-          <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
           Tambah Tagihan
         </Button>
       </div>
@@ -199,7 +199,7 @@ export default function RecurringPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5" />
+ <Clock className="size-5 " />
               Tagihan 30 Hari Ke Depan
             </CardTitle>
           </CardHeader>
@@ -239,13 +239,13 @@ export default function RecurringPage() {
       {recurringBills.length === 0 ? (
         <Card>
           <CardContent className="pt-12 pb-12 text-center">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+ <Calendar className="size-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-lg font-semibold mb-1">Belum ada tagihan berulang</p>
             <p className="text-sm text-muted-foreground mb-4">
               Mulai tambahkan tagihan berulang untuk melacak biaya tetap Anda
             </p>
             <Button onClick={() => handleOpenForm()} variant="outline" className="gap-2">
-              <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
               Buat Tagihan Pertama
             </Button>
           </CardContent>
@@ -307,7 +307,7 @@ export default function RecurringPage() {
                               isOverdue ? 'bg-[var(--color-sentiment-negative)] text-white hover:bg-[var(--color-sentiment-negative)]/90' : ''
                             )}
                           >
-                            <Check className="w-4 h-4" />
+ <Check className="size-4 " />
                             <span className="hidden sm:inline">Bayar</span>
                           </Button>
                           <Button
@@ -317,7 +317,7 @@ export default function RecurringPage() {
                             className="h-10 gap-2"
                             title="Tunda 3 hari"
                           >
-                            <SkipForward className="w-4 h-4" />
+ <SkipForward className="size-4 " />
                             <span className="hidden sm:inline">Tunda</span>
                           </Button>
                         </div>
@@ -328,7 +328,7 @@ export default function RecurringPage() {
                             onClick={() => handleOpenForm(bill)}
                             className="flex-1 h-10 gap-2"
                           >
-                            <Edit2 className="w-4 h-4" />
+ <Edit2 className="size-4 " />
                             <span className="hidden sm:inline">Edit</span>
                           </Button>
                           <Button
@@ -337,7 +337,7 @@ export default function RecurringPage() {
                             onClick={() => handleDelete(bill.id)}
                             className="h-10 text-[var(--color-sentiment-negative)] hover:text-[var(--color-sentiment-negative)]/90"
                           >
-                            <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
                           </Button>
                         </div>
                       </div>

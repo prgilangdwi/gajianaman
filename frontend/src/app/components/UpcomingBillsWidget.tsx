@@ -40,13 +40,13 @@ export function UpcomingBillsWidget({ recurringBills, isLoading }: UpcomingBills
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="w-5 h-5" />
+ <Calendar className="size-5 " />
           Tagihan Mendatang
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Memuat...</p>
+          <p className="text-sm text-muted-foreground text-center py-4">Memuat…</p>
         ) : upcomingBills.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Tidak ada tagihan mendatang</p>
         ) : (
@@ -70,7 +70,7 @@ export function UpcomingBillsWidget({ recurringBills, isLoading }: UpcomingBills
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{bill.description}</p>
                       <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
+ <Clock className="size-3 " />
                         <span>
                           {daysUntilDue === 0
                             ? 'Hari ini'
@@ -85,7 +85,7 @@ export function UpcomingBillsWidget({ recurringBills, isLoading }: UpcomingBills
                         {formatRupiah(bill.amount)}
                       </span>
                       {isUrgent && (
-                        <AlertCircle className={cn('w-4 h-4 flex-shrink-0', textColorVar('sentiment-negative'))} />
+ <AlertCircle className={cn('size-4 flex-shrink-0', textColorVar('sentiment-negative'))} />
                       )}
                     </div>
                   </div>

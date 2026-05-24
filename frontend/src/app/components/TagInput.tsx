@@ -75,7 +75,7 @@ export function TagInput({
               onClick={() => onRemoveTag(tag)}
               className="ml-0.5 inline-flex items-center rounded-full hover:bg-background/30"
             >
-              <X className="w-3 h-3" />
+ <X className="size-3 " />
             </button>
           </Badge>
         ))}

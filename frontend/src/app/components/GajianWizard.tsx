@@ -291,8 +291,8 @@ export default function GajianWizard({ onBack }: GajianWizardProps) {
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                  Memproses...
+ <span className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  Memproses…
                 </span>
               ) : (
                 'Hasilkan Anggaran'
@@ -442,7 +442,7 @@ function StepFixedExpenses({
                         className="text-[var(--color-sentiment-negative)] hover:opacity-70 transition-opacity p-1"
                         aria-label={`Hapus pengeluaran ${index + 1}`}
                       >
-                        <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
                       </button>
                     </div>
 
@@ -519,7 +519,7 @@ function StepFixedExpenses({
           className="w-full border-dashed"
           aria-label="Tambah pengeluaran tetap"
         >
-          <Plus className="w-4 h-4 mr-2" />
+ <Plus className="size-4 mr-2" />
           Tambah Pengeluaran
         </Button>
 

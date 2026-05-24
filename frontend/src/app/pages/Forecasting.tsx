@@ -46,11 +46,11 @@ function calculateVolatility(values: number[]): 'Low' | 'Medium' | 'High' {
 function getTrendArrow(trend: 'up' | 'down' | 'stable'): { icon: React.ReactNode; colorClass: string; label: string } {
   switch (trend) {
     case 'up':
-      return { icon: <TrendingUp className="w-4 h-4" />, colorClass: textColorVar('sentiment-negative'), label: '↑' };
+ return { icon: <TrendingUp className="size-4 " />, colorClass: textColorVar('sentiment-negative'), label: '↑' };
     case 'down':
-      return { icon: <TrendingDown className="w-4 h-4" />, colorClass: textColorVar('sentiment-positive'), label: '↓' };
+ return { icon: <TrendingDown className="size-4 " />, colorClass: textColorVar('sentiment-positive'), label: '↓' };
     case 'stable':
-      return { icon: <Minus className="w-4 h-4" />, colorClass: textColorVar('content-tertiary'), label: '→' };
+ return { icon: <Minus className="size-4 " />, colorClass: textColorVar('content-tertiary'), label: '→' };
   }
 }
 
@@ -136,7 +136,7 @@ export default function Forecasting() {
         transition={{ duration: 0.2 }}
         className="flex flex-col items-center justify-center py-20 gap-4"
       >
-        <AlertCircle className={`w-12 h-12 ${textColorVar('sentiment-warning')}`} />
+ <AlertCircle className={`size-12 ${textColorVar('sentiment-warning')}`} />
         <div className="text-center space-y-2">
           <p className={`text-lg font-semibold ${textColorVar('content-primary')}`}>Data tidak cukup</p>
           <p className={`text-sm ${textColorVar('content-tertiary')} max-w-xs`}>
@@ -251,7 +251,7 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
             <p className={`text-xs ${textColorVar('content-tertiary')} font-medium`}>Selisih</p>
             <p className={`text-2xl font-bold font-mono mt-2 flex items-center gap-2 ${selisih > 0 ? textColorVar('sentiment-negative') : textColorVar('sentiment-positive')}`}>
               {selisih > 0 ? '+' : ''}{formatRupiah(Math.abs(selisih))}
-              {selisih > 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+ {selisih > 0 ? <TrendingUp className="size-5 " /> : <TrendingDown className="size-5 " />}
             </p>
             <p className={`text-xs ${textColorVar('content-tertiary')} mt-1`}>{selisihPercent > 0 ? '+' : ''}{Math.round(selisihPercent)}%</p>
           </CardContent>
@@ -277,7 +277,7 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
               {!currentPacing.onTrack && (
                 <div className={`p-2 rounded-lg ${bgColorVar('bg-screen')} border ${borderColorVar('border-neutral')}`}>
                   <p className={`text-xs ${textColorVar('content-secondary')}`}>
-                    <AlertTriangle className="w-3 h-3 inline mr-1" />
+ <AlertTriangle className="size-3 inline mr-1" />
                     Pengeluaran Anda mencapai {Math.round(burnRatePercent)}% dari anggaran bulanan. Pertimbangkan untuk mengurangi pengeluaran jika ingin tetap sesuai target.
                   </p>
                 </div>
@@ -346,7 +346,7 @@ function renderMonthlyView(forecast: any, budgets: any[]) {
                 {budgetForCategory && budgetPercent > 100 && (
                   <div className={`p-3 rounded-lg mb-4 ${bgColorVar('bg-screen')} border ${borderColorVar('border-neutral')}`}>
                     <p className={`text-xs font-semibold ${textColorVar('sentiment-negative')} flex items-center gap-1`}>
-                      <AlertTriangle className="w-3 h-3" /> Prakiraan melampaui budget sebesar {Math.round(budgetPercent - 100)}%
+ <AlertTriangle className="size-3 " /> Prakiraan melampaui budget sebesar {Math.round(budgetPercent - 100)}%
                     </p>
                   </div>
                 )}
@@ -426,7 +426,7 @@ function renderWeeklyView(forecast: any, budgets: any[]) {
             <p className={cn('text-xs font-medium', textColorVar('content-tertiary'))}>Selisih</p>
             <p className={cn('text-2xl font-bold font-mono mt-2 flex items-center gap-2', variance > 0 ? textColorVar('sentiment-negative') : textColorVar('sentiment-positive'))}>
               {variance > 0 ? '+' : ''}{formatRupiah(Math.abs(variance))}
-              {variance > 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+ {variance > 0 ? <TrendingUp className="size-5 " /> : <TrendingDown className="size-5 " />}
             </p>
             <p className={cn('text-xs mt-1', textColorVar('content-tertiary'))}>{variancePercent > 0 ? '+' : ''}{Math.round(variancePercent)}%</p>
           </CardContent>
@@ -475,9 +475,9 @@ function renderWeeklyView(forecast: any, budgets: any[]) {
                   cat.trend === 'down' ? textColorVar('sentiment-positive') :
                   textColorVar('content-tertiary')
                 )}>
-                  {cat.trend === 'up' && <TrendingUp className="w-4 h-4" />}
-                  {cat.trend === 'down' && <TrendingDown className="w-4 h-4" />}
-                  {cat.trend === 'stable' && <Minus className="w-4 h-4" />}
+ {cat.trend === 'up' && <TrendingUp className="size-4 " />}
+ {cat.trend === 'down' && <TrendingDown className="size-4 " />}
+ {cat.trend === 'stable' && <Minus className="size-4 " />}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

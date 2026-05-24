@@ -49,23 +49,23 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+ className="size-8 "
                 onClick={onOpenFilters}
                 aria-label="Buka filter"
               >
-                <SlidersHorizontal className="w-4 h-4" />
+ <SlidersHorizontal className="size-4 " />
               </Button>
             )}
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+ className="size-8 "
               onClick={() => setIsPrivacyMode(!isPrivacyMode)}
               aria-label={isPrivacyMode ? 'Tampilkan jumlah' : 'Sembunyikan jumlah'}
             >
-              {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+ {isPrivacyMode ? <EyeOff className="size-4 " /> : <Eye className="size-4 " />}
             </Button>
-            <Avatar className="w-7 h-7">
+ <Avatar className="size-7 ">
               <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
               <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
@@ -108,19 +108,19 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
             size="icon"
             onClick={() => setIsPrivacyMode(!isPrivacyMode)}
             aria-label={isPrivacyMode ? 'Tampilkan jumlah' : 'Sembunyikan jumlah'}
-            className="h-8 w-8"
+ className="size-8 "
           >
-            {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+ {isPrivacyMode ? <EyeOff className="size-4 " /> : <Eye className="size-4 " />}
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Notifikasi" className="h-8 w-8">
-            <Bell className="w-4 h-4" />
+ <Button variant="ghost" size="icon" aria-label="Notifikasi" className="size-8 ">
+ <Bell className="size-4 " />
           </Button>
           <Link to="/settings">
-            <Button variant="ghost" size="icon" aria-label="Pengaturan" className="h-8 w-8">
-              <Settings className="w-4 h-4" />
+ <Button variant="ghost" size="icon" aria-label="Pengaturan" className="size-8 ">
+ <Settings className="size-4 " />
             </Button>
           </Link>
-          <Avatar className="h-8 w-8">
+ <Avatar className="size-8 ">
             <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} alt={user?.name} />
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>

@@ -69,9 +69,9 @@ export function ChartCard({
             {collapsible && (
               <span className={textColorVar('content-tertiary')}>
                 {isCollapsed ? (
-                  <ChevronDown className="w-4 h-4" />
+ <ChevronDown className="size-4 " />
                 ) : (
-                  <ChevronUp className="w-4 h-4" />
+ <ChevronUp className="size-4 " />
                 )}
               </span>
             )}

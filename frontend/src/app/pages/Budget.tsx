@@ -278,14 +278,14 @@ export default function Budget() {
                 disabled={tipsLoading}
                 className="gap-1 text-xs"
               >
-                <Sparkles className="w-4 h-4" /> Saran AI
+ <Sparkles className="size-4 " /> Saran AI
               </Button>
               <Button
                 size="sm"
                 onClick={() => setShowAddDialog(true)}
                 className="gap-1 text-xs"
               >
-                <Plus className="w-4 h-4" /> Tambah
+ <Plus className="size-4 " /> Tambah
               </Button>
             </div>
           </CardHeader>
@@ -294,7 +294,7 @@ export default function Budget() {
               <div className="text-center py-12 space-y-3">
                 <p className="text-sm text-[var(--color-content-tertiary)]">Belum ada budget yang ditetapkan</p>
                 <Button onClick={() => setShowAddDialog(true)} variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-1" /> Buat Budget Pertama
+ <Plus className="size-4 mr-1" /> Buat Budget Pertama
                 </Button>
               </div>
             ) : (
@@ -328,7 +328,7 @@ export default function Budget() {
             <Card className="bg-[var(--color-bg-card)] border border-[var(--color-sentiment-warning-bg)]">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2 text-[var(--color-content-primary)]">
-                  <Sparkles className="w-5 h-5 text-[var(--color-sentiment-warning)]" />
+ <Sparkles className="size-5 text-[var(--color-sentiment-warning)]" />
                   Saran AI untuk Anggaran Anda
                 </CardTitle>
               </CardHeader>
@@ -374,7 +374,7 @@ export default function Budget() {
                 onChange={(e) => setNewCategory(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
               >
-                <option value="">Pilih kategori...</option>
+                <option value="">Pilih kategori…</option>
                 {ALL_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {getCategoryMeta(c).emoji} {c}

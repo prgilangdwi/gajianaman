@@ -139,7 +139,7 @@ export default function Tren() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className={cn('text-3xl font-bold flex items-center gap-2', textColorVar('content-primary'))}>
-              <TrendingUp className="w-8 h-8" />
+ <TrendingUp className="size-8 " />
               Analisis Tren
             </h1>
             <p className={cn('mt-1', textColorVar('content-tertiary'))}>Pola keuangan Anda dalam periode waktu yang dipilih</p>

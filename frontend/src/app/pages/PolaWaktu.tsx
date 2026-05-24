@@ -87,10 +87,10 @@ export default function PolaWaktu() {
             <CardTitle className={textColorVar('content-primary')}>{monthName}</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handlePrevMonth}>
-                <ChevronLeft className="w-4 h-4" />
+ <ChevronLeft className="size-4 " />
               </Button>
               <Button variant="outline" size="sm" onClick={handleNextMonth}>
-                <ChevronRight className="w-4 h-4" />
+ <ChevronRight className="size-4 " />
               </Button>
             </div>
           </CardHeader>

@@ -66,14 +66,14 @@ export function BottomNavigation({
             >
               <div className="relative">
                 <Icon
-                  className="w-5 h-5"
+ className="size-5 "
                   strokeWidth={isActive ? 2.5 : 2}
                 />
                 {/* Active indicator dot */}
                 {isActive && !prefersReduced && (
                   <motion.div
                     layoutId="bottomNavIndicator"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-brand-primary)]"
+ className="absolute -bottom-1 left-1/2 -translate-x-1/2 size-1 rounded-full bg-[var(--color-brand-primary)]"
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 )}

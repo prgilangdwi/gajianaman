@@ -155,7 +155,7 @@ export default function AuthCallback() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
-      <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+ <div className="size-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       <p className="text-sm text-muted-foreground">{status}</p>
     </div>
   );

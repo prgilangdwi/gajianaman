@@ -43,7 +43,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             <div className="flex flex-col gap-6">
               {/* Error Icon */}
               <div className="flex justify-center">
-                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[var(--color-sentiment-negative-bg)]">
+ <div className="flex items-center justify-center size-16 rounded-full bg-[var(--color-sentiment-negative-bg)]">
                   <svg
                     width="32"
                     height="32"

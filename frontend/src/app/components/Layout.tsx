@@ -90,10 +90,10 @@ export function Layout() {
         <Button
           onClick={() => setIsQuickAddOpen(true)}
           size="lg"
-          className="h-14 w-14 rounded-full shadow-lg bg-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary-dark)] text-white"
+ className="size-14 rounded-full shadow-lg bg-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary-dark)] text-white"
           aria-label="Tambah transaksi cepat"
         >
-          <Plus className="h-6 w-6" />
+ <Plus className="size-6 " />
         </Button>
       </motion.div>
 

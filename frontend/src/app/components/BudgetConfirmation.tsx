@@ -94,7 +94,7 @@ export default function BudgetConfirmation() {
           className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-content-secondary)] hover:text-[var(--color-content-primary)] transition-colors"
           aria-label="Kembali ke halaman Gajian"
         >
-          <ArrowLeft className="w-4 h-4" />
+ <ArrowLeft className="size-4 " />
           Kembali
         </button>
 
@@ -111,7 +111,7 @@ export default function BudgetConfirmation() {
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold text-white bg-[var(--color-brand-primary)]"
           aria-label={`Target tabungan: ${Math.round(recommendation.savingsRate * 100)} persen`}
         >
-          <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
+ <CheckCircle className="size-3.5 .5" aria-hidden="true" />
           Target Tabungan: {Math.round(recommendation.savingsRate * 100)}%
         </span>
       </div>
@@ -186,7 +186,7 @@ export default function BudgetConfirmation() {
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span
-                    className={cn('w-2 h-2 rounded-full flex-shrink-0', confidenceColor(item.confidence))}
+ className={cn('size-2 rounded-full flex-shrink-0', confidenceColor(item.confidence))}
                     title={confidenceLabel(item.confidence)}
                     aria-label={confidenceLabel(item.confidence)}
                   />
@@ -224,7 +224,7 @@ export default function BudgetConfirmation() {
         <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardContent className="pt-4 flex gap-3">
             <Sparkles
-              className="w-5 h-5 text-[var(--color-brand-primary)] flex-shrink-0 mt-0.5"
+ className="size-5 text-[var(--color-brand-primary)] flex-shrink-0 mt-0.5"
               aria-hidden="true"
             />
             <p className="text-sm text-[var(--color-content-secondary)] leading-relaxed">
@@ -261,10 +261,10 @@ export default function BudgetConfirmation() {
           {isSaving ? (
             <span className="flex items-center gap-2">
               <span
-                className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+ className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin"
                 aria-hidden="true"
               />
-              Menyimpan...
+              Menyimpan…
             </span>
           ) : (
             'Terapkan & Simpan'

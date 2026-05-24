@@ -43,7 +43,7 @@ const TrendBadge = React.forwardRef<HTMLDivElement, TrendBadgeProps>(
     const getIcon = () => {
       if (!showIcon) return null;
       const iconProps = {
-        className: 'w-3.5 h-3.5 flex-shrink-0',
+ className: 'size-3.5 .5 flex-shrink-0',
         'aria-hidden': 'true' as const,
       };
       switch (trend) {

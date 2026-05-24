@@ -111,8 +111,8 @@ export default function LinkTelegram() {
       >
         <Card className="shadow-xl border-0">
           <CardHeader className="text-center pb-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Link className="w-8 h-8 text-primary" />
+ <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+ <Link className="size-8 text-primary" />
             </div>
             <CardTitle className="text-2xl font-extrabold">Hubungkan Akun</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -123,7 +123,7 @@ export default function LinkTelegram() {
 
           <CardContent className="space-y-6">
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex gap-3">
-              <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+ <AlertCircle className="size-5 text-primary flex-shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
                 Masukkan Telegram ID kamu untuk menghubungkan akun Google ini ke data finansialmu. Lakukan ini sekali saja.
               </p>
@@ -154,9 +154,9 @@ export default function LinkTelegram() {
                 className="w-full h-12 bg-primary hover:bg-primary-dark font-semibold"
               >
                 {isLoading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menghubungkan...</>
+ <><Loader2 className="size-4 mr-2 animate-spin" />Menghubungkan…</>
                 ) : (
-                  <><Sparkles className="w-4 h-4 mr-2" />Hubungkan & Masuk</>
+ <><Sparkles className="size-4 mr-2" />Hubungkan & Masuk</>
                 )}
               </Button>
             </form>

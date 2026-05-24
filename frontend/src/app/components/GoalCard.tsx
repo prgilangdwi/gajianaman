@@ -95,23 +95,23 @@ export function GoalCard({
             transition={{ delay: 0.2 }}
             className="absolute top-3 right-3"
           >
-            <Trophy className="w-5 h-5 text-[var(--color-sentiment-warning)]" />
+ <Trophy className="size-5 text-[var(--color-sentiment-warning)]" />
           </motion.div>
         )}
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
               <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+ className="size-9 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${color}20` }}
               >
-                <Target className="w-5 h-5" style={{ color }} />
+ <Target className="size-5 " style={{ color }} />
               </div>
               <div className="min-w-0">
                 <CardTitle className="text-base text-[var(--color-content-primary)]">{goal.name}</CardTitle>
                 {goal.deadline && (
                   <p className="text-xs text-[var(--color-content-tertiary)] flex items-center gap-1 mt-0.5">
-                    <Calendar className="w-3 h-3" />
+ <Calendar className="size-3 " />
                     {new Intl.DateTimeFormat('id-ID', {
                       day: 'numeric',
                       month: 'short',
@@ -224,7 +224,7 @@ export function GoalCard({
                   className="w-full gap-1"
                   onClick={() => setAddOpen(true)}
                 >
-                  <Plus className="w-4 h-4" /> Tambah Tabungan
+ <Plus className="size-4 " /> Tambah Tabungan
                 </Button>
               )}
             </>

@@ -73,7 +73,7 @@ function SkeletonRow() {
   return (
     <div className={cn('flex items-center justify-between py-3 border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+ <div className={cn('size-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
           <div className={cn('h-4 w-32 rounded animate-pulse', bgColorVar('bg-neutral'))} />
           <div className={cn('h-3 w-24 rounded animate-pulse', bgColorVar('bg-neutral'))} />
@@ -282,7 +282,7 @@ export default function Riwayat() {
           <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
               <p className={cn('text-xs sm:text-sm font-medium mb-2 flex items-center gap-1', textColorVar('content-tertiary'))}>
-                <ArrowUpRight className={cn('w-4 h-4', textColorVar('sentiment-positive'))} /> Pemasukan
+ <ArrowUpRight className={cn('size-4 ', textColorVar('sentiment-positive'))} /> Pemasukan
               </p>
               <div className="font-mono font-bold text-lg sm:text-2xl">
                 <TextPositive>
@@ -300,7 +300,7 @@ export default function Riwayat() {
           <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
               <p className={cn('text-xs sm:text-sm font-medium mb-2 flex items-center gap-1', textColorVar('content-tertiary'))}>
-                <ArrowDownRight className={cn('w-4 h-4', textColorVar('sentiment-negative'))} /> Pengeluaran
+ <ArrowDownRight className={cn('size-4 ', textColorVar('sentiment-negative'))} /> Pengeluaran
               </p>
               <div className="font-mono font-bold text-lg sm:text-2xl">
                 <TextNegative>
@@ -335,7 +335,7 @@ export default function Riwayat() {
             </SelectContent>
           </Select>
           <div className="relative flex-1">
-            <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', textColorVar('content-tertiary'))} />
+ <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 size-4 ', textColorVar('content-tertiary'))} />
             <Input
               placeholder="Cari catatan atau kategori…"
               value={search}
@@ -346,7 +346,7 @@ export default function Riwayat() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 h-9 sm:h-10">
-                <ArrowUpDown className="w-4 h-4" />
+ <ArrowUpDown className="size-4 " />
                 <span className="hidden sm:inline">Urutkan</span>
               </Button>
             </DropdownMenuTrigger>
@@ -368,7 +368,7 @@ export default function Riwayat() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={downloading} className="gap-2 h-9 sm:h-10">
-                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+ {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4 " />}
                 <span className="hidden sm:inline">Export</span>
               </Button>
             </DropdownMenuTrigger>

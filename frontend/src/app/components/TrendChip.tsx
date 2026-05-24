@@ -20,9 +20,9 @@ export function TrendChip({ current, previous }: TrendChipProps) {
         : bgColorVar('sentiment-negative-bg')
     )}>
       {isPositive ? (
-        <ArrowUpRight className="w-3 h-3" />
+ <ArrowUpRight className="size-3 " />
       ) : (
-        <TrendingDown className="w-3 h-3" />
+ <TrendingDown className="size-3 " />
       )}
       <span className={isPositive ? textColorVar('sentiment-positive') : textColorVar('sentiment-negative')}>
         {Math.abs(change).toFixed(1)}%

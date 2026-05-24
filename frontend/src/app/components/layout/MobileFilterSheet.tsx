@@ -75,8 +75,8 @@ export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-[var(--color-content-primary)]">Filter</h3>
-                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                  <X className="w-4 h-4" />
+ <Button variant="ghost" size="icon" onClick={onClose} className="size-8 ">
+ <X className="size-4 " />
                 </Button>
               </div>
 

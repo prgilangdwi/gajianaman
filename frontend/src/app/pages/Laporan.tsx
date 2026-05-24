@@ -251,9 +251,9 @@ function LaporanContent() {
             className="gap-2 flex-shrink-0"
           >
             {exporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+ <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Download className="w-4 h-4" />
+ <Download className="size-4 " />
             )}
             {exporting ? 'Mengunduh…' : 'Unduh PDF'}
           </Button>
@@ -270,7 +270,7 @@ function LaporanContent() {
         <Card className={`border-l-4 ${borderColorVar('brand-primary')} ${bgColorVar('bg-elevated')}`}>
           <CardHeader className="pb-3">
             <CardTitle className={`text-base flex items-center gap-2 ${textColorVar('content-primary')}`}>
-              <Sparkles className="w-5 h-5" /> Key Insights
+ <Sparkles className="size-5 " /> Key Insights
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -529,10 +529,10 @@ function LaporanContent() {
               className="w-full justify-between px-6 py-4 h-auto hover:bg-muted"
             >
               <div className={`flex items-center gap-2 text-base font-semibold ${textColorVar('content-primary')}`}>
-                <BarChart3 className="w-5 h-5" />
+ <BarChart3 className="size-5 " />
                 Distribusi Pengeluaran per Kategori
               </div>
-              <ChevronDown className="w-5 h-5 transition-transform" />
+ <ChevronDown className="size-5 transition-transform" />
             </Button>
           </CollapsibleTrigger>
 
@@ -585,10 +585,10 @@ function LaporanContent() {
                 className="w-full justify-between px-6 py-4 h-auto hover:bg-muted"
               >
                 <div className={`flex items-center gap-2 text-base font-semibold ${textColorVar('content-primary')}`}>
-                  <TrendingUp className="w-5 h-5" />
+ <TrendingUp className="size-5 " />
                   Tren Pengeluaran per Kategori
                 </div>
-                <ChevronDown className="w-5 h-5 transition-transform" />
+ <ChevronDown className="size-5 transition-transform" />
               </Button>
             </CollapsibleTrigger>
 
@@ -606,7 +606,7 @@ function LaporanContent() {
                       <div className={`text-sm font-semibold flex items-center gap-1 justify-end ${
                         pattern.trend === 'up' ? textColorVar('sentiment-negative') : pattern.trend === 'down' ? textColorVar('sentiment-positive') : textColorVar('sentiment-warning')
                       }`}>
-                        {pattern.trend === 'up' ? <TrendingUp className="w-4 h-4" /> : pattern.trend === 'down' ? <TrendingDown className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+ {pattern.trend === 'up' ? <TrendingUp className="size-4 " /> : pattern.trend === 'down' ? <TrendingDown className="size-4 " /> : <AlertCircle className="size-4 " />}
                         {Math.abs(pattern.changePercent)}%
                       </div>
                       <p className={`text-xs mt-0.5 ${textColorVar('content-tertiary')}`}>
@@ -631,10 +631,10 @@ function LaporanContent() {
                 className="w-full justify-between px-6 py-4 h-auto hover:bg-muted"
               >
                 <div className={`flex items-center gap-2 text-base font-semibold ${textColorVar('content-primary')}`}>
-                  <Zap className="w-5 h-5" />
+ <Zap className="size-5 " />
                   Saran Budget Optimal
                 </div>
-                <ChevronDown className="w-5 h-5 transition-transform" />
+ <ChevronDown className="size-5 transition-transform" />
               </Button>
             </CollapsibleTrigger>
 
@@ -673,10 +673,10 @@ function LaporanContent() {
                 className="w-full justify-between px-6 py-4 h-auto hover:bg-muted"
               >
                 <div className={`flex items-center gap-2 text-base font-semibold ${textColorVar('content-primary')}`}>
-                  <Target className="w-5 h-5" />
+ <Target className="size-5 " />
                   Proyeksi Pengeluaran Akhir Bulan
                 </div>
-                <ChevronDown className="w-5 h-5 transition-transform" />
+ <ChevronDown className="size-5 transition-transform" />
               </Button>
             </CollapsibleTrigger>
 
@@ -710,7 +710,7 @@ function LaporanContent() {
       {!hasEnoughData && (
         <Card className={bgColorVar('bg-card')}>
           <CardContent className="py-12 text-center space-y-3">
-            <AlertCircle className="w-12 h-12 mx-auto" />
+ <AlertCircle className="size-12 mx-auto" />
             <p className={textColorVar('content-secondary')}>Belum cukup data untuk analisis mendalam</p>
             <p className={`text-xs ${textColorVar('content-tertiary')}`}>Mulai catat transaksi Anda agar kami bisa memberikan rekomendasi yang lebih akurat.</p>
           </CardContent>

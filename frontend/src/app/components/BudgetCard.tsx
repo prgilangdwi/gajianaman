@@ -91,10 +91,10 @@ export function BudgetCard({
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8"
+ className="size-8 "
             onClick={() => onEdit(category, budget)}
           >
-            <Edit className="w-4 h-4" />
+ <Edit className="size-4 " />
           </Button>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function BudgetCard({
           className="w-full text-xs h-7"
           onClick={() => onEdit(category, 0)}
         >
-          <Plus className="w-3 h-3 mr-1" /> Buat Budget
+ <Plus className="size-3 mr-1" /> Buat Budget
         </Button>
       )}
     </motion.div>

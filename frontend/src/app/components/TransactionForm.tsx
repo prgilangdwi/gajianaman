@@ -172,7 +172,7 @@ export function TransactionForm({
               onChange={(e) => onSourceWalletChange?.(e.target.value || null)}
               className="w-full px-3 py-2 rounded-lg border bg-input text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="">Pilih wallet sumber...</option>
+              <option value="">Pilih wallet sumber…</option>
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.name}{w.is_primary ? ' ⭐' : ''}
@@ -188,7 +188,7 @@ export function TransactionForm({
               onChange={(e) => onDestinationWalletChange?.(e.target.value || null)}
               className="w-full px-3 py-2 rounded-lg border bg-input text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="">Pilih wallet tujuan...</option>
+              <option value="">Pilih wallet tujuan…</option>
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.name}{w.is_primary ? ' ⭐' : ''}
@@ -239,7 +239,7 @@ export function TransactionForm({
             onChange={(e) => onSourceWalletChange?.(e.target.value || null)}
             className="w-full px-3 py-2 rounded-lg border bg-input text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">Pilih wallet...</option>
+            <option value="">Pilih wallet…</option>
             {wallets.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name}{w.is_primary ? ' ⭐' : ''}

@@ -210,11 +210,11 @@ export function QuickAddSheet({
           {isSubmitting ? (
             <>
               <motion.div
-                className="w-4 h-4 rounded-full border-2 border-transparent border-t-white"
+ className="size-4 rounded-full border-2 border-transparent border-t-white"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity }}
               />
-              Menyimpan...
+              Menyimpan…
             </>
           ) : (
             <>

@@ -67,7 +67,7 @@ export default function WalletPage() {
             <p className="text-sm text-muted-foreground mt-1">Kelola semua sumber dana dan akun keuangan Anda</p>
           </div>
           <Button onClick={() => setModalOpen(true)} className="gap-2 flex-shrink-0">
-            <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
             <span className="hidden sm:inline">Tambah</span>
           </Button>
         </div>
@@ -76,7 +76,7 @@ export default function WalletPage() {
       {wallets.length === 0 ? (
         <Card className="border-l-4 border-l-primary">
           <CardContent className="flex flex-col items-center gap-6 py-16 px-6">
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-4xl">
+ <div className="size-20 rounded-2xl bg-primary/10 flex items-center justify-center text-4xl">
               💼
             </div>
             <div className="text-center space-y-2">
@@ -86,7 +86,7 @@ export default function WalletPage() {
               </p>
             </div>
             <Button onClick={() => setModalOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
               Buat Wallet Pertama
             </Button>
           </CardContent>
@@ -143,7 +143,7 @@ export default function WalletPage() {
           {/* Quick Action */}
           <div>
             <Button onClick={() => setModalOpen(true)} variant="outline" className="w-full h-11 gap-2">
-              <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
               Tambah Wallet Baru
             </Button>
           </div>

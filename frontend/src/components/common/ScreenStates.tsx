@@ -12,7 +12,7 @@ export const LoadingState: React.FC<{ message?: string }> = ({
     <div className="flex items-center justify-center min-h-[400px] p-4">
       <div className="flex flex-col items-center gap-4">
         <svg
-          className="animate-spin h-8 w-8 text-[var(--color-brand-primary)]"
+ className="animate-spin size-8 text-[var(--color-brand-primary)]"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -62,7 +62,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         <div className="flex flex-col gap-6">
           {/* Error Icon */}
           <div className="flex justify-center">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[var(--color-sentiment-negative-bg)]">
+ <div className="flex items-center justify-center size-12 rounded-full bg-[var(--color-sentiment-negative-bg)]">
               <svg
                 width="24"
                 height="24"
@@ -127,7 +127,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         {icon ? (
           <div className="flex justify-center">{icon}</div>
         ) : (
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[var(--color-bg-neutral)]">
+ <div className="flex items-center justify-center size-12 rounded-full bg-[var(--color-bg-neutral)]">
             <svg
               width="24"
               height="24"

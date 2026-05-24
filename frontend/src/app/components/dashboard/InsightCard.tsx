@@ -19,27 +19,27 @@ export function InsightCard({
   const severityStyles = {
     info: {
       bg: 'bg-[var(--color-brand-primary-light)]',
-      icon: <Sparkles className="w-4 h-4 text-[var(--color-brand-primary)]" />,
+ icon: <Sparkles className="size-4 text-[var(--color-brand-primary)]" />,
       border: 'border-l-[var(--color-brand-primary)]',
     },
     warning: {
       bg: 'bg-[var(--color-sentiment-warning-bg)]',
       icon: (
-        <AlertTriangle className="w-4 h-4 text-[var(--color-sentiment-warning)]" />
+ <AlertTriangle className="size-4 text-[var(--color-sentiment-warning)]" />
       ),
       border: 'border-l-[var(--color-sentiment-warning)]',
     },
     critical: {
       bg: 'bg-[var(--color-sentiment-negative-bg)]',
       icon: (
-        <AlertTriangle className="w-4 h-4 text-[var(--color-sentiment-negative)]" />
+ <AlertTriangle className="size-4 text-[var(--color-sentiment-negative)]" />
       ),
       border: 'border-l-[var(--color-sentiment-negative)]',
     },
     success: {
       bg: 'bg-[var(--color-sentiment-positive-bg)]',
       icon: (
-        <CheckCircle className="w-4 h-4 text-[var(--color-sentiment-positive)]" />
+ <CheckCircle className="size-4 text-[var(--color-sentiment-positive)]" />
       ),
       border: 'border-l-[var(--color-sentiment-positive)]',
     },

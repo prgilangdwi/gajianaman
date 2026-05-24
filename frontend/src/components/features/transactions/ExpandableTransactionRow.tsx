@@ -69,7 +69,7 @@ function ExpandableTransactionRowComponent({
         )}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0', bgColorVar('bg-neutral'))}>
+ <div className={cn('size-10 rounded-full flex items-center justify-center text-lg flex-shrink-0', bgColorVar('bg-neutral'))}>
             {meta.emoji}
           </div>
           <div className="min-w-0 flex-1">
@@ -116,9 +116,9 @@ function ExpandableTransactionRowComponent({
         <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
           <div className="flex items-center gap-1">
             {isIncome ? (
-              <ArrowUpRight className={cn('w-4 h-4', textColorVar('sentiment-positive'))} />
+ <ArrowUpRight className={cn('size-4 ', textColorVar('sentiment-positive'))} />
             ) : (
-              <ArrowDownRight className={cn('w-4 h-4', textColorVar('content-tertiary'))} />
+ <ArrowDownRight className={cn('size-4 ', textColorVar('content-tertiary'))} />
             )}
             <span className="font-mono font-bold text-base sm:text-sm flex-shrink-0">
               {isIncome ? (
@@ -134,7 +134,7 @@ function ExpandableTransactionRowComponent({
           </div>
           <ChevronDown
             className={cn(
-              'w-5 h-5 transition-transform flex-shrink-0',
+ 'size-5 transition-transform flex-shrink-0',
               textColorVar('content-tertiary'),
               isExpanded ? 'rotate-180' : ''
             )}
@@ -245,7 +245,7 @@ function ExpandableTransactionRowComponent({
                       onClick={() => onEdit(tx)}
                       className="flex-1 gap-2"
                     >
-                      <PenLine className="w-4 h-4" />
+ <PenLine className="size-4 " />
                       <span className="hidden sm:inline">Ubah</span>
                     </Button>
                   )}
@@ -257,7 +257,7 @@ function ExpandableTransactionRowComponent({
                       onClick={() => onDelete(tx.id)}
                       className="flex-1 gap-2 hover:border-red-300 hover:text-red-600"
                     >
-                      <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
                       <span className="hidden sm:inline">Hapus</span>
                     </Button>
                   )}

@@ -9,17 +9,17 @@ export function TypingIndicator() {
     >
       <span
         className={cn(
-          'inline-block w-2 h-2 rounded-full bg-[var(--color-content-tertiary)] animate-bounce',
+ 'inline-block size-2 rounded-full bg-[var(--color-content-tertiary)] animate-bounce',
           '[animation-delay:-0.32s]'
         )}
       />
       <span
         className={cn(
-          'inline-block w-2 h-2 rounded-full bg-[var(--color-content-tertiary)] animate-bounce',
+ 'inline-block size-2 rounded-full bg-[var(--color-content-tertiary)] animate-bounce',
           '[animation-delay:-0.16s]'
         )}
       />
-      <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-content-tertiary)] animate-bounce" />
+ <span className="inline-block size-2 rounded-full bg-[var(--color-content-tertiary)] animate-bounce" />
     </div>
   );
 }

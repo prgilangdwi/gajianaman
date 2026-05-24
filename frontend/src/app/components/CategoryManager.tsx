@@ -47,7 +47,7 @@ export default function CategoryManager() {
     .filter((cat) => cat.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading categories...</div>;
+    return <div className="text-center py-8">Loading categories…</div>;
   }
 
   return (
@@ -55,7 +55,7 @@ export default function CategoryManager() {
       {/* Header with Search and Add Buttons */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Search className="w-4 h-4 text-muted-foreground" />
+ <Search className="size-4 text-muted-foreground" />
           <Input
             placeholder="Search categories..."
             value={searchQuery}
@@ -67,7 +67,7 @@ export default function CategoryManager() {
           <Dialog open={showAddGroupDialog} onOpenChange={setShowAddGroupDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2">
-                <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
                 Add Group
               </Button>
             </DialogTrigger>
@@ -86,7 +86,7 @@ export default function CategoryManager() {
             <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
-                  <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
                   Add Category
                 </Button>
               </DialogTrigger>
@@ -121,9 +121,9 @@ export default function CategoryManager() {
                   className="flex items-center gap-2 flex-1 text-left hover:bg-accent p-2 rounded-md"
                 >
                   {expandedGroups[group.id] ? (
-                    <ChevronDown className="w-4 h-4" />
+ <ChevronDown className="size-4 " />
                   ) : (
-                    <ChevronRight className="w-4 h-4" />
+ <ChevronRight className="size-4 " />
                   )}
                   <span className={`font-semibold ${group.is_default ? 'text-muted-foreground' : ''}`}>
                     {group.icon} {group.name}
@@ -137,7 +137,7 @@ export default function CategoryManager() {
                       variant="ghost"
                       onClick={() => setEditingItem({ type: 'group', id: group.id })}
                     >
-                      <Edit2 className="w-4 h-4" />
+ <Edit2 className="size-4 " />
                     </Button>
                     <Button
                       size="sm"
@@ -145,7 +145,7 @@ export default function CategoryManager() {
                       onClick={() => deleteCategoryGroup(group.id)}
                       disabled={isManaging}
                     >
-                      <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
                     </Button>
                   </div>
                 )}
@@ -169,7 +169,7 @@ export default function CategoryManager() {
                               variant="ghost"
                               onClick={() => setEditingItem({ type: 'category', id: cat.id })}
                             >
-                              <Edit2 className="w-4 h-4" />
+ <Edit2 className="size-4 " />
                             </Button>
                             <Button
                               size="sm"
@@ -177,7 +177,7 @@ export default function CategoryManager() {
                               onClick={() => deleteCategory(cat.id)}
                               disabled={isManaging}
                             >
-                              <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
                             </Button>
                           </div>
                         )}
@@ -195,7 +195,7 @@ export default function CategoryManager() {
                         setShowAddCategoryDialog(true);
                       }}
                     >
-                      <Plus className="w-3 h-3" />
+ <Plus className="size-3 " />
                       Add Category
                     </Button>
                   )}
@@ -222,7 +222,7 @@ export default function CategoryManager() {
                           variant="ghost"
                           onClick={() => setEditingItem({ type: 'category', id: cat.id })}
                         >
-                          <Edit2 className="w-4 h-4" />
+ <Edit2 className="size-4 " />
                         </Button>
                         <Button
                           size="sm"
@@ -230,7 +230,7 @@ export default function CategoryManager() {
                           onClick={() => deleteCategory(cat.id)}
                           disabled={isManaging}
                         >
-                          <Trash2 className="w-4 h-4" />
+ <Trash2 className="size-4 " />
                         </Button>
                       </div>
                     )}

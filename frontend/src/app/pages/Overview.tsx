@@ -179,14 +179,14 @@ export default function Overview() {
       >
         <StatCard
           variant="default"
-          icon={<TrendingUp className="w-4 h-4" />}
+ icon={<TrendingUp className="size-4 " />}
           label="Pemasukan"
           value={formatRupiah(data.income)}
           className={cn(textColorVar('sentiment-positive'))}
         />
         <StatCard
           variant="default"
-          icon={<TrendingDown className="w-4 h-4" />}
+ icon={<TrendingDown className="size-4 " />}
           label="Pengeluaran"
           value={formatRupiah(data.expenses)}
           className={cn(textColorVar('sentiment-negative'))}

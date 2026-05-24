@@ -158,7 +158,7 @@ export default function DetailKategori() {
           className="p-2 rounded-lg hover:bg-[var(--color-bg-neutral)] transition-colors"
           title="Kembali"
         >
-          <ChevronLeft className="w-5 h-5" />
+ <ChevronLeft className="size-5 " />
         </button>
         <div>
           <h1 className={cn('text-3xl font-bold flex items-center gap-2', textColorVar('content-primary'))}>

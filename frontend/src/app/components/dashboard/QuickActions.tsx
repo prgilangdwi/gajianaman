@@ -9,18 +9,18 @@ interface QuickActionsProps {
 export function QuickActions({ onAddTransaction }: QuickActionsProps) {
   const actions = [
     {
-      icon: <Plus className="w-4 h-4" />,
+ icon: <Plus className="size-4 " />,
       label: 'Tambah',
       onClick: onAddTransaction,
       primary: true,
     },
     {
-      icon: <FileText className="w-4 h-4" />,
+ icon: <FileText className="size-4 " />,
       label: 'Laporan',
       to: '/analytics/laporan',
     },
     {
-      icon: <Sparkles className="w-4 h-4" />,
+ icon: <Sparkles className="size-4 " />,
       label: 'AI Chat',
       to: '/ai/chat',
     },

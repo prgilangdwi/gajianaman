@@ -160,13 +160,13 @@ export default function Categories() {
             variant="outline"
             className="gap-2"
           >
-            <Merge className="w-4 h-4" /> Gabungkan
+ <Merge className="size-4 " /> Gabungkan
           </Button>
           <Button
             onClick={() => setShowAddDialog(true)}
             className="gap-2"
           >
-            <Plus className="w-4 h-4" /> Tambah Kategori
+ <Plus className="size-4 " /> Tambah Kategori
           </Button>
         </div>
       </motion.div>
@@ -212,7 +212,7 @@ export default function Categories() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+ className="size-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
                             style={{ backgroundColor: `${category.color}20` }}
                           >
                             {category.icon}
@@ -227,7 +227,7 @@ export default function Categories() {
                           </div>
                         </div>
                         <div
-                          className="w-6 h-6 rounded-full flex-shrink-0"
+ className="size-6 rounded-full flex-shrink-0"
                           style={{ backgroundColor: category.color }}
                           title={category.color}
                         />
@@ -242,7 +242,7 @@ export default function Categories() {
                             textColorVar('sentiment-negative')
                           )}
                         >
-                          <Trash2 className="w-3 h-3" /> Hapus
+ <Trash2 className="size-3 " /> Hapus
                         </button>
                       )}
                     </motion.div>
@@ -332,7 +332,7 @@ export default function Categories() {
                     key={color}
                     onClick={() => setNewCategoryColor(color)}
                     className={cn(
-                      'w-12 h-12 rounded-lg transition-transform hover:scale-110',
+ 'size-12 rounded-lg transition-transform hover:scale-110',
                       newCategoryColor === color ? 'ring-2 ring-offset-2' : ''
                     )}
                     style={{
@@ -345,7 +345,7 @@ export default function Categories() {
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <div
-                  className="w-8 h-8 rounded-lg flex-shrink-0"
+ className="size-8 rounded-lg flex-shrink-0"
                   style={{ backgroundColor: newCategoryColor }}
                 />
                 <input

@@ -100,7 +100,7 @@ export function CategoryDetailModal({
           {/* Search and Sort */}
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0" />
+ <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground flex-shrink-0" />
               <Input
                 id="category-search"
                 placeholder="Cari transaksi..."
@@ -125,7 +125,7 @@ export function CategoryDetailModal({
           {/* Transaction List */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {isLoading ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Memuat...</p>
+              <p className="text-sm text-muted-foreground text-center py-4">Memuat…</p>
             ) : sortedTransactions.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Tidak ada transaksi yang cocok
@@ -153,9 +153,9 @@ export function CategoryDetailModal({
                             variant="ghost"
                             size="sm"
                             onClick={() => onEdit(tx)}
-                            className="h-7 w-7 p-0"
+ className="size-7 p-0"
                           >
-                            <Edit2 className="w-3 h-3" />
+ <Edit2 className="size-3 " />
                           </Button>
                         )}
                         {onDelete && (
@@ -163,10 +163,10 @@ export function CategoryDetailModal({
                             variant="ghost"
                             size="sm"
                             onClick={() => onDelete(tx.id)}
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+ className="size-7 p-0 text-destructive hover:text-destructive"
                             aria-label={`Hapus transaksi: ${tx.note || tx.category}`}
                           >
-                            <Trash2 className="w-3 h-3" />
+ <Trash2 className="size-3 " />
                           </Button>
                         )}
                       </div>

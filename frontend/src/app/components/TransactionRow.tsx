@@ -35,7 +35,7 @@ export function TransactionRow({ tx, index, prefersReduced, onClick }: Transacti
       onClick={() => onClick?.(tx)}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className={cn('w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0', bgColorVar('bg-neutral'))}>
+ <div className={cn('size-10 rounded-full flex items-center justify-center text-lg flex-shrink-0', bgColorVar('bg-neutral'))}>
           {meta.emoji}
         </div>
         <div className="min-w-0">
@@ -76,9 +76,9 @@ export function TransactionRow({ tx, index, prefersReduced, onClick }: Transacti
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
         {isIncome ? (
-          <ArrowUpRight className={cn('w-4 h-4', textColorVar('sentiment-positive'))} />
+ <ArrowUpRight className={cn('size-4 ', textColorVar('sentiment-positive'))} />
         ) : (
-          <ArrowDownRight className={cn('w-4 h-4', textColorVar('content-tertiary'))} />
+ <ArrowDownRight className={cn('size-4 ', textColorVar('content-tertiary'))} />
         )}
         <span className="font-mono font-bold text-base sm:text-sm flex-shrink-0">
           {isIncome ? (

@@ -60,7 +60,7 @@ export default function FAQ() {
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6"
           >
-            <ArrowLeft className="w-4 h-4" />
+ <ArrowLeft className="size-4 " />
             Kembali
           </button>
           <h1 className="text-4xl font-semibold text-slate-900">FAQ</h1>
@@ -82,7 +82,7 @@ export default function FAQ() {
               >
                 <h3 className="text-lg font-semibold text-slate-900 text-left">{faq.q}</h3>
                 <ChevronDown
-                  className={`w-5 h-5 text-slate-600 flex-shrink-0 transition-transform ${
+ className={`size-5 text-slate-600 flex-shrink-0 transition-transform ${
                     expanded === idx ? 'rotate-180' : ''
                   }`}
                 />

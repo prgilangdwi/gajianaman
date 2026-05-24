@@ -30,7 +30,7 @@ export function ErrorState({
       transition={{ duration: 0.2 }}
       className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4"
     >
-      <AlertCircle className={cn('w-12 h-12', textColorVar('sentiment-negative'))} />
+ <AlertCircle className={cn('size-12 ', textColorVar('sentiment-negative'))} />
       <div className="text-center space-y-3">
         <p className={cn('text-lg font-semibold', textColorVar('sentiment-negative'))}>{title}</p>
         <p className={cn('text-sm max-w-sm', textColorVar('content-tertiary'))}>{message}</p>
@@ -72,7 +72,7 @@ export function EmptyState({
       transition={{ duration: 0.2 }}
       className="flex flex-col items-center justify-center py-16 sm:py-20 gap-4"
     >
-      {icon || <TrendingUp className={cn('w-12 h-12 opacity-60', textColorVar('content-secondary'))} />}
+ {icon || <TrendingUp className={cn('size-12 opacity-60', textColorVar('content-secondary'))} />}
       <div className="text-center space-y-2">
         <p className={cn('text-lg font-semibold', textColorVar('content-primary'))}>{title}</p>
         <p className={cn('text-sm max-w-sm', textColorVar('content-secondary'))}>{message}</p>
@@ -109,7 +109,7 @@ function SkeletonRow() {
   return (
     <div className={cn('flex items-center justify-between py-3 border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+ <div className={cn('size-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
           <div className={cn('h-4 w-32 rounded animate-pulse', bgColorVar('bg-neutral'))} />
           <div className={cn('h-3 w-24 rounded animate-pulse', bgColorVar('bg-neutral'))} />

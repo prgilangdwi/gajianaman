@@ -85,8 +85,8 @@ export function GoalMilestone({
         </div>
 
         {isCompleted && (
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--color-sentiment-positive)] flex items-center justify-center">
-            <Check className="w-4 h-4 text-white" />
+ <div className="flex-shrink-0 size-8 rounded-full bg-[var(--color-sentiment-positive)] flex items-center justify-center">
+ <Check className="size-4 text-white" />
           </div>
         )}
       </div>
@@ -140,7 +140,7 @@ export function GoalMilestone({
             ? 'bg-[var(--color-sentiment-warning-bg)] text-[var(--color-sentiment-warning)]'
             : 'bg-[var(--color-bg-neutral)] text-[var(--color-content-secondary)]'
         )}>
-          <Zap className="w-4 h-4 flex-shrink-0" />
+ <Zap className="size-4 flex-shrink-0" />
           <div className="text-sm">
             {daysLeft < 0
               ? `${Math.abs(daysLeft)} hari yang lalu (Tenggat waktu terlewati)`

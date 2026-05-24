@@ -187,7 +187,7 @@ export default function Goals() {
       >
         <h2 className="text-lg font-semibold text-[var(--color-content-primary)]">Daftar Goals</h2>
         <Button onClick={() => setDialogOpen(true)} className="gap-1">
-          <Plus className="w-4 h-4" /> Tambah Goal
+ <Plus className="size-4 " /> Tambah Goal
         </Button>
       </motion.div>
 
@@ -200,10 +200,10 @@ export default function Goals() {
         >
           <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CardContent className="py-16 text-center space-y-3">
-              <Target className="w-12 h-12 text-[var(--color-content-tertiary)] mx-auto" />
+ <Target className="size-12 text-[var(--color-content-tertiary)] mx-auto" />
               <p className="text-[var(--color-content-tertiary)]">Belum ada goals. Yuk mulai menabung!</p>
               <Button onClick={() => setDialogOpen(true)} variant="outline">
-                <Plus className="w-4 h-4 mr-1" /> Buat Goal Pertama
+ <Plus className="size-4 mr-1" /> Buat Goal Pertama
               </Button>
             </CardContent>
           </Card>
@@ -237,12 +237,12 @@ export default function Goals() {
                 className="w-full justify-between px-6 py-4 h-auto hover:bg-[var(--color-bg-screen)]"
               >
                 <div className="flex items-center gap-2 text-base font-semibold text-[var(--color-content-primary)]">
-                  <TrendingUp className="w-5 h-5" />
+ <TrendingUp className="size-5 " />
                   Lihat Progres Detail
                 </div>
                 <ChevronDown
                   className={cn(
-                    'w-5 h-5 transition-transform text-[var(--color-content-secondary)]',
+ 'size-5 transition-transform text-[var(--color-content-secondary)]',
                     progressOpen ? 'rotate-180' : ''
                   )}
                 />

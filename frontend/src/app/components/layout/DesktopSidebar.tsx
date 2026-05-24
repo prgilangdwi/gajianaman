@@ -38,7 +38,7 @@ export function DesktopSidebar({ isRailMode = false }: DesktopSidebarProps) {
             {/* Logo */}
             <div className={cn(
               'flex items-center justify-center rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--color-brand-primary)] to-[var(--color-brand-primary-dark)]',
-              isRailMode ? 'w-8 h-8' : 'w-9 h-9'
+ isRailMode ? 'size-8 ' : 'size-9 '
             )}>
               <span className="font-extrabold text-white text-xs">GA</span>
             </div>
@@ -57,7 +57,7 @@ export function DesktopSidebar({ isRailMode = false }: DesktopSidebarProps) {
           {/* User avatar (compact in rail mode) */}
           {!isRailMode && (
             <div className="flex items-center gap-2 p-2 mt-4 rounded-[var(--radius-md)] bg-[var(--color-bg-elevated)]">
-              <Avatar className="h-7 w-7">
+ <Avatar className="size-7 ">
                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} />
                 <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
@@ -99,7 +99,7 @@ export function DesktopSidebar({ isRailMode = false }: DesktopSidebarProps) {
               )}
               aria-label="Settings"
             >
-              <SettingsIcon className={cn('w-4 h-4', !isRailMode && 'mr-2')} />
+ <SettingsIcon className={cn('size-4 ', !isRailMode && 'mr-2')} />
               {!isRailMode && 'Settings'}
             </Button>
           </Link>
@@ -112,7 +112,7 @@ export function DesktopSidebar({ isRailMode = false }: DesktopSidebarProps) {
             )}
             aria-label="Logout"
           >
-            <LogOut className={cn('w-4 h-4', !isRailMode && 'mr-2')} />
+ <LogOut className={cn('size-4 ', !isRailMode && 'mr-2')} />
             {!isRailMode && 'Logout'}
           </Button>
         </div>
@@ -149,7 +149,7 @@ function SidebarSection({
         )}
         aria-current={isActive ? 'true' : undefined}
       >
-        <Icon className="w-4.5 h-4.5 shrink-0" />
+ <Icon className="size-4.5 .5 shrink-0" />
         {!isRailMode && (
           <span className="text-sm font-semibold truncate">{section.labelId}</span>
         )}
@@ -185,7 +185,7 @@ function SidebarSection({
                       : 'text-[var(--color-content-tertiary)] hover:text-[var(--color-content-secondary)]'
                   )}
                 >
-                  <ChildIcon className="w-3.5 h-3.5 shrink-0" />
+ <ChildIcon className="size-3.5 .5 shrink-0" />
                   <span className="truncate">{child.labelId}</span>
                 </Link>
               );
