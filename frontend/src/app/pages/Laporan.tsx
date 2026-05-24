@@ -74,6 +74,28 @@ function calculateHealthScore(monthlyData: MonthlyPoint[]): HealthScore {
   return { score: Math.min(100, score), savingsRate, status };
 }
 
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { name: string; value: number; color: string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')} rounded-xl p-3 shadow-md text-sm space-y-1`}>
+      <p className={`font-semibold ${textColorVar('content-primary')}`}>{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} style={{ color: p.color }}>
+          {p.name}: {formatRupiah(p.value)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function LaporanContent() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
@@ -191,28 +213,6 @@ function LaporanContent() {
       topWallet,
     };
   }, [transactions, month, year, wallets]);
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: { name: string; value: number; color: string }[];
-    label?: string;
-  }) => {
-    if (!active || !payload?.length) return null;
-    return (
-      <div className={`${bgColorVar('bg-card')} ${borderColorVar('border-neutral')} rounded-xl p-3 shadow-md text-sm space-y-1`}>
-        <p className={`font-semibold ${textColorVar('content-primary')}`}>{label}</p>
-        {payload.map((p) => (
-          <p key={p.name} style={{ color: p.color }}>
-            {p.name}: {formatRupiah(p.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
 
   const getHealthStatus = (score: number): 'safe' | 'warning' | 'over' | 'none' => {
     if (score >= 70) return 'safe';

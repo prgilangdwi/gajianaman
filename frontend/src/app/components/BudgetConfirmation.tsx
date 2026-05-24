@@ -47,15 +47,15 @@ export default function BudgetConfirmation() {
     fixedExpenses: { category: string; amount: number }[];
   } | undefined;
 
+  const [editedItems, setEditedItems] = useState<BudgetItem[]>(recommendation?.budgetItems ?? []);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   if (!recommendation) {
     return <Navigate to="/gajian" replace />;
   }
 
   const totalFixed = formData?.fixedExpenses?.reduce((sum, e) => sum + e.amount, 0) ?? 0;
-
-  const [editedItems, setEditedItems] = useState<BudgetItem[]>(recommendation.budgetItems);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleAmountChange = (index: number, raw: string) => {
     const amount = parseAmountInput(raw);

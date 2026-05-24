@@ -18,17 +18,6 @@ const EASING = {
   spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // --ease-spring
 } as const;
 
-/** Helper: Disable transition if user prefers reduced motion */
-function withReducedMotion(
-  transition: Record<string, unknown>
-): Record<string, unknown> {
-  const shouldReduceMotion = useReducedMotion() ?? false;
-  if (shouldReduceMotion) {
-    return { ...transition, transition: { duration: 0 } };
-  }
-  return transition;
-}
-
 // Primary page navigation (200ms standard ease)
 export const pageEnter = {
   initial: { opacity: 0, y: 8 },
