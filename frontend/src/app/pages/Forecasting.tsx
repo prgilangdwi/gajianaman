@@ -1,12 +1,14 @@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { useExpenseForecastingWithHistory } from '@/hooks/data/useExpenseForecastingWithHistory';
 import { useWeeklyForecasting } from '@/hooks/data/useWeeklyForecasting';
 import { useBudgets } from '@/hooks/useBudgets';
+import { useTransactions } from '@/hooks/useTransactions';
+import ChartInsight from '../components/ChartInsight';
 import { cn, formatRupiah, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { Progress } from '../components/ui/progress';
@@ -61,6 +63,48 @@ export default function Forecasting() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const { forecast: weeklyForecast, isLoading: weeklyLoading } = useWeeklyForecasting(selectedWeek, month, year);
   const prefersReduced = useReducedMotion();
+  const { transactions = [] } = useTransactions(month, year);
+  const [forecastInsight, setForecastInsight] = useState<string>('');
+  const [insightLoading, setInsightLoading] = useState(true);
+
+  useEffect(() => {
+    if (transactions.length === 0) {
+      setInsightLoading(false);
+      return;
+    }
+    const totalExpense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const avgMonthly = Math.round(totalExpense / 3);
+
+    const fetchInsight = async () => {
+      try {
+        const response = await fetch('/api/ask-assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: `Pengguna memiliki rata-rata pengeluaran sekitar Rp ${avgMonthly.toLocaleString('id-ID')}/bulan. Berdasarkan tren ini, berikan analisis singkat dan 1-2 saran praktis untuk mengoptimalkan keuangan bulan depan. Jawab dalam 2-3 kalimat dalam Bahasa Indonesia.`,
+            transactions: transactions.map(t => ({
+              amount: t.amount,
+              type: t.type,
+              category: t.category,
+              date: t.date,
+            })),
+            month,
+            year,
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+        const data = await response.json();
+        setForecastInsight(data.response ?? '');
+      } catch {
+        setForecastInsight('');
+      } finally {
+        setInsightLoading(false);
+      }
+    };
+    fetchInsight();
+  }, [transactions, month, year]);
 
   const isLoading = forecastMode === 'monthly' ? forecastLoading : weeklyLoading;
   const hasData = forecastMode === 'monthly' ? forecast : weeklyForecast;
@@ -153,6 +197,13 @@ export default function Forecasting() {
           )}
         </TabsContent>
       </Tabs>
+
+      <ChartInsight
+        insight={forecastInsight}
+        icon="🔮"
+        loading={insightLoading}
+        error={!insightLoading && !forecastInsight}
+      />
     </motion.div>
   );
 }
