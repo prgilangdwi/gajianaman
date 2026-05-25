@@ -25,7 +25,7 @@ interface AIInsight {
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse<AIInsight[] | { error: string }>
+  res: VercelResponse
 ) {
   // Only allow GET requests
   if (req.method !== 'GET') {
