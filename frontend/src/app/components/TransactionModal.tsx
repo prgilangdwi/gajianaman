@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -65,9 +65,10 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved?: () => void;
+  transaction?: import('@/lib/supabase').Transaction;
 }
 
-export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSaved, transaction }: TransactionModalProps) {
   const { user } = useAuth();
   const { wallets } = useWallets(user?.userId);
   const { categories: dbCategories, isLoading: categoriesLoading } = useCategories('expense');
@@ -119,7 +120,9 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
   const [allUserTags, setAllUserTags] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  const loadTagSuggestions = async () => {
+  const isEditMode = !!transaction;
+
+  const loadTagSuggestions = useCallback(async () => {
     if (!user) return;
     try {
       const { data } = await supabase
@@ -138,7 +141,19 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     } catch {
       // Silently fail if tags column doesn't exist
     }
-  };
+  }, [user]);
+
+  // Initialize form with transaction data in edit mode
+  useEffect(() => {
+    if (isEditMode && transaction) {
+      setTransactionType(transaction.type === 'income' ? 'pemasukan' : 'pengeluaran');
+      setManualAmount(String(transaction.amount));
+      setManualCategory(transaction.category);
+      setManualNote(transaction.note || '');
+      setManualDate(transaction.date);
+      setInputMethod('manual');
+    }
+  }, [isEditMode, transaction]);
 
   // ───── AI Parsing ─────
   const isMultiTransaction = (text: string) => {
@@ -415,8 +430,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
     setIsSaving(true);
     try {
-      const insertData = {
-        user_id: user.userId,
+      const transactionData = {
         type: form.form.type,
         amount: Number(form.form.amount),
         category: form.form.category,
@@ -430,14 +444,34 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
         }),
       };
 
-      const { error } = await supabase.from('transactions').insert(insertData);
+      let error;
+      if (isEditMode && transaction) {
+        // Update existing transaction
+        const { error: updateError } = await supabase
+          .from('transactions')
+          .update(transactionData)
+          .eq('id', transaction.id);
+        error = updateError;
+        if (!error) {
+          toast.success('Transaksi diperbarui');
+        }
+      } else {
+        // Insert new transaction
+        const { error: insertError } = await supabase.from('transactions').insert({
+          user_id: user.userId,
+          ...transactionData,
+        });
+        error = insertError;
+        if (!error) {
+          toast.success(COPY.success.transactionAdded);
+        }
+      }
 
       if (error) {
         toast.error('Gagal menyimpan: ' + error.message);
         return;
       }
 
-      toast.success(COPY.success.transactionAdded);
       onSaved?.();
       handleClose();
     } finally {
@@ -445,7 +479,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     }
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAiInput('');
     setParsedData(null);
     resetPhoto();
@@ -457,13 +491,19 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
     setTransactionType('pengeluaran');
     setInputMethod('ai');
     onClose();
-  };
+  }, [onClose, form]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  }, [handleClose]);
 
   useEffect(() => {
     if (isOpen) {
       loadTagSuggestions();
     }
-  }, [isOpen]);
+  }, [isOpen, loadTagSuggestions]);
 
   const confidenceColor = { high: 'text-green-600', medium: 'text-yellow-600', low: 'text-red-500' };
   const confidenceLabel = { high: 'Tinggi', medium: 'Sedang', low: 'Rendah' };
@@ -479,7 +519,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold tracking-tight">Tambah Transaksi</DialogTitle>
         </DialogHeader>
@@ -497,19 +537,19 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
         >
           <TabsList className="grid w-full grid-cols-4 gap-1.5 bg-transparent p-0">
             <TabsTrigger value="pengeluaran" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-negative)] data-[state=active]:bg-[var(--color-sentiment-negative)]/10 transition-colors">
-              <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-sentiment-negative)]" />
+ <TrendingDown className="size-4 sm:size-5 text-[var(--color-sentiment-negative)]" />
               <span className="leading-tight text-[10px] sm:text-xs">Pengeluaran</span>
             </TabsTrigger>
             <TabsTrigger value="pemasukan" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-positive)] data-[state=active]:bg-[var(--color-sentiment-positive)]/10 transition-colors">
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-sentiment-positive)]" />
+ <TrendingUp className="size-4 sm:size-5 text-[var(--color-sentiment-positive)]" />
               <span className="leading-tight text-[10px] sm:text-xs">Pemasukan</span>
             </TabsTrigger>
             <TabsTrigger value="tabung" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-brand-primary)] data-[state=active]:bg-[var(--color-brand-primary)]/10 transition-colors">
-              <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-brand-primary)]" />
+ <PiggyBank className="size-4 sm:size-5 text-[var(--color-brand-primary)]" />
               <span className="leading-tight text-[10px] sm:text-xs">Tabung</span>
             </TabsTrigger>
             <TabsTrigger value="transfer" className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 sm:py-3 sm:px-2 rounded-lg sm:rounded-xl border-2 border-[var(--color-border-neutral)] w-full aspect-square text-xs font-medium hover:border-[var(--color-border-neutral)] data-[state=active]:border-[var(--color-sentiment-warning)] data-[state=active]:bg-[var(--color-sentiment-warning)]/10 transition-colors">
-              <ArrowLeftRight className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-sentiment-warning)]" />
+ <ArrowLeftRight className="size-4 sm:size-5 text-[var(--color-sentiment-warning)]" />
               <span className="leading-tight text-[10px] sm:text-xs">Transfer</span>
             </TabsTrigger>
           </TabsList>
@@ -520,15 +560,15 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="ai" className="gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
+ <Sparkles className="size-3.5 .5" />
                   <span className="hidden sm:inline">AI</span>
                 </TabsTrigger>
                 <TabsTrigger value="foto" className="gap-1">
-                  <Camera className="w-3.5 h-3.5" />
+ <Camera className="size-3.5 .5" />
                   <span className="hidden sm:inline">Foto</span>
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="gap-1">
-                  <PenLine className="w-3.5 h-3.5" />
+ <PenLine className="size-3.5 .5" />
                   <span className="hidden sm:inline text-xs">Manual</span>
                 </TabsTrigger>
               </TabsList>
@@ -537,18 +577,20 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               <TabsContent value="ai" className="space-y-4 mt-4">
                 {multiError && (
                   <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex gap-2">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+ <AlertCircle className="size-5 flex-shrink-0 mt-0.5" />
                     <div>{multiError}</div>
                   </div>
                 )}
                 {multiParsedTxs.length === 0 && !parsedData ? (
                   <div className="space-y-3">
-                    <Label className="font-body">Ketik bebas (satu atau banyak transaksi), AI akan parsing untuk kamu</Label>
+                    <Label htmlFor="ai-input-pengeluaran" className="font-body">Ketik bebas (satu atau banyak transaksi), AI akan parsing untuk kamu</Label>
                     <Textarea
+                      id="ai-input-pengeluaran"
                       placeholder="Contoh:&#10;beli kopi 25rb tadi pagi&#10;atau:&#10;makan soto 50k 17 mei, isi bensin 100k hari ini, dari Adi 50rb"
                       className="min-h-[120px] resize-none"
                       value={aiInput}
                       onChange={(e) => setAiInput(e.target.value)}
+                      aria-describedby="ai-hint-pengeluaran"
                     />
                     <Button
                       onClick={handleParseAI}
@@ -556,9 +598,9 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       className="w-full bg-primary hover:bg-primary-dark"
                     >
                       {isParsingAI ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menganalisis...</>
+ <><Loader2 className="size-4 mr-2 animate-spin" />Menganalisis…</>
                       ) : (
-                        <><Sparkles className="w-4 h-4 mr-2" />Analisis Transaksi</>
+ <><Sparkles className="size-4 mr-2" />Analisis Transaksi</>
                       )}
                     </Button>
                   </div>
@@ -588,9 +630,9 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                         className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
                       >
                         {isSaving ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
+ <><Loader2 className="size-4 animate-spin" />Menyimpan…</>
                         ) : (
-                          <><CheckCircle2 className="w-4 h-4" />Simpan Semua</>
+ <><CheckCircle2 className="size-4 " />Simpan Semua</>
                         )}
                       </Button>
                       <Button
@@ -658,8 +700,8 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
                 {photoPhase === 'idle' && (
                   <div className="flex flex-col items-center gap-4 py-6">
-                    <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <Camera className="w-10 h-10 text-primary" />
+ <div className="size-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+ <Camera className="size-10 text-primary" />
                     </div>
                     <div className="text-center space-y-1">
                       <p className="font-semibold tracking-tight">Upload foto struk atau bukti bayar</p>
@@ -709,18 +751,19 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       <img src={photoPreviewUrl} alt="Preview" className="w-full max-h-48 object-contain" />
                       {photoPhase === 'preview' && (
                         <button
+                          type="button"
                           onClick={resetPhoto}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+ className="absolute top-2 right-2 size-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
                           title="Pilih foto lain"
                         >
-                          <X className="w-4 h-4" />
+ <X className="size-4 " />
                         </button>
                       )}
                       {photoPhase === 'analyzing' && (
                         <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+ <Loader2 className="size-8 animate-spin text-primary" />
                           <div className="text-center">
-                            <p className="text-sm font-semibold">Menganalisis foto...</p>
+                            <p className="text-sm font-semibold">Menganalisis foto…</p>
                             <p className="text-xs text-muted-foreground mt-1">Sedang membaca struk</p>
                           </div>
                         </div>
@@ -732,7 +775,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                         onClick={handleAnalyzePhoto}
                         className="w-full h-11 bg-primary hover:bg-primary-dark gap-2"
                       >
-                        <Zap className="w-4 h-4" /> Parsing dengan AI
+ <Zap className="size-4 " /> Parsing dengan AI
                       </Button>
                     )}
                   </div>
@@ -743,11 +786,11 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                     <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
                       <div className="flex items-start gap-3">
                         {photoPreviewUrl && (
-                          <img src={photoPreviewUrl} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-primary/30 flex-shrink-0" />
+ <img src={photoPreviewUrl} alt="Preview" className="size-12 rounded-lg object-cover border border-primary/30 flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+ <CheckCircle2 className="size-4 text-primary flex-shrink-0" />
                             <p className="font-semibold text-sm text-primary">Transaksi terdeteksi</p>
                           </div>
                           <p className={`text-xs font-medium ${
@@ -763,7 +806,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
                     {photoResult.confidence === 'low' && (
                       <div className="flex gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                        <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+ <AlertCircle className="size-4 text-yellow-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <p className="text-xs font-medium text-yellow-900 mb-0.5">Akurasi rendah</p>
                           <p className="text-xs text-yellow-700 font-body">Mohon periksa semua data di bawah sebelum menyimpan</p>
@@ -802,8 +845,8 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                 {photoPhase === 'error' && (
                   <div className="space-y-4">
                     <div className="flex flex-col items-center gap-3 py-6">
-                      <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center border border-red-200">
-                        <AlertCircle className="w-7 h-7 text-red-500" />
+ <div className="size-14 rounded-2xl bg-red-50 flex items-center justify-center border border-red-200">
+ <AlertCircle className="size-7 text-red-500" />
                       </div>
                       <div className="text-center space-y-1">
                         <p className="font-semibold text-red-900">Gagal membaca struk</p>
@@ -853,6 +896,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       value={manualAmount}
                       onChange={(e) => setManualAmount(e.target.value)}
                       className="font-mono"
+                      aria-label="Jumlah uang transaksi"
                     />
                   </div>
 
@@ -863,6 +907,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       value={manualCategory}
                       onChange={(e) => setManualCategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      aria-label="Pilih kategori transaksi"
                     >
                       {displayCategories.map((cat) => (
                         <option key={cat.id} value={cat.id}>{cat.emoji} {cat.id}</option>
@@ -878,6 +923,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       value={manualNote}
                       onChange={(e) => setManualNote(e.target.value)}
                       className="resize-none"
+                      aria-label="Catatan atau deskripsi transaksi"
                     />
                   </div>
 
@@ -888,6 +934,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       type="date"
                       value={manualDate}
                       onChange={(e) => setManualDate(e.target.value)}
+                      aria-label="Tanggal transaksi"
                     />
                   </div>
                 </div>
@@ -902,15 +949,15 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
             <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="ai" className="gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
+ <Sparkles className="size-3.5 .5" />
                   <span className="hidden sm:inline">AI</span>
                 </TabsTrigger>
                 <TabsTrigger value="foto" className="gap-1">
-                  <Camera className="w-3.5 h-3.5" />
+ <Camera className="size-3.5 .5" />
                   <span className="hidden sm:inline">Foto</span>
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="gap-1">
-                  <PenLine className="w-3.5 h-3.5" />
+ <PenLine className="size-3.5 .5" />
                   <span className="hidden sm:inline text-xs">Manual</span>
                 </TabsTrigger>
               </TabsList>
@@ -919,7 +966,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
               <TabsContent value="ai" className="space-y-4 mt-4">
                 {multiError && (
                   <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex gap-2">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+ <AlertCircle className="size-5 flex-shrink-0 mt-0.5" />
                     <div>{multiError}</div>
                   </div>
                 )}
@@ -938,9 +985,9 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       className="w-full bg-primary hover:bg-primary-dark"
                     >
                       {isParsingAI ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menganalisis...</>
+ <><Loader2 className="size-4 mr-2 animate-spin" />Menganalisis…</>
                       ) : (
-                        <><Sparkles className="w-4 h-4 mr-2" />Analisis Transaksi</>
+ <><Sparkles className="size-4 mr-2" />Analisis Transaksi</>
                       )}
                     </Button>
                   </div>
@@ -970,9 +1017,9 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                         className="flex-1 gap-2 bg-green-600 hover:bg-green-700"
                       >
                         {isSaving ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
+ <><Loader2 className="size-4 animate-spin" />Menyimpan…</>
                         ) : (
-                          <><CheckCircle2 className="w-4 h-4" />Simpan Semua</>
+ <><CheckCircle2 className="size-4 " />Simpan Semua</>
                         )}
                       </Button>
                       <Button
@@ -1039,8 +1086,8 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
 
                 {photoPhase === 'idle' && (
                   <div className="flex flex-col items-center gap-4 py-6">
-                    <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <Camera className="w-10 h-10 text-primary" />
+ <div className="size-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+ <Camera className="size-10 text-primary" />
                     </div>
                     <div className="text-center space-y-1">
                       <p className="font-semibold tracking-tight">Upload bukti pemasukan</p>
@@ -1081,16 +1128,17 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                       <img src={photoPreviewUrl} alt="Preview" className="w-full max-h-48 object-contain" />
                       {photoPhase === 'preview' && (
                         <button
+                          type="button"
                           onClick={resetPhoto}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
+ className="absolute top-2 right-2 size-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
                         >
-                          <X className="w-4 h-4" />
+ <X className="size-4 " />
                         </button>
                       )}
                       {photoPhase === 'analyzing' && (
                         <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                          <p className="text-sm font-semibold">Menganalisis...</p>
+ <Loader2 className="size-8 animate-spin text-primary" />
+                          <p className="text-sm font-semibold">Menganalisis…</p>
                         </div>
                       )}
                     </div>
@@ -1100,7 +1148,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                         onClick={handleAnalyzePhoto}
                         className="w-full h-11 bg-primary hover:bg-primary-dark gap-2"
                       >
-                        <Zap className="w-4 h-4" /> Parsing dengan AI
+ <Zap className="size-4 " /> Parsing dengan AI
                       </Button>
                     )}
                   </div>
@@ -1138,8 +1186,8 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                 {photoPhase === 'error' && (
                   <div className="space-y-4">
                     <div className="flex flex-col items-center gap-3 py-6">
-                      <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
-                        <AlertCircle className="w-7 h-7 text-red-500" />
+ <div className="size-14 rounded-2xl bg-red-50 flex items-center justify-center">
+ <AlertCircle className="size-7 text-red-500" />
                       </div>
                       <p className="font-semibold text-red-900">Gagal membaca foto</p>
                     </div>
@@ -1220,7 +1268,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
                   id="tabung-goal"
                   className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option>Pilih goal...</option>
+                  <option>Pilih goal…</option>
                   <option>Liburan</option>
                   <option>Rumah</option>
                 </select>
@@ -1274,7 +1322,7 @@ export function TransactionModal({ isOpen, onClose, onSaved }: TransactionModalP
             className="w-full h-12 bg-primary hover:bg-primary-dark mt-6"
           >
             {isSaving ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</>
+ <><Loader2 className="size-4 mr-2 animate-spin" />Menyimpan…</>
             ) : (
               'Simpan Transaksi'
             )}

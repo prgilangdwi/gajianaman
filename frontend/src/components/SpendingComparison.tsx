@@ -20,16 +20,16 @@ export function SpendingComparison({
 
   let trendLabel = 'Sama dengan bulan lalu';
   let trendColor = 'text-yellow-600';
-  let trendIcon = <Minus className="w-5 h-5" />;
+ let trendIcon = <Minus className="size-5 " />;
 
   if (isHigher) {
     trendLabel = `${Math.abs(diffPercent).toFixed(1)}% lebih tinggi`;
     trendColor = 'text-red-600';
-    trendIcon = <TrendingUp className="w-5 h-5" />;
+ trendIcon = <TrendingUp className="size-5 " />;
   } else if (!isEqual) {
     trendLabel = `${Math.abs(diffPercent).toFixed(1)}% lebih rendah`;
     trendColor = 'text-green-600';
-    trendIcon = <TrendingDown className="w-5 h-5" />;
+ trendIcon = <TrendingDown className="size-5 " />;
   }
 
   return (

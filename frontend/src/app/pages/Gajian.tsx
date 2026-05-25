@@ -1,494 +1,235 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
-import { Loader2, Check, ChevronRight, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useMonthFilter } from '@/hooks/useMonthFilter';
-import { formatRupiah } from '@/lib/utils';
-import { upsertBudget } from '@/hooks/useBudgets';
+import { Sparkles, Zap, User, TrendingUp, ChevronRight, Calendar, DollarSign, BarChart3, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
+import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
+import GajianWizard from '../components/GajianWizard';
 
-// ── Risk profile quiz ─────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────────
 
-interface Answer { q: number; value: string | number }
-
-const QUESTIONS = [
+const BENEFITS = [
   {
-    id: 1,
-    text: 'Berapa perkiraan pengeluaran wajibmu per bulan? (cicilan, sewa, dll)',
-    type: 'slider' as const,
-    min: 500_000,
-    max: 10_000_000,
-    step: 100_000,
+    icon: Zap,
+    emoji: '⚡',
+    title: 'Analisis Cepat',
+    description: 'AI menganalisis profil keuangan kamu dalam hitungan detik dan menghasilkan anggaran yang realistis.',
   },
   {
-    id: 2,
-    text: 'Kamu punya tanggungan?',
-    type: 'choice' as const,
-    options: [
-      { label: 'Tidak ada', value: '0' },
-      { label: '1–2 orang', value: '1-2' },
-      { label: '3 orang atau lebih', value: '3+' },
-    ],
+    icon: User,
+    emoji: '🎯',
+    title: 'Personal',
+    description: 'Rekomendasi disesuaikan dengan gaji, pengeluaran tetap, dan profil risiko keuangan unik milik kamu.',
   },
   {
-    id: 3,
-    text: 'Kalau ada pengeluaran darurat Rp 2jt, kamu...',
-    type: 'choice' as const,
-    options: [
-      { label: 'Bisa langsung bayar', value: 'A' },
-      { label: 'Perlu pinjam dulu', value: 'B' },
-      { label: 'Susah banget', value: 'C' },
-    ],
-  },
-  {
-    id: 4,
-    text: 'Target finansial 1 tahun ke depan?',
-    type: 'choice' as const,
-    options: [
-      { label: 'Punya dana darurat', value: 'A' },
-      { label: 'Beli sesuatu besar', value: 'B' },
-      { label: 'Investasi', value: 'C' },
-      { label: 'Bebas utang', value: 'D' },
-    ],
-  },
-  {
-    id: 5,
-    text: 'Seberapa ketat kamu mau budgeting?',
-    type: 'choice' as const,
-    options: [
-      { label: 'Super ketat', value: 'A' },
-      { label: 'Seimbang', value: 'B' },
-      { label: 'Santai aja dulu', value: 'C' },
-    ],
+    icon: TrendingUp,
+    emoji: '📈',
+    title: 'Optimal',
+    description: 'Alokasi yang dirancang untuk memaksimalkan tabungan sambil tetap nyaman dengan pengeluaran sehari-hari.',
   },
 ];
 
-function computeProfile(answers: Answer[]): 'konservatif' | 'moderat' | 'agresif' {
-  let score = 0;
-  answers.forEach((a) => {
-    if (a.q === 1) {
-      const v = Number(a.value);
-      if (v < 2_000_000) score += 2;
-      else if (v < 5_000_000) score += 1;
-    }
-    if (a.q === 2) {
-      if (a.value === '3+') score += 2;
-      else if (a.value === '1-2') score += 1;
-    }
-    if (a.q === 3) {
-      if (a.value === 'C') score += 2;
-      else if (a.value === 'B') score += 1;
-    }
-    if (a.q === 5) {
-      if (a.value === 'A') score -= 1;
-    }
-  });
-  if (score <= 2) return 'agresif';
-  if (score <= 4) return 'moderat';
-  return 'konservatif';
-}
+const DATA_NEEDED = [
+  { icon: DollarSign, label: 'Jumlah gaji bulanan', hint: 'Gaji bersih setelah pajak' },
+  { icon: Calendar, label: 'Tanggal gajian', hint: 'Tanggal 1–28 setiap bulan' },
+  { icon: BarChart3, label: 'Pengeluaran tetap', hint: 'Sewa, cicilan, tagihan rutin' },
+  { icon: Shield, label: 'Profil risiko', hint: 'Konservatif, moderat, atau agresif' },
+];
 
-interface BudgetCategory {
-  category: string;
-  percentage: number;
-  amount: number;
-  tip: string;
-}
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Gajian() {
-  const { user } = useAuth();
-  const { month, year } = useMonthFilter();
-  const { transactions } = useTransactions(month, year);
+  const prefersReduced = useReducedMotion();
+  const [showWizard, setShowWizard] = useState(false);
 
-  // Section 1: Payday
-  const [paydayDate, setPaydayDate] = useState<number | null>(null);
-  const [paydaySaved, setPaydaySaved] = useState(false);
-  const [savingPayday, setSavingPayday] = useState(false);
-
-  // Section 2: Risk Profile
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [sliderValue, setSliderValue] = useState(2_000_000);
-  const [profileResult, setProfileResult] = useState<'konservatif' | 'moderat' | 'agresif' | null>(null);
-  const [savingProfile, setSavingProfile] = useState(false);
-
-  // Section 3: AI Budget
-  const [recommendation, setRecommendation] = useState<BudgetCategory[] | null>(null);
-  const [editedRec, setEditedRec] = useState<BudgetCategory[]>([]);
-  const [loadingRec, setLoadingRec] = useState(false);
-  const [applyingBudget, setApplyingBudget] = useState(false);
-
-  // Load existing data
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('users')
-      .select('payday_date, risk_profile, ai_budget_recommendation')
-      .eq('user_id', user.userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data) return;
-        if (data.payday_date) {
-          setPaydayDate(data.payday_date);
-          setPaydaySaved(true);
-        }
-        if (data.risk_profile?.type) {
-          setProfileResult(data.risk_profile.type);
-          setCurrentQ(QUESTIONS.length);
-        }
-        if (data.ai_budget_recommendation?.categories) {
-          setRecommendation(data.ai_budget_recommendation.categories);
-          setEditedRec(data.ai_budget_recommendation.categories);
-        }
-      });
-  }, [user]);
-
-  const monthlyIncome = transactions
-    .filter((t) => t.type === 'income')
-    .reduce((s, t) => s + Number(t.amount), 0);
-
-  // ── Section 1 handlers ─────────────────────────────────────────────────────
-  const handleSavePayday = async () => {
-    if (!user || !paydayDate) return;
-    setSavingPayday(true);
-    await supabase.from('users').update({ payday_date: paydayDate }).eq('user_id', user.userId);
-    setSavingPayday(false);
-    setPaydaySaved(true);
-    toast.success(`Tanggal gajian ${paydayDate} berhasil disimpan!`);
-  };
-
-  // ── Section 2 handlers ─────────────────────────────────────────────────────
-  const handleAnswer = async (value: string | number) => {
-    const q = QUESTIONS[currentQ];
-    const newAnswers = [...answers, { q: q.id, value }];
-    setAnswers(newAnswers);
-
-    if (currentQ + 1 < QUESTIONS.length) {
-      setCurrentQ((prev) => prev + 1);
-      setSliderValue(2_000_000);
-    } else {
-      const profile = computeProfile(newAnswers);
-      setProfileResult(profile);
-      setSavingProfile(true);
-      if (user) {
-        const profileData = {
-          type: profile,
-          income: monthlyIncome,
-          dependents: newAnswers.find((a) => a.q === 2)?.value ?? '0',
-          answers: Object.fromEntries(newAnswers.map((a) => [a.q, a.value])),
-        };
-        await supabase.from('users').update({ risk_profile: profileData }).eq('user_id', user.userId);
-      }
-      setSavingProfile(false);
-      toast.success(`Profil risiko kamu: ${profile.charAt(0).toUpperCase() + profile.slice(1)}!`);
-    }
-  };
-
-  // ── Section 3 handlers ─────────────────────────────────────────────────────
-  const handleGenerateRecommendation = async () => {
-    if (!user || !profileResult) return;
-    setLoadingRec(true);
-    try {
-      const res = await fetch('/api/budget-recommendation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          risk_profile: { type: profileResult },
-          monthly_income: monthlyIncome || 5_000_000,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) { toast.error(data.error); return; }
-
-      setRecommendation(data.categories);
-      setEditedRec(data.categories);
-
-      // Cache to DB
-      await supabase.from('users')
-        .update({ ai_budget_recommendation: data })
-        .eq('user_id', user.userId);
-
-      toast.success('Rekomendasi budget siap!');
-    } catch {
-      toast.error('Gagal generate rekomendasi. Coba lagi ya.');
-    } finally {
-      setLoadingRec(false);
-    }
-  };
-
-  const handleEditPercentage = (idx: number, pct: number) => {
-    setEditedRec((prev) => prev.map((c, i) =>
-      i === idx
-        ? { ...c, percentage: pct, amount: Math.round((monthlyIncome || 5_000_000) * pct / 100) }
-        : c
-    ));
-  };
-
-  const handleApplyBudget = async () => {
-    if (!user) return;
-    setApplyingBudget(true);
-    let errors = 0;
-    for (const cat of editedRec) {
-      const { error } = await upsertBudget(user.userId, cat.category, cat.amount, month, year);
-      if (error) errors++;
-    }
-    setApplyingBudget(false);
-    if (errors > 0) {
-      toast.error(`${errors} kategori gagal disimpan.`);
-    } else {
-      toast.success('Budget bulan ini berhasil diterapkan! 🎉');
-    }
-  };
-
-  const profileColors = {
-    konservatif: 'bg-blue-100 text-blue-700',
-    moderat: 'bg-yellow-100 text-yellow-700',
-    agresif: 'bg-green-100 text-green-700',
-  };
+  if (showWizard) {
+    return (
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: prefersReduced ? 0 : 0.2 }}
+        className="min-h-full py-4 sm:py-8"
+      >
+        <GajianWizard onBack={() => setShowWizard(false)} />
+      </motion.div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Gajian</h1>
-        <p className="text-sm text-muted-foreground">Atur tanggal gajian, kenali profil risiko, dan dapat rekomendasi budget dari AI</p>
-      </div>
+    <motion.div
+      initial={prefersReduced ? { opacity: 0 } : pageEnter.initial}
+      animate={prefersReduced ? { opacity: 1 } : pageEnter.animate}
+      transition={pageEnter.transition}
+      className="space-y-8 pb-8"
+    >
+      {/* Hero section */}
+      <motion.div
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: prefersReduced ? 0 : 0.3, delay: prefersReduced ? 0 : 0.05 }}
+        className="text-center space-y-4 pt-4 sm:pt-8"
+      >
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{
+            duration: prefersReduced ? 0 : 0.4,
+            delay: prefersReduced ? 0 : 0.1,
+            ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}
+          className={cn(
+ 'size-20 rounded-2xl mx-auto flex items-center justify-center',
+            'bg-[var(--color-brand-primary)]',
+          )}
+          aria-hidden="true"
+        >
+ <Sparkles className="size-10 text-white" />
+        </motion.div>
 
-      {/* ── Section 1: Payday Date ─────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              💰 Tanggal Gajian
-            </CardTitle>
-            {paydaySaved && <Check className="w-5 h-5 text-green-500" />}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">Tiap bulan tanggal berapa kamu biasa gajian?</p>
-          <div className="flex flex-wrap gap-2">
-            {[...Array(28)].map((_, i) => {
-              const d = i + 1;
-              return (
-                <button
-                  key={d}
-                  onClick={() => setPaydayDate(d)}
-                  className={`w-10 h-10 rounded-lg text-sm font-medium border-2 transition-all ${
-                    paydayDate === d
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  {d}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setPaydayDate(31)}
-              className={`px-3 h-10 rounded-lg text-sm font-medium border-2 transition-all ${
-                paydayDate === 31
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border hover:border-primary/50'
-              }`}
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--color-content-primary)]">
+            Wizard Gajian
+          </h1>
+          <p className="text-base text-[var(--color-content-secondary)] max-w-sm mx-auto leading-relaxed">
+            Biarkan AI merancang anggaran bulanan yang ideal berdasarkan kondisi keuangan kamu — gratis, cepat, dan personal.
+          </p>
+        </div>
+
+        <Button
+          onClick={() => setShowWizard(true)}
+          size="lg"
+          className={cn(
+            'bg-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary-hover)]',
+            'text-white font-semibold px-8 gap-2',
+          )}
+          aria-label="Mulai Wizard Gajian untuk membuat rekomendasi anggaran"
+        >
+ <Sparkles className="size-5 " />
+          Mulai Wizard
+ <ChevronRight className="size-4 " />
+        </Button>
+      </motion.div>
+
+      {/* Benefit cards */}
+      <section aria-labelledby="benefits-heading">
+        <motion.h2
+          id="benefits-heading"
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={{ ...fadeUp.transition, delay: prefersReduced ? 0 : 0.15 }}
+          className="text-sm font-semibold text-[var(--color-content-tertiary)] text-center uppercase tracking-wider mb-4"
+        >
+          Mengapa Wizard Gajian?
+        </motion.h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {BENEFITS.map((benefit, index) => (
+            <motion.div
+              key={benefit.title}
+              initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: prefersReduced ? 0 : 0.25,
+                delay: prefersReduced ? 0 : 0.2 + index * 0.08,
+              }}
             >
-              Akhir Bulan
-            </button>
-          </div>
-
-          {paydaySaved && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700">
-              ✅ Kamu akan dapat reminder di Telegram setiap tanggal {paydayDate === 31 ? 'akhir bulan' : paydayDate}
-            </div>
-          )}
-
-          <Button
-            onClick={handleSavePayday}
-            disabled={!paydayDate || savingPayday}
-            className="w-full"
-          >
-            {savingPayday ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</> : 'Simpan Tanggal Gajian'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* ── Section 2: Risk Profile Quiz ──────────────────────────────────── */}
-      <Card className={!paydaySaved ? 'opacity-50 pointer-events-none' : ''}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              🎯 Profil Risiko
-            </CardTitle>
-            {profileResult && (
-              <Badge className={profileColors[profileResult]}>
-                {profileResult.charAt(0).toUpperCase() + profileResult.slice(1)}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {profileResult ? (
-            <div className="space-y-3">
-              <p className="text-sm">
-                Profil kamu: <span className="font-bold capitalize">{profileResult}</span>.
-                {profileResult === 'konservatif' && ' Kamu cenderung hati-hati dengan keuangan — bagus!'}
-                {profileResult === 'moderat' && ' Kamu seimbang antara hemat dan menikmati hidup.'}
-                {profileResult === 'agresif' && ' Kamu berani ambil risiko untuk tumbuh lebih cepat.'}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setProfileResult(null); setCurrentQ(0); setAnswers([]); }}
+              <Card
+                className={cn(
+                  bgColorVar('bg-card'),
+                  borderColorVar('border-neutral'),
+                  'h-full',
+                )}
               >
-                <RefreshCw className="w-3 h-3 mr-2" />
-                Ulangi Quiz
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Progress value={((currentQ) / QUESTIONS.length) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground">Pertanyaan {currentQ + 1} dari {QUESTIONS.length}</p>
+                <CardContent className="pt-5 space-y-3">
+                  <div
+                    className={cn(
+ 'size-10 rounded-xl flex items-center justify-center',
+                      bgColorVar('bg-elevated'),
+                    )}
+                    aria-hidden="true"
+                  >
+                    <span className="text-xl" role="img" aria-label={benefit.title}>
+                      {benefit.emoji}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-[var(--color-content-primary)]">
+                    {benefit.title}
+                  </h3>
+                  <p className="text-sm text-[var(--color-content-secondary)] leading-relaxed">
+                    {benefit.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-              {currentQ < QUESTIONS.length && (() => {
-                const q = QUESTIONS[currentQ];
+      {/* Data needed section */}
+      <motion.section
+        aria-labelledby="data-needed-heading"
+        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: prefersReduced ? 0 : 0.25, delay: prefersReduced ? 0 : 0.4 }}
+      >
+        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
+          <CardContent className="pt-5 space-y-4">
+            <h2
+              id="data-needed-heading"
+              className="font-semibold text-[var(--color-content-primary)]"
+            >
+              Data yang dibutuhkan
+            </h2>
+            <p className="text-sm text-[var(--color-content-secondary)]">
+              Wizard hanya memerlukan 4 informasi dasar — tidak ada data sensitif seperti nomor rekening atau kata sandi.
+            </p>
+
+            <ul className="space-y-3" role="list">
+              {DATA_NEEDED.map((item) => {
+                const Icon = item.icon;
                 return (
-                  <div className="space-y-4">
-                    <p className="font-medium">{q.text}</p>
-                    {q.type === 'slider' && (
-                      <div className="space-y-3">
-                        <p className="text-2xl font-bold text-primary">{formatRupiah(sliderValue)}</p>
-                        <input
-                          type="range"
-                          min={q.min}
-                          max={q.max}
-                          step={q.step}
-                          value={sliderValue}
-                          onChange={(e) => setSliderValue(Number(e.target.value))}
-                          className="w-full accent-primary"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>{formatRupiah(q.min)}</span>
-                          <span>{formatRupiah(q.max)}</span>
-                        </div>
-                        <Button className="w-full" onClick={() => handleAnswer(sliderValue)}>
-                          Lanjut <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </div>
-                    )}
-                    {q.type === 'choice' && (
-                      <div className="space-y-2">
-                        {q.options!.map((opt) => (
-                          <button
-                            key={opt.value}
-                            onClick={() => handleAnswer(opt.value)}
-                            className="w-full text-left p-3 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-sm font-medium"
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <li
+                    key={item.label}
+                    className="flex items-center gap-3"
+                    role="listitem"
+                  >
+                    <div
+                      className={cn(
+ 'size-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                        bgColorVar('bg-elevated'),
+                      )}
+                      aria-hidden="true"
+                    >
+ <Icon className="size-4 text-[var(--color-brand-primary)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--color-content-primary)]">
+                        {item.label}
+                      </p>
+                      <p className="text-xs text-[var(--color-content-tertiary)]">
+                        {item.hint}
+                      </p>
+                    </div>
+                  </li>
                 );
-              })()}
+              })}
+            </ul>
 
-              {savingProfile && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Menyimpan profil...
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Section 3: AI Budget Recommendation ──────────────────────────── */}
-      <Card className={!profileResult ? 'opacity-50 pointer-events-none' : ''}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            🤖 Rekomendasi Budget AI
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!recommendation ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Berdasarkan profil risikomu dan income bulan ini ({formatRupiah(monthlyIncome || 5_000_000)}),
-                AI akan merekomendasikan alokasi budget optimal.
-              </p>
+            <div className="pt-2">
               <Button
-                onClick={handleGenerateRecommendation}
-                disabled={loadingRec}
-                className="w-full"
+                onClick={() => setShowWizard(true)}
+                variant="outline"
+                className="w-full sm:w-auto gap-2"
+                aria-label="Mulai Wizard Gajian"
               >
-                {loadingRec
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
-                  : '✨ Generate Rekomendasi'}
+ <Sparkles className="size-4 " />
+                Mulai Sekarang
               </Button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Kamu bisa edit persentase sebelum menerapkan ke budget bulan ini.
-              </p>
-
-              <div className="space-y-2">
-                {editedRec.map((cat, idx) => (
-                  <div key={cat.category} className="grid grid-cols-[1fr_auto_auto] gap-3 items-center p-3 rounded-xl border bg-card">
-                    <div>
-                      <p className="text-sm font-medium">{cat.category}</p>
-                      {cat.tip && <p className="text-xs text-muted-foreground">{cat.tip}</p>}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={cat.percentage}
-                        onChange={(e) => handleEditPercentage(idx, Number(e.target.value))}
-                        className="w-14 text-center border rounded-lg px-2 py-1 text-sm font-mono"
-                      />
-                      <span className="text-xs text-muted-foreground">%</span>
-                    </div>
-                    <p className="text-sm font-mono font-semibold text-right w-28">
-                      {formatRupiah(cat.amount)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="text-xs text-muted-foreground text-right">
-                Total: {editedRec.reduce((s, c) => s + c.percentage, 0)}%
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateRecommendation}
-                  disabled={loadingRec}
-                  className="flex-1"
-                >
-                  {loadingRec ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                  Ulang
-                </Button>
-                <Button
-                  onClick={handleApplyBudget}
-                  disabled={applyingBudget}
-                  className="flex-1"
-                >
-                  {applyingBudget
-                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menerapkan...</>
-                    : '✅ Terapkan ke Budget'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </motion.section>
+    </motion.div>
   );
 }

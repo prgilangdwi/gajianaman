@@ -1,7 +1,205 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(claude mcp add --transport http figma-remote-mcp https://mcp.figma.com/mcp)"
+      "Bash(git reset *)",
+      "Bash(git merge *)",
+      "Bash(bash c:/tmp/claude-flow/setup.sh --skip-templates)",
+      "Bash(bash c:/tmp/claude-flow/setup.sh --skip-global --skip-templates)",
+      "Bash(gh pr create --title 'refactor\\(analytics\\): update Forecasting, Spending, and Income drill-downs \\(Phase 05 Batch 3\\)' --body ' *)",
+      "Bash(grep -r \"console\\\\\\\\.error\\\\|TODO\\\\|FIXME\" --include=\"*.tsx\" --include=\"*.ts\" frontend/src/app/)"
+    ],
+    "autoApproveTools": false,
+    "requireHumanValidationFor": [
+      "Bash",
+      "PowerShell",
+      "Edit",
+      "Write",
+      "Agent"
+    ],
+    "description": "All significant operations require human validation. No auto-approval of terminal commands."
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-check-update.js"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-session-state.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/session-health-check.js",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-injection-scanner.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-phase-boundary.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-prompt-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-workflow-guard.js",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-validate-commit.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
-  }
+  },
+  "name": "Project AETHER — Gajian Aman Redesign",
+  "description": "Claude Code governance and session configuration for Project AETHER Phase execution",
+  "version": "1.0.0",
+  "createdAt": "2026-05-21",
+  "modifiedAt": "2026-05-21",
+  "purpose": "Enforce strict governance, context limits, and quality gates for AETHER development",
+  "sessionBoundaries": {
+    "maxFilesModifiedPerSession": 5,
+    "maxFilesRecommended": 3,
+    "batchCompletion": "After 3-5 files are modified or when a batch is complete, stop and create a recap.",
+    "contextFlushing": "End session completely after git commit and recap generation. Start fresh for next batch."
+  },
+  "preFlightChecks": {
+    "beforeAnyCodeModification": [
+      "Read master-development-roadmap.md",
+      "Read the active phase execution document (e.g., phase-01-foundation.md)",
+      "Read the runtime phase file (e.g., runtime-phase-01.md)",
+      "Read latest recap from aether/session-recaps/ if one exists",
+      "Verify git status is clean",
+      "Confirm npm run build passes"
+    ]
+  },
+  "buildQualityGates": {
+    "buildMustPass": true,
+    "buildCommand": "npm run build",
+    "workingDirectory": "frontend/",
+    "noCommitWithoutGreenBuild": "Absolutely no commits without a passing build. This is non-negotiable."
+  },
+  "scopeSeparation": {
+    "phase01Forbidden": [
+      "No modifications to src/app/pages/",
+      "No modifications to src/app/hooks/",
+      "No modifications to src/app/components/ (except governance-only files)",
+      "No modifications to src/styles/",
+      "No database schema changes",
+      "No bot code changes"
+    ]
+  },
+  "gitWorkflow": {
+    "currentBranch": "main (initialize feature/phase-01-foundation in Batch 2)",
+    "commitFormat": "Conventional commits: type(scope): description",
+    "commitAfter": "Each successfully completed micro-batch",
+    "noDirectMainCommits": "All feature work must happen on feature/ or develop branches. NEVER commit directly to main."
+  },
+  "recapRequirements": {
+    "mandatory": true,
+    "templateFile": "feature-update/major-update_4/runtime/runtime-recap-template.md",
+    "outputDirectory": "aether/session-recaps/",
+    "filenameFormat": "YYYY-MM-DD-Phase[XX]-Batch[Y].md",
+    "timing": "Generated at the end of every session, before termination",
+    "requirement": "A recap file MUST be written using the runtime template. No session completion without a recap."
+  },
+  "antiContextBloatingRules": {
+    "rereadProhibition": "Do not repeatedly read entire project directories. Target specific files identified in Phase Execution plan.",
+    "memoryPurge": "End sessions completely after a git commit and recap generation. Start fresh for the next batch.",
+    "batchLimitExplanation": "Modifying 3-5 files per session is the hard limit to prevent context overflow and maintain clarity."
+  },
+  "figmaIntegration": {
+    "enabled": true,
+    "startingPhase": "Phase 02",
+    "inspectionProtocol": "Load runtime-figma-inspection.md and execute Figma MCP extraction per protocol rules",
+    "tokenExtraction": "Do not guess paddings, colors, or spacing. Extract them deterministically from Figma."
+  },
+  "validationProtocol": {
+    "afterComponentCompletion": "Run npm run build and npm run lint (once lint is available in Batch 2)",
+    "beforeCommit": "All tests and build must pass. No exceptions.",
+    "mobileQA": "All UI changes validated against 375px viewport",
+    "accessibilityQA": "Ensure ARIA labels, focus traps, and WCAG AAA contrast are maintained"
+  },
+  "roleAndResponsibility": {
+    "claudeCodeRole": "Execute Phase Execution plan deterministically. Stop at batch completion. Await human validation before proceeding.",
+    "humanRole": "Provide pre-flight approval, validate batches, approve transitions between phases.",
+    "stopConditions": [
+      "When a batch is complete",
+      "When context limits approach (3-5 files modified)",
+      "When an architectural inconsistency is discovered",
+      "When a build fails",
+      "When a test fails"
+    ]
+  },
+  "notes": "This configuration enforces the AETHER Governance Rules. It is the foundation for all subsequent phases. Do not modify without explicit permission from the project owner."
 }

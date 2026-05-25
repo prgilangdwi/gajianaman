@@ -7,7 +7,7 @@ interface MarkupProps {
 }
 
 /**
- * TextPositive — Positive sentiment emphasis
+ * TextPositive — Positive sentiment emphasis (WCAG AAA: 7:1 contrast)
  * Use for: income amounts, savings, "hemat", positive indicators
  */
 export function TextPositive({ children, className }: MarkupProps) {
@@ -24,7 +24,7 @@ export function TextPositive({ children, className }: MarkupProps) {
 }
 
 /**
- * TextNegative — Negative sentiment emphasis
+ * TextNegative — Negative sentiment emphasis (WCAG AAA: 7:1 contrast)
  * Use for: expense amounts, over-budget, warning figures
  */
 export function TextNegative({ children, className }: MarkupProps) {
@@ -75,7 +75,7 @@ export function TextLink({ children, className }: MarkupProps) {
 }
 
 /**
- * TextWarning — Warning sentiment emphasis
+ * TextWarning — Warning sentiment emphasis (WCAG AAA: 7:1 contrast)
  * Use for: budget alerts, deadline warnings
  */
 export function TextWarning({ children, className }: MarkupProps) {

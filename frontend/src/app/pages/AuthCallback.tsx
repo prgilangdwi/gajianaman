@@ -10,10 +10,15 @@ export default function AuthCallback() {
   const [status, setStatus] = useState('Menghubungkan akun Google...');
 
   useEffect(() => {
+    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+    const delay = (ms: number) => new Promise<void>(resolve => {
+      timeoutIds.push(setTimeout(resolve, ms));
+    });
+
     async function handle() {
       try {
         // Wait a bit for Supabase to fully process the OAuth
-        await new Promise(r => setTimeout(r, 500));
+        await delay(500);
 
         // Try to get session multiple times as OAuth state might not be immediately available
         let session = null;
@@ -26,7 +31,7 @@ export default function AuthCallback() {
           }
           session = s;
           if (!session) {
-            await new Promise(r => setTimeout(r, 300));
+            await delay(300);
             attempts++;
           }
         }
@@ -34,7 +39,7 @@ export default function AuthCallback() {
         if (!session) {
           console.error('No session available after OAuth');
           setStatus('Tidak dapat menemukan session. Coba lagi...');
-          setTimeout(() => navigate('/login', { replace: true }), 2000);
+          timeoutIds.push(setTimeout(() => navigate('/login', { replace: true }), 2000));
           return;
         }
 
@@ -87,7 +92,7 @@ export default function AuthCallback() {
           window.dispatchEvent(new Event('gajian-auth-updated'));
           setStatus('Masuk berhasil. Membuka dashboard...');
           // Give them a moment to see the success message
-          await new Promise(r => setTimeout(r, 500));
+          await delay(500);
           navigate('/overview', { replace: true });
           return;
         }
@@ -117,7 +122,7 @@ export default function AuthCallback() {
         if (insertError) {
           console.error('Error creating new user:', insertError);
           setStatus(`Gagal membuat akun: ${insertError.message}`);
-          setTimeout(() => navigate('/login', { replace: true }), 3000);
+          timeoutIds.push(setTimeout(() => navigate('/login', { replace: true }), 3000));
           return;
         }
 
@@ -130,26 +135,27 @@ export default function AuthCallback() {
           }));
           window.dispatchEvent(new Event('gajian-auth-updated'));
           setStatus('Akun baru berhasil dibuat. Membuka dashboard...');
-          await new Promise(r => setTimeout(r, 500));
+          await delay(500);
           navigate('/overview', { replace: true });
           return;
         }
 
         setStatus('Gagal membuat akun. Coba lagi...');
-        setTimeout(() => navigate('/login', { replace: true }), 3000);
+        timeoutIds.push(setTimeout(() => navigate('/login', { replace: true }), 3000));
       } catch (err) {
         console.error('Auth callback error:', err);
         setStatus(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        setTimeout(() => navigate('/login', { replace: true }), 3000);
+        timeoutIds.push(setTimeout(() => navigate('/login', { replace: true }), 3000));
       }
     }
 
     handle();
+    return () => { for (const id of timeoutIds) clearTimeout(id); };
   }, [navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
-      <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+ <div className="size-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       <p className="text-sm text-muted-foreground">{status}</p>
     </div>
   );

@@ -86,7 +86,7 @@ export function RecurringBillForm({
               id="amount"
               type="number"
               min="0"
-              step="100"
+              step="1"
               placeholder="0"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
@@ -139,7 +139,7 @@ export function RecurringBillForm({
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Tanggal Jatuh Tempo</Label>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+ <Calendar className="size-4 text-muted-foreground flex-shrink-0" />
                   <Input
                     id="dueDate"
                     type="number"
@@ -190,7 +190,7 @@ export function RecurringBillForm({
 
             {formData.reminder_enabled && (
               <div className="flex items-center gap-2 ml-6">
-                <Clock className="w-4 h-4 text-muted-foreground" />
+ <Clock className="size-4 text-muted-foreground" />
                 <Input
                   type="number"
                   min="0"

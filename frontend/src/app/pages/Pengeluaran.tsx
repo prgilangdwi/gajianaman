@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { TrendingDown, AlertCircle, ChevronDown } from 'lucide-react';
+import { TrendingDown, ChevronDown } from 'lucide-react';
+import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
@@ -24,6 +25,7 @@ import { CategoryDetailModal } from '../components/CategoryDetailModal';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextNegative } from '../components/Markup';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { useScreenState } from '@/hooks/useScreenState';
 
 function WalletFilterBar({ wallets, walletId, setWalletId }: {
   wallets: import('@/lib/supabase').Wallet[];
@@ -49,7 +51,7 @@ function SkeletonRow() {
   return (
     <div className={cn('flex items-center justify-between py-4 sm:py-3 min-h-[56px] sm:min-h-auto border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+ <div className={cn('size-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
           <div className={cn('h-4 w-28 rounded animate-pulse', bgColorVar('bg-neutral'))} />
           <div className={cn('h-3 w-16 rounded animate-pulse', bgColorVar('bg-neutral'))} />
@@ -77,6 +79,13 @@ export default function Pengeluaran() {
   const { totalExpenses: expenses = 0, categoryData = [], maxSpent = 1 } = useWalletStats(filteredTransactions);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
+  // Screen state: loading, error, empty, or loaded
+  const screenState = useScreenState({
+    isLoading,
+    error: error || null,
+    isEmpty: filteredTransactions.filter((t) => t.type === 'expense').length === 0,
+  });
+
   const { stats: categoryStats, isLoading: categoryLoading } = useCategoryTransactions(
     selectedCategory || '',
     month,
@@ -102,54 +111,31 @@ export default function Pengeluaran() {
     setExpandedCategory(expandedCategory === categoryName ? null : categoryName);
   };
 
-  if (error) {
+  // Show error state if fetch failed
+  if (screenState.error) {
     return (
-      <motion.div
-        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col items-center justify-center py-20 gap-4"
-      >
-        <AlertCircle className={cn('w-12 h-12', textColorVar('sentiment-negative'))} />
-        <div className="text-center space-y-2">
-          <p className={cn('text-lg font-semibold', textColorVar('sentiment-negative'))}>Gagal memuat data</p>
-          <p className={cn('text-sm', textColorVar('content-tertiary'))}>
-            {error.message || 'Coba muat ulang halaman'}
-          </p>
-        </div>
-      </motion.div>
+      <ErrorState
+        title="Gagal memuat pengeluaran"
+        message={screenState.error.message || 'Terjadi kesalahan saat mengambil data pengeluaran.'}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
-  if (isLoading) {
+  // Show loading state while fetching data
+  if (screenState.isLoading) {
+    return <LoadingState count={3} type="card" />;
+  }
+
+  // Show empty state if no expenses this month
+  if (screenState.isEmpty) {
     return (
-      <motion.div
-        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-6"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[0, 1].map((i) => (
-            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-              <CardContent className="pt-6">
-                <div className={cn('h-4 rounded animate-pulse w-24 mb-3', bgColorVar('bg-neutral'))} />
-                <div className={cn('h-8 rounded animate-pulse w-36', bgColorVar('bg-neutral'))} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-          <CardContent className="pt-6">
-            <div className={cn('h-64 rounded animate-pulse', bgColorVar('bg-neutral'))} />
-          </CardContent>
-        </Card>
-        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-          <CardContent className="pt-6">
-            {[0, 1, 2, 3].map((i) => <SkeletonRow key={i} />)}
-          </CardContent>
-        </Card>
-      </motion.div>
+      <EmptyState
+        title="Belum ada pengeluaran"
+        message="Anda belum mencatat pengeluaran untuk bulan ini. Mulai dengan menambahkan transaksi pertama."
+        actionLabel="Tambah Pengeluaran"
+        onAction={() => (window.location.href = '/add-transaction')}
+      />
     );
   }
 
@@ -187,7 +173,7 @@ export default function Pengeluaran() {
               <CardTitle className={cn('text-xs md:text-sm font-semibold', textColorVar('content-tertiary'))}>
                 Total Pengeluaran
               </CardTitle>
-              <TrendingDown className={cn('h-4 w-4', textColorVar('sentiment-negative'))} />
+ <TrendingDown className={cn('size-4 ', textColorVar('sentiment-negative'))} />
             </CardHeader>
             <CardContent>
               <div className="font-mono font-bold text-xl md:text-2xl">
@@ -242,7 +228,7 @@ export default function Pengeluaran() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={Math.max(categoryData.length * 40, 120)}>
+              <ResponsiveContainer width="100%" height={Math.max(categoryData.length * 40, 120)} role="img" aria-label="Pengeluaran bulanan berdasarkan kategori">
                 <BarChart
                   data={categoryData}
                   layout="vertical"
@@ -348,7 +334,7 @@ export default function Pengeluaran() {
                             >
                               <ChevronDown
                                 className={cn(
-                                  'w-4 h-4 transition-transform',
+ 'size-4 transition-transform',
                                   isExpanded && 'rotate-180',
                                   'text-[var(--color-content-tertiary)]'
                                 )}

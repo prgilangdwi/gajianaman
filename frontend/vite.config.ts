@@ -14,18 +14,18 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router'],
-          charts: ['recharts'],
-          ui: [
+          'vendor-react': ['react', 'react-dom', 'react-router'],
+          'vendor-charts': ['recharts'],
+          'vendor-ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-tabs',
             '@radix-ui/react-select',
             '@radix-ui/react-tooltip',
             'lucide-react',
           ],
-          supabase: ['@supabase/supabase-js'],
-          motion: ['motion'],
-          pdf: ['html2pdf.js'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-motion': ['motion'],
+          'vendor-pdf': ['html2pdf.js'],
         },
       },
     },

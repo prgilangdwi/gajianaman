@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -10,14 +10,19 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu';
-import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2 } from 'lucide-react';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import { Search, ArrowUpRight, ArrowDownRight, Download, Loader2, ArrowUpDown } from 'lucide-react';
+import { ErrorState, EmptyState, LoadingState } from '../components/ScreenStates';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
@@ -28,11 +33,21 @@ import { getCategoryMeta } from '@/lib/categoryMetadata';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar, colorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative } from '../components/Markup';
-import { TransactionRow } from '../components/TransactionRow';
+import { ExpandableTransactionRow } from '@/components/features/transactions/ExpandableTransactionRow';
+import { TransactionModal } from '../components/TransactionModal';
+import type { Transaction } from '@/lib/supabase';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
+import { useScreenState } from '@/hooks/useScreenState';
 import { COPY } from '@/lib/copy';
 
 type FilterType = 'all' | 'income' | 'expense';
+type SortType = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 
 function WalletFilterBar({ wallets, walletId, setWalletId }: {
   wallets: import('@/lib/supabase').Wallet[];
@@ -58,7 +73,7 @@ function SkeletonRow() {
   return (
     <div className={cn('flex items-center justify-between py-3 border-b last:border-0', borderColorVar('border-neutral'))}>
       <div className="flex items-center gap-3 flex-1">
-        <div className={cn('w-10 h-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
+ <div className={cn('size-10 rounded-full animate-pulse flex-shrink-0', bgColorVar('bg-neutral'))} />
         <div className="space-y-1 flex-1">
           <div className={cn('h-4 w-32 rounded animate-pulse', bgColorVar('bg-neutral'))} />
           <div className={cn('h-3 w-24 rounded animate-pulse', bgColorVar('bg-neutral'))} />
@@ -74,7 +89,7 @@ export default function Riwayat() {
   const { month, year } = useMonthFilter();
   const { walletId, setWalletId } = useWalletFilter();
   const { wallets } = useWallets(user?.userId);
-  const { transactions, isLoading } = useTransactions(month, year);
+  const { transactions, isLoading, error, refetch } = useTransactions(month, year);
   const prefersReduced = useReducedMotion();
 
   const filteredTransactions = walletId === 'all'
@@ -85,6 +100,20 @@ export default function Riwayat() {
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
+  const [sortBy, setSortBy] = useState<SortType>('date-desc');
+  const [displayCount, setDisplayCount] = useState(20);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
+
+  // Screen state: loading, error, empty, or loaded
+  const screenState = useScreenState({
+    isLoading,
+    error: error || null,
+    isEmpty: filteredTransactions.length === 0,
+  });
 
   const handleDownload = async (format: 'csv' | 'pdf') => {
     if (!user) return;
@@ -117,6 +146,47 @@ export default function Riwayat() {
     }
   };
 
+  const handleEdit = useCallback((tx: Transaction) => {
+    setTransactionToEdit(tx);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const handleEditSaved = useCallback(() => {
+    setIsEditModalOpen(false);
+    setTransactionToEdit(null);
+    refetch();
+  }, [refetch]);
+
+  const handleDeleteClick = useCallback((transactionId: string) => {
+    const tx = transactions.find(t => t.id === transactionId);
+    if (tx) {
+      setTransactionToDelete(tx);
+      setDeleteConfirmOpen(true);
+    }
+  }, [transactions]);
+
+  const handleConfirmDelete = async () => {
+    if (!transactionToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transactionToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Transaksi dihapus');
+      setDeleteConfirmOpen(false);
+      setTransactionToDelete(null);
+      refetch();
+    } catch {
+      toast.error('Gagal menghapus transaksi');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
     filteredTransactions.forEach((t) => {
@@ -133,37 +203,60 @@ export default function Riwayat() {
     tags: selectedTags,
   });
 
-  const totalIncome = filtered
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    switch (sortBy) {
+      case 'date-asc':
+        return arr.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      case 'date-desc':
+        return arr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      case 'amount-asc':
+        return arr.sort((a, b) => Number(a.amount) - Number(b.amount));
+      case 'amount-desc':
+        return arr.sort((a, b) => Number(b.amount) - Number(a.amount));
+      default:
+        return arr;
+    }
+  }, [filtered, sortBy]);
+
+  const totalIncome = sorted
     .filter((t) => t.type === 'income')
     .reduce((s, t) => s + Number(t.amount), 0);
-  const totalExpense = filtered
+  const totalExpense = sorted
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + Number(t.amount), 0);
 
-  if (isLoading) {
+  const visibleTransactions = useMemo(() => sorted.slice(0, displayCount), [sorted, displayCount]);
+  const hasMore = displayCount < sorted.length;
+  const handleLoadMore = useCallback(() => {
+    setDisplayCount(prev => Math.min(prev + 20, sorted.length));
+  }, [sorted.length]);
+
+  // Show error state if fetch failed
+  if (screenState.error) {
     return (
-      <motion.div
-        initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-6"
-      >
-        <div className="grid grid-cols-2 gap-2 sm:gap-4">
-          {[0, 1].map((i) => (
-            <Card key={i} className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-              <CardContent className="pt-6">
-                <div className={cn('h-4 rounded animate-pulse w-20 mb-3', bgColorVar('bg-neutral'))} />
-                <div className={cn('h-7 rounded animate-pulse w-32', bgColorVar('bg-neutral'))} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
-          <CardContent className="pt-6 space-y-3">
-            {[0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
-          </CardContent>
-        </Card>
-      </motion.div>
+      <ErrorState
+        title="Gagal memuat riwayat"
+        message={screenState.error.message || 'Terjadi kesalahan saat mengambil data riwayat transaksi.'}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  // Show loading state while fetching data
+  if (screenState.isLoading) {
+    return <LoadingState count={5} type="row" />;
+  }
+
+  // Show empty state if no transactions yet
+  if (screenState.isEmpty) {
+    return (
+      <EmptyState
+        title="Belum ada transaksi"
+        message="Belum ada riwayat transaksi untuk periode ini. Mulai dengan menambahkan transaksi pertama."
+        actionLabel="Tambah Transaksi"
+        onAction={() => (window.location.href = '/add-transaction')}
+      />
     );
   }
 
@@ -189,7 +282,7 @@ export default function Riwayat() {
           <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
               <p className={cn('text-xs sm:text-sm font-medium mb-2 flex items-center gap-1', textColorVar('content-tertiary'))}>
-                <ArrowUpRight className={cn('w-4 h-4', textColorVar('sentiment-positive'))} /> Pemasukan
+ <ArrowUpRight className={cn('size-4 ', textColorVar('sentiment-positive'))} /> Pemasukan
               </p>
               <div className="font-mono font-bold text-lg sm:text-2xl">
                 <TextPositive>
@@ -207,7 +300,7 @@ export default function Riwayat() {
           <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
             <CardContent className="pt-6">
               <p className={cn('text-xs sm:text-sm font-medium mb-2 flex items-center gap-1', textColorVar('content-tertiary'))}>
-                <ArrowDownRight className={cn('w-4 h-4', textColorVar('sentiment-negative'))} /> Pengeluaran
+ <ArrowDownRight className={cn('size-4 ', textColorVar('sentiment-negative'))} /> Pengeluaran
               </p>
               <div className="font-mono font-bold text-lg sm:text-2xl">
                 <TextNegative>
@@ -242,7 +335,7 @@ export default function Riwayat() {
             </SelectContent>
           </Select>
           <div className="relative flex-1">
-            <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', textColorVar('content-tertiary'))} />
+ <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 size-4 ', textColorVar('content-tertiary'))} />
             <Input
               placeholder="Cari catatan atau kategori…"
               value={search}
@@ -252,9 +345,31 @@ export default function Riwayat() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={downloading} className="gap-2">
-                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Export
+              <Button variant="outline" size="sm" className="gap-2 h-9 sm:h-10">
+ <ArrowUpDown className="size-4 " />
+                <span className="hidden sm:inline">Urutkan</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortBy('date-desc')}>
+                📅 Terbaru dulu {sortBy === 'date-desc' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('date-asc')}>
+                📅 Terakhir dulu {sortBy === 'date-asc' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('amount-desc')}>
+                💰 Jumlah terbesar {sortBy === 'amount-desc' && '✓'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('amount-asc')}>
+                💰 Jumlah terkecil {sortBy === 'amount-asc' && '✓'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={downloading} className="gap-2 h-9 sm:h-10">
+ {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4 " />}
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -316,29 +431,96 @@ export default function Riwayat() {
         <Card className={cn(bgColorVar('bg-card'), borderColorVar('border-neutral'))}>
           <CardHeader className="pb-3">
             <CardTitle className={cn('text-base sm:text-lg', textColorVar('content-primary'))}>
-              {filtered.length} Transaksi
+              {sorted.length} Transaksi
               {search && ` · "${search}"`}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <p className={cn('text-sm text-center py-12', textColorVar('content-tertiary'))}>
                 {search || typeFilter !== 'all'
                   ? 'Tidak ada transaksi yang cocok dengan filter'
                   : COPY.emptyStates.history}
               </p>
             ) : (
-              <div className={cn('divide-y', `divide-[${colorVar('border-neutral')}]`)}>
-                <AnimatePresence>
-                  {filtered.map((tx, idx) => (
-                    <TransactionRow key={tx.id} tx={tx} index={idx} prefersReduced={prefersReduced} />
-                  ))}
-                </AnimatePresence>
-              </div>
+              <>
+                <div className={cn('divide-y', `divide-[${colorVar('border-neutral')}]`)}>
+                  <AnimatePresence>
+                    {visibleTransactions.map((tx, idx) => {
+                      const walletData = wallets?.find((w) => w.id === tx.wallet_id);
+                      return (
+                        <ExpandableTransactionRow
+                          key={tx.id}
+                          tx={tx}
+                          index={idx}
+                          prefersReduced={prefersReduced}
+                          wallet={walletData ? { id: walletData.id, name: walletData.name } : null}
+                          onEdit={handleEdit}
+                          onDelete={handleDeleteClick}
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+                {hasMore && (
+                  <motion.div
+                    initial={prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                    animate={prefersReduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="pt-4 flex justify-center"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLoadMore}
+                      className="gap-2"
+                    >
+                      Muat {Math.min(20, sorted.length - displayCount)} lagi ({displayCount}/{sorted.length})
+                    </Button>
+                  </motion.div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Hapus Transaksi?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {transactionToDelete && (
+              <>
+                Apakah Anda yakin ingin menghapus transaksi <strong>{transactionToDelete.note || transactionToDelete.category}</strong> sebesar <strong>{formatRupiah(Number(transactionToDelete.amount))}</strong>?
+                <br />
+                <span className="text-xs mt-2 block">Tindakan ini tidak dapat dibatalkan.</span>
+              </>
+            )}
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Menghapus...' : 'Hapus'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Transaction Modal */}
+      <TransactionModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setTransactionToEdit(null);
+        }}
+        onSaved={handleEditSaved}
+        transaction={transactionToEdit || undefined}
+      />
     </motion.div>
   );
 }

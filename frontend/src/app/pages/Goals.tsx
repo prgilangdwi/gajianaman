@@ -18,7 +18,7 @@ import {
 import { Plus, Target, ChevronDown, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { useGoals, addGoal } from '@/hooks/useGoals';
+import { useGoals, addGoal, updateGoalSaved } from '@/hooks/useGoals';
 import { useAuth } from '@/hooks/useAuth';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
@@ -28,7 +28,7 @@ import { createCompactAxisFormatter } from '@/lib/chartFormatters';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive } from '../components/Markup';
 import { pageEnter, fadeUp, slideInRight, useReducedMotion } from '@/lib/transitions';
-import { GoalCard } from '../components/GoalCard';
+import { GoalMilestone } from '@/components/features/goals/GoalMilestone';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Goals() {
@@ -69,6 +69,14 @@ export default function Goals() {
       setDialogOpen(false);
       refetch();
     }
+  };
+
+  const handleContribute = async (goalId: string, contributionAmount: number) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) return;
+    const newSavedAmount = Number(goal.saved_amount) + contributionAmount;
+    await updateGoalSaved(Number(goalId), newSavedAmount);
+    refetch();
   };
 
   const achieved = goals.filter(
@@ -177,9 +185,9 @@ export default function Goals() {
         transition={slideInRight.transition}
         className="flex items-center justify-between"
       >
-        <h2 className="text-lg font-bold text-[var(--color-content-primary)]">Daftar Goals</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-content-primary)]">Daftar Goals</h2>
         <Button onClick={() => setDialogOpen(true)} className="gap-1">
-          <Plus className="w-4 h-4" /> Tambah Goal
+ <Plus className="size-4 " /> Tambah Goal
         </Button>
       </motion.div>
 
@@ -192,24 +200,27 @@ export default function Goals() {
         >
           <Card className={cn(bgColorVar("bg-card"), borderColorVar("border-neutral"))}>
             <CardContent className="py-16 text-center space-y-3">
-              <Target className="w-12 h-12 text-[var(--color-content-tertiary)] mx-auto" />
+ <Target className="size-12 text-[var(--color-content-tertiary)] mx-auto" />
               <p className="text-[var(--color-content-tertiary)]">Belum ada goals. Yuk mulai menabung!</p>
               <Button onClick={() => setDialogOpen(true)} variant="outline">
-                <Plus className="w-4 h-4 mr-1" /> Buat Goal Pertama
+ <Plus className="size-4 mr-1" /> Buat Goal Pertama
               </Button>
             </CardContent>
           </Card>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+        <div className="space-y-4">
           <AnimatePresence>
-            {goals.map((goal, idx) => (
-              <GoalCard
+            {goals.map((goal) => (
+              <GoalMilestone
                 key={goal.id}
-                goal={goal}
-                index={idx}
-                onRefetch={refetch}
-                prefersReduced={prefersReduced}
+                goalId={goal.id}
+                name={goal.name}
+                target={Number(goal.target_amount)}
+                saved={Number(goal.saved_amount)}
+                deadline={goal.deadline}
+                onContribute={(amount) => handleContribute(goal.id, amount)}
+                isLoading={saving}
               />
             ))}
           </AnimatePresence>
@@ -226,12 +237,12 @@ export default function Goals() {
                 className="w-full justify-between px-6 py-4 h-auto hover:bg-[var(--color-bg-screen)]"
               >
                 <div className="flex items-center gap-2 text-base font-semibold text-[var(--color-content-primary)]">
-                  <TrendingUp className="w-5 h-5" />
+ <TrendingUp className="size-5 " />
                   Lihat Progres Detail
                 </div>
                 <ChevronDown
                   className={cn(
-                    'w-5 h-5 transition-transform text-[var(--color-content-secondary)]',
+ 'size-5 transition-transform text-[var(--color-content-secondary)]',
                     progressOpen ? 'rotate-180' : ''
                   )}
                 />

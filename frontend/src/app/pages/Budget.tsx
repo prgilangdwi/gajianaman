@@ -1,9 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Progress } from '../components/ui/progress';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -11,9 +8,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../components/ui/dialog';
-import { Edit, Plus, CheckCircle, AlertCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { Label } from '../components/ui/label';
 import { useBudgets, upsertBudget } from '@/hooks/useBudgets';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
@@ -22,14 +20,8 @@ import { getCategoryMeta, ALL_CATEGORIES } from '@/lib/categoryMetadata';
 import { formatRupiah, cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 import { PrivacyAmount } from '../components/PrivacyAmount';
 import { TextPositive, TextNegative, TextWarning } from '../components/Markup';
-import { BudgetCard, type BudgetStatus } from '../components/BudgetCard';
+import { BudgetRow } from '@/components/features/budgets/BudgetRow';
 import { pageEnter, fadeUp, useReducedMotion } from '@/lib/transitions';
-
-function getStatus(pct: number): BudgetStatus {
-  if (pct > 100) return 'over';
-  if (pct >= 80) return 'warning';
-  return 'safe';
-}
 
 export default function Budget() {
   const { month, year } = useMonthFilter();
@@ -38,9 +30,9 @@ export default function Budget() {
   const { transactions, isLoading: txLoading } = useTransactions(month, year);
   const prefersReduced = useReducedMotion();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editCategory, setEditCategory] = useState('');
-  const [editAmount, setEditAmount] = useState('');
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const [newAmount, setNewAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [aiTips, setAiTips] = useState<string[]>([]);
@@ -65,55 +57,59 @@ export default function Budget() {
 
   const budgetRows = useMemo(() => {
     return allCats
+      .filter((cat) => budgets.some((b) => b.category === cat))
       .map((cat) => {
         const budgetEntry = budgets.find((b) => b.category === cat);
-        const hasEntry = budgetEntry !== undefined;
         const budgetAmt = budgetEntry?.amount ?? 0;
         const spent = spendingMap[cat] ?? 0;
-        const pct = budgetAmt > 0 ? (spent / budgetAmt) * 100 : 0;
         return {
           category: cat,
           budget: budgetAmt,
           spent,
-          pct,
-          hasEntry,
-          status: hasEntry ? getStatus(pct) : ('none' as const),
           ...getCategoryMeta(cat),
         };
       })
-      .sort((a, b) => {
-        if (a.hasEntry && !b.hasEntry) return -1;
-        if (!a.hasEntry && b.hasEntry) return 1;
-        return b.spent - a.spent;
-      });
+      .sort((a, b) => b.spent - a.spent);
   }, [allCats, budgets, spendingMap]);
 
   const totalBudget = budgetRows.reduce((s, r) => s + r.budget, 0);
   const totalUsed = budgetRows.reduce((s, r) => s + r.spent, 0);
   const remaining = totalBudget - totalUsed;
-  const safeCount = budgetRows.filter((r) => r.hasEntry && r.status === 'safe').length;
+  const safeCount = budgetRows.filter((r) => r.budget > 0 && (r.spent / r.budget) * 100 <= 80).length;
 
-  const openEdit = (category: string, currentAmount: number) => {
-    setEditCategory(category);
-    setEditAmount(currentAmount > 0 ? String(currentAmount) : '');
-    setDialogOpen(true);
+  const handleBudgetSave = async (category: string, newBudget: number) => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await upsertBudget(user.userId, category, newBudget, month, year);
+    setSaving(false);
+    if (error) {
+      toast.error('Gagal menyimpan budget');
+    } else {
+      toast.success(`Budget ${category} berhasil disimpan`);
+      refetch();
+    }
   };
 
-  const handleSave = async () => {
-    if (!user) return;
-    const amt = parseInt(editAmount.replace(/\D/g, ''), 10);
+  const handleAddBudget = async () => {
+    if (!user || !newCategory.trim()) {
+      toast.error('Pilih kategori');
+      return;
+    }
+    const amt = parseInt(newAmount.replace(/\D/g, ''), 10);
     if (isNaN(amt) || amt <= 0) {
       toast.error('Jumlah budget tidak valid');
       return;
     }
     setSaving(true);
-    const { error } = await upsertBudget(user.userId, editCategory, amt, month, year);
+    const { error } = await upsertBudget(user.userId, newCategory, amt, month, year);
     setSaving(false);
     if (error) {
       toast.error('Gagal menyimpan budget');
     } else {
-      toast.success(`Budget ${editCategory} berhasil disimpan`);
-      setDialogOpen(false);
+      toast.success(`Budget ${newCategory} berhasil ditambahkan`);
+      setShowAddDialog(false);
+      setNewCategory('');
+      setNewAmount('');
       refetch();
     }
   };
@@ -282,14 +278,14 @@ export default function Budget() {
                 disabled={tipsLoading}
                 className="gap-1 text-xs"
               >
-                <Sparkles className="w-4 h-4" /> Saran AI
+ <Sparkles className="size-4 " /> Saran AI
               </Button>
               <Button
                 size="sm"
-                onClick={() => openEdit('', 0)}
+                onClick={() => setShowAddDialog(true)}
                 className="gap-1 text-xs"
               >
-                <Plus className="w-4 h-4" /> Tambah
+ <Plus className="size-4 " /> Tambah
               </Button>
             </div>
           </CardHeader>
@@ -297,29 +293,23 @@ export default function Budget() {
             {budgetRows.length === 0 ? (
               <div className="text-center py-12 space-y-3">
                 <p className="text-sm text-[var(--color-content-tertiary)]">Belum ada budget yang ditetapkan</p>
-                <Button onClick={() => openEdit('Food & Dining', 0)} variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-1" /> Buat Budget Pertama
+                <Button onClick={() => setShowAddDialog(true)} variant="outline" size="sm">
+ <Plus className="size-4 mr-1" /> Buat Budget Pertama
                 </Button>
               </div>
             ) : (
-              <div className="space-y-5">
-                <AnimatePresence>
-                  {budgetRows.map((row, idx) => (
-                    <BudgetCard
-                      key={row.category}
-                      category={row.category}
-                      emoji={row.emoji}
-                      budget={row.budget}
-                      spent={row.spent}
-                      pct={row.pct}
-                      hasEntry={row.hasEntry}
-                      status={row.status}
-                      index={idx}
-                      prefersReduced={prefersReduced}
-                      onEdit={openEdit}
-                    />
-                  ))}
-                </AnimatePresence>
+              <div className="space-y-4">
+                {budgetRows.map((row) => (
+                  <BudgetRow
+                    key={row.category}
+                    category={row.category}
+                    icon={row.emoji}
+                    budget={row.budget}
+                    spent={row.spent}
+                    onSave={(newBudget) => handleBudgetSave(row.category, newBudget)}
+                    isLoading={saving}
+                  />
+                ))}
               </div>
             )}
           </CardContent>
@@ -338,7 +328,7 @@ export default function Budget() {
             <Card className="bg-[var(--color-bg-card)] border border-[var(--color-sentiment-warning-bg)]">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2 text-[var(--color-content-primary)]">
-                  <Sparkles className="w-5 h-5 text-[var(--color-sentiment-warning)]" />
+ <Sparkles className="size-5 text-[var(--color-sentiment-warning)]" />
                   Saran AI untuk Anggaran Anda
                 </CardTitle>
               </CardHeader>
@@ -369,48 +359,47 @@ export default function Budget() {
         )}
       </AnimatePresence>
 
-      {/* Edit Budget Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Add Budget Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editCategory ? `Edit Budget: ${editCategory}` : 'Tambah Budget'}
-            </DialogTitle>
+            <DialogTitle>Tambah Budget Baru</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {!editCategory && (
-              <div className="space-y-1.5">
-                <Label>Kategori</Label>
-                <select
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
-                >
-                  <option value="">Pilih kategori...</option>
-                  {ALL_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {getCategoryMeta(c).emoji} {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
             <div className="space-y-1.5">
-              <Label>Jumlah Budget (Rp)</Label>
-              <Input
-                type="number"
+              <Label htmlFor="category-select">Kategori</Label>
+              <select
+                id="category-select"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
+              >
+                <option value="">Pilih kategori…</option>
+                {ALL_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {getCategoryMeta(c).emoji} {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-amount-input">Jumlah Budget (Rp)</Label>
+              <input
+                id="budget-amount-input"
+                type="text"
+                inputMode="numeric"
                 placeholder="cth. 500000"
-                value={editAmount}
-                onChange={(e) => setEditAmount(e.target.value)}
-                min={0}
+                value={newAmount}
+                onChange={(e) => setNewAmount(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border bg-[var(--color-bg-screen)] text-[var(--color-content-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Batal
             </Button>
-            <Button onClick={handleSave} disabled={saving || !editCategory}>
+            <Button onClick={handleAddBudget} disabled={saving || !newCategory.trim()}>
               {saving ? 'Menyimpan…' : 'Simpan'}
             </Button>
           </DialogFooter>

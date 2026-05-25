@@ -35,7 +35,7 @@ export function ConfidenceTooltip({ level, transactionCount = 0 }: ConfidenceToo
         <TooltipTrigger asChild>
           <div className="flex items-center gap-1 cursor-help">
             <span className="text-xs font-medium">{config.label}</span>
-            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" />
+ <HelpCircle className="size-3.5 .5 text-muted-foreground" />
           </div>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs text-xs">

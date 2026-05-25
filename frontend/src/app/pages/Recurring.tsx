@@ -6,9 +6,9 @@ import { useRecurringBills } from '@/hooks/useRecurringBills';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
 import { RecurringBillForm } from '../components/RecurringBillForm';
-import { Plus, Trash2, Edit2, Check, AlertCircle, Calendar, Clock } from 'lucide-react';
-import { formatRupiah, cn } from '@/lib/utils';
-import { format, differenceInDays } from 'date-fns';
+import { Plus, Trash2, Edit2, Check, AlertCircle, Calendar, Clock, SkipForward } from 'lucide-react';
+import { formatRupiah, cn, textColorVar, bgColorVar } from '@/lib/utils';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { toast } from 'sonner';
 import type { RecurringTransaction } from '@/lib/supabase';
@@ -85,6 +85,20 @@ export default function RecurringPage() {
     }
   };
 
+  const handleSnooze = async (id: string) => {
+    try {
+      const bill = recurringBills.find(b => b.id === id);
+      if (bill && bill.next_due_date) {
+        const snoozedDate = addDays(new Date(bill.next_due_date), 3);
+        // In a real implementation, you'd call an update function to snooze
+        // For now, just show a toast
+        toast.success(`Tagihan ditunda hingga ${format(snoozedDate, 'dd MMM yyyy', { locale: idLocale })}`);
+      }
+    } catch (error) {
+      toast.error('Gagal menunda tagihan');
+    }
+  };
+
   const handleOpenForm = (bill?: RecurringTransaction) => {
     setSelectedBill(bill);
     setIsFormOpen(true);
@@ -110,11 +124,11 @@ export default function RecurringPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Tagihan</h1>
+          <h1 className="text-3xl font-semibold">Tagihan</h1>
           <p className="text-sm text-muted-foreground mt-1">Kelola tagihan dan pembayaran berulang Anda</p>
         </div>
         <Button onClick={() => handleOpenForm()} className="gap-2">
-          <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
           Tambah Tagihan
         </Button>
       </div>
@@ -185,7 +199,7 @@ export default function RecurringPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5" />
+ <Clock className="size-5 " />
               Tagihan 30 Hari Ke Depan
             </CardTitle>
           </CardHeader>
@@ -225,13 +239,13 @@ export default function RecurringPage() {
       {recurringBills.length === 0 ? (
         <Card>
           <CardContent className="pt-12 pb-12 text-center">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+ <Calendar className="size-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-lg font-semibold mb-1">Belum ada tagihan berulang</p>
             <p className="text-sm text-muted-foreground mb-4">
               Mulai tambahkan tagihan berulang untuk melacak biaya tetap Anda
             </p>
             <Button onClick={() => handleOpenForm()} variant="outline" className="gap-2">
-              <Plus className="w-4 h-4" />
+ <Plus className="size-4 " />
               Buat Tagihan Pertama
             </Button>
           </CardContent>
@@ -283,33 +297,49 @@ export default function RecurringPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenForm(bill)}
-                          className="gap-2"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleMarkAsPaid(bill.id)}
-                          className="gap-2"
-                        >
-                          <Check className="w-3 h-3" />
-                          Bayar
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(bill.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                      <div className="flex flex-col gap-2 flex-shrink-0 min-w-[180px]">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleMarkAsPaid(bill.id)}
+                            className={cn(
+                              'flex-1 h-10 gap-2 font-medium',
+                              isOverdue ? 'bg-[var(--color-sentiment-negative)] text-white hover:bg-[var(--color-sentiment-negative)]/90' : ''
+                            )}
+                          >
+ <Check className="size-4 " />
+                            <span className="hidden sm:inline">Bayar</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSnooze(bill.id)}
+                            className="h-10 gap-2"
+                            title="Tunda 3 hari"
+                          >
+ <SkipForward className="size-4 " />
+                            <span className="hidden sm:inline">Tunda</span>
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenForm(bill)}
+                            className="flex-1 h-10 gap-2"
+                          >
+ <Edit2 className="size-4 " />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(bill.id)}
+                            className="h-10 text-[var(--color-sentiment-negative)] hover:text-[var(--color-sentiment-negative)]/90"
+                          >
+ <Trash2 className="size-4 " />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

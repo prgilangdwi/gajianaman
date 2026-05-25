@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase, type Budget } from '@/lib/supabase';
 import { useAuth } from './useAuth';
+import { type BudgetItem } from './useBudgetRecommendation';
 
 export function useBudgets(month: number, year: number) {
   const { user } = useAuth();
@@ -37,4 +38,34 @@ export async function upsertBudget(
     .upsert({ user_id: userId, category, amount, month, year, period: 'monthly' }, {
       onConflict: 'user_id,category,month,year',
     });
+}
+
+export async function saveBudgets(userId: number, items: BudgetItem[]): Promise<void> {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const inserts = items.map((item) => ({
+    user_id: userId,
+    category: item.category,
+    amount: item.amount,
+    period: 'monthly' as const,
+    month,
+    year,
+  }));
+
+  const { error } = await supabase
+    .from('budgets')
+    .upsert(inserts, { onConflict: 'user_id,category,month,year' });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function setGajianSetupComplete(userId: number): Promise<void> {
+  const { error } = await supabase
+    .from('users')
+    .update({ gajian_setup_complete: true })
+    .eq('user_id', userId);
+
+  if (error) throw new Error(error.message);
 }

@@ -1,17 +1,52 @@
-import { useState } from 'react';
-import { Sparkles, Send } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { useEffect, useRef } from 'react';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useTransactions } from '@/hooks/useTransactions';
+import { ChatBubble, ChatInput, TypingIndicator } from '@/components/chat';
+import { SuggestedActions } from '@/components/features/ai/SuggestedActions';
+import { useChatStore, useChatActions, useChatError, useChatSuggestedActions } from '@/stores/chatStore';
+import { cn } from '@/lib/utils';
 
 export default function Asisten() {
   const { user } = useAuth();
   const { month, year } = useMonthFilter();
   const { transactions = [] } = useTransactions(month, year);
-  const [input, setInput] = useState('');
-  const [response, setResponse] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Chat state hooks
+  const messages = useChatStore((state) => state.messages);
+  const isLoading = useChatStore((state) => state.isLoading);
+  const error = useChatError();
+  const suggestedActions = useChatSuggestedActions();
+  const { sendMessage, clearMessages } = useChatActions();
+
+  // Auto-scroll to bottom when new messages arrive (Principle 04: Progressive Disclosure)
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (userMessage: string) => {
+    if (!userMessage.trim() || !user) return;
+
+    await sendMessage(
+      userMessage,
+      user.userId,
+      month,
+      year,
+      transactions.map((t) => ({
+        amount: t.amount,
+        type: t.type,
+        category: t.category,
+        date: t.date,
+      })),
+      messages
+    );
+  };
+
+  const handleSuggestedActionClick = async (prompt: string) => {
+    await handleSendMessage(prompt);
+  };
 
   const quickPrompts = [
     'Ringkasan bulan ini',
@@ -19,115 +54,100 @@ export default function Asisten() {
     'Tips hemat bulan depan',
   ];
 
-  const handleAsk = async (question: string) => {
-    if (!question.trim() || !user) return;
-
-    setIsLoading(true);
-    setInput('');
-
-    try {
-      const response = await fetch('/api/ask-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.userId,
-          question,
-          month,
-          year,
-          transactions: transactions.map(t => ({
-            amount: t.amount,
-            type: t.type,
-            category: t.category,
-            date: t.date,
-          })),
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to get response');
-
-      const data = await response.json();
-      setResponse(data.response || data.answer || '');
-    } catch (error) {
-      setResponse('Maaf, terjadi kesalahan saat memproses pertanyaan Anda. Coba lagi nanti.');
-      console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const isEmpty = messages.length === 0;
 
   return (
-    <div className="space-y-6">
-      {/* Hero Section */}
-      <div className="text-center space-y-3">
-        <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
-          <Sparkles className="w-8 h-8 text-amber-500" />
-          Tanya Asisten AI
-        </h1>
-        <p className="text-muted-foreground">Tanyakan apa saja tentang keuanganmu</p>
+    <div className="h-full flex flex-col bg-[var(--color-bg-screen)]">
+      {/* Header */}
+      <div className="px-4 py-4 border-b border-[var(--color-bg-neutral)] flex-shrink-0">
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className="w-5 h-5" style={{ color: 'var(--color-brand-primary)' }} />
+          <h1 className="text-lg font-semibold text-[var(--color-content-primary)]">
+            Asisten AI
+          </h1>
+          {!isEmpty && (
+            <button
+              type="button"
+              onClick={clearMessages}
+              className={cn(
+                'ml-auto text-xs px-2 py-1 rounded-md transition-colors',
+                'text-[var(--color-content-tertiary)]',
+                'hover:text-[var(--color-content-secondary)]',
+                'hover:bg-[var(--color-bg-neutral)]',
+              )}
+            >
+              Bersihkan Chat
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-[var(--color-content-tertiary)]">
+          Tanyakan apa saja tentang keuanganmu
+        </p>
       </div>
 
-      {/* Input Section */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Contoh: kenapa pengeluaranku naik bulan ini?"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAsk(input)}
-              disabled={isLoading}
-              className="flex-1 px-4 py-2 rounded-lg border bg-input text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-            />
-            <button
-              onClick={() => handleAsk(input)}
-              disabled={!input.trim() || isLoading}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 text-sm font-medium"
-            >
-              {isLoading ? (
-                <span className="animate-spin">⏳</span>
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              Tanya
-            </button>
-          </div>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <Sparkles className="w-12 h-12 mb-3 text-[var(--color-content-tertiary)] opacity-50" />
+            <p className="text-sm text-[var(--color-content-tertiary)]">
+              Mulai percakapan dengan tanyakan tentang keuanganmu
+            </p>
 
-          {/* Quick Prompts */}
-          <div className="flex flex-wrap gap-2">
-            {quickPrompts.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => handleAsk(prompt)}
-                disabled={isLoading}
-                className="px-3 py-1.5 rounded-full text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
-              >
-                {prompt}
-              </button>
+            {/* Quick Prompts */}
+            <div className="mt-6 flex flex-col gap-2 w-full max-w-xs">
+              <p className="text-xs text-[var(--color-content-tertiary)] mb-2">Coba pertanyaan:</p>
+              {quickPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => handleSendMessage(prompt)}
+                  disabled={isLoading}
+                  className={cn(
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'bg-[var(--color-bg-card)] text-[var(--color-content-primary)]',
+                    'border border-[var(--color-bg-neutral)]',
+                    'hover:bg-[var(--color-bg-card-hover)]',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {messages.map((message) => (
+              <ChatBubble key={message.id} message={message} />
             ))}
-          </div>
-        </CardContent>
-      </Card>
+            {isLoading && <TypingIndicator />}
+            {error && (
+              <div className="bg-[var(--color-sentiment-negative-bg)] text-[var(--color-sentiment-negative)] rounded-lg p-3 text-sm">
+                {error.message}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </>
+        )}
+      </div>
 
-      {/* Response Area */}
-      {response && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Jawaban</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{response}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Empty State */}
-      {!response && (
-        <div className="text-center py-12">
-          <Sparkles className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-          <p className="text-muted-foreground text-sm">Tanyakan apa saja tentang keuanganmu untuk mendapatkan wawasan.</p>
+      {/* Suggested Actions & Input Area */}
+      <div className="flex-shrink-0 bg-[var(--color-bg-screen)]">
+        {!isEmpty && suggestedActions.length > 0 && (
+          <SuggestedActions
+            actions={suggestedActions}
+            onActionClick={handleSuggestedActionClick}
+            isLoading={isLoading}
+          />
+        )}
+        <div className="border-t border-[var(--color-bg-neutral)]">
+          <ChatInput
+            onSend={handleSendMessage}
+            disabled={isLoading}
+            placeholder="Tanya sesuatu..."
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }
