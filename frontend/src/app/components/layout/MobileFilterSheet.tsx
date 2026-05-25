@@ -3,8 +3,10 @@ import { X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
+import { useMonthFilter } from '@/hooks/useMonthFilter';
+import { useDompetFilter } from '@/hooks/useDompetFilter';
 import { cn } from '@/lib/utils';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 interface MobileFilterSheetProps {
   isOpen: boolean;
@@ -14,14 +16,9 @@ interface MobileFilterSheetProps {
 export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
   const { user } = useAuth();
   const { wallets = [] } = useWallets(user?.userId);
-  const [selectedMonth, setSelectedMonth] = useState('current');
-  const [selectedWallet, setSelectedWallet] = useState('all');
+  const { selectedMonth, setSelectedMonth, monthOptions } = useMonthFilter();
+  const { selectedDompet, setDompet } = useDompetFilter();
   const sheetRef = useRef<HTMLDivElement>(null);
-
-  const monthOptions = [
-    { value: 'current', label: 'This Month' },
-    { value: 'last', label: 'Last Month' },
-  ];
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -91,9 +88,7 @@ export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
                   aria-label="Pilih bulan"
                 >
                   {monthOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -105,14 +100,14 @@ export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => setSelectedWallet('all')}
+                      onClick={() => setDompet(null)}
                       className={cn(
                         'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-brand-primary)]',
-                        selectedWallet === 'all'
+                        selectedDompet === null
                           ? 'bg-[var(--color-brand-primary)] text-white border-transparent'
                           : 'bg-transparent text-[var(--color-content-secondary)] border-[var(--color-border-neutral)]'
                       )}
-                      aria-pressed={selectedWallet === 'all' ? 'true' : 'false'}
+                      aria-pressed={selectedDompet === null}
                     >
                       Semua
                     </button>
@@ -120,14 +115,14 @@ export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
                       <button
                         type="button"
                         key={w.id}
-                        onClick={() => setSelectedWallet(w.id)}
+                        onClick={() => setDompet(w.id)}
                         className={cn(
                           'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-brand-primary)]',
-                          selectedWallet === w.id
+                          selectedDompet === w.id
                             ? 'bg-[var(--color-brand-primary)] text-white border-transparent'
                             : 'bg-transparent text-[var(--color-content-secondary)] border-[var(--color-border-neutral)]'
                         )}
-                        aria-pressed={selectedWallet === w.id ? 'true' : 'false'}
+                        aria-pressed={selectedDompet === w.id}
                         aria-label={`Pilih dompet ${w.name}`}
                       >
                         {w.name}
