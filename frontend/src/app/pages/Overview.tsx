@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
@@ -6,6 +6,9 @@ import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { useWalletFilter } from '@/hooks/useWalletFilter';
 import { useDashboardData } from '@/hooks/data/useDashboardData';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useAuth } from '@/hooks/useAuth';
+import { useWallets } from '@/hooks/useWallets';
+import { MetricCard } from '@/components/ui/MetricCard';
 import {
   StatCard,
   ChartCard,
@@ -25,11 +28,46 @@ export default function Overview() {
   const { month, year } = useMonthFilter();
   const { setWalletId } = useWalletFilter();
   const prefersReduced = useReducedMotion();
+  const { user } = useAuth();
+  const { wallets = [] } = useWallets(user?.userId);
 
   const data = useDashboardData();
   const { transactions } = useTransactions(month, year);
   const [chartInsight, setChartInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+
+  const ringkasanCepat = useMemo(() => {
+    const monthTx = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return d.getMonth() === month - 1 && d.getFullYear() === year && t.type === 'expense';
+    });
+    if (monthTx.length === 0) return null;
+
+    const dailySpending: Record<string, number> = {};
+    monthTx.forEach((t) => {
+      const key = new Date(t.date).toISOString().split('T')[0];
+      dailySpending[key] = (dailySpending[key] ?? 0) + Number(t.amount);
+    });
+    const dailyValues = Object.entries(dailySpending);
+    const totalSpending = dailyValues.reduce((s, [, v]) => s + v, 0);
+    const avgDailySpending = totalSpending / 30;
+    const busiestEntry = dailyValues.reduce((max, curr) => curr[1] > max[1] ? curr : max);
+    const busiestDay = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(busiestEntry[0]));
+    const daysWithoutSpending = 30 - dailyValues.length;
+    const mean = totalSpending / dailyValues.length;
+    const variance = dailyValues.reduce((s, [, v]) => s + Math.pow(v - mean, 2), 0) / dailyValues.length;
+    const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
+    const spendingConsistency = Math.max(0, Math.round(100 - cv * 50));
+    const walletSpending: Record<string, number> = {};
+    monthTx.forEach((t) => {
+      if (t.wallet_id) {
+        const name = wallets.find((w) => w.id === t.wallet_id)?.name ?? 'Unknown';
+        walletSpending[name] = (walletSpending[name] ?? 0) + Number(t.amount);
+      }
+    });
+    const topWallet = Object.entries(walletSpending).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
+    return { avgDailySpending, busiestDay, totalTransactions: monthTx.length, daysWithoutSpending, spendingConsistency, topWallet };
+  }, [transactions, month, year, wallets]);
 
   useEffect(() => {
     const generateInsight = async () => {
@@ -200,7 +238,30 @@ export default function Overview() {
         />
       </motion.div>
 
-      {/* 4. AI Quick Insight */}
+      {/* 4. Ringkasan Cepat */}
+      {ringkasanCepat && (
+        <motion.div
+          initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
+          animate={prefersReduced ? { opacity: 1 } : fadeUp.animate}
+          transition={fadeUp.transition}
+          className="space-y-3"
+        >
+          <div>
+            <h2 className={cn('text-base font-semibold', textColorVar('content-primary'))}>⚡ Ringkasan Cepat</h2>
+            <p className={cn('text-xs', textColorVar('content-tertiary'))}>Snapshot kinerja finansial bulan ini</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <MetricCard label="Rata-rata per hari" value={formatRupiah(Math.round(ringkasanCepat.avgDailySpending))} icon="📊" subtext={`dari ${ringkasanCepat.totalTransactions} transaksi`} variant="default" />
+            <MetricCard label="Hari terboros" value={ringkasanCepat.busiestDay} icon="🔥" subtext="Paling banyak pengeluaran" variant="warning" />
+            <MetricCard label="Hari tanpa pengeluaran" value={ringkasanCepat.daysWithoutSpending.toString()} icon="✨" subtext="dari 30 hari" variant="success" />
+            <MetricCard label="Total transaksi" value={ringkasanCepat.totalTransactions.toString()} icon="💳" subtext="bulan ini" variant="default" />
+            <MetricCard label="Konsistensi" value={`${ringkasanCepat.spendingConsistency}%`} icon="📈" subtext="Semakin tinggi = makin konsisten" variant="default" />
+            <MetricCard label="Dompet utama" value={ringkasanCepat.topWallet} icon="👛" subtext="Pengeluaran terbanyak" variant="default" />
+          </div>
+        </motion.div>
+      )}
+
+      {/* 5. AI Quick Insight */}
       {data.aiInsights && data.aiInsights.length > 0 && (
         <motion.div
           initial={prefersReduced ? { opacity: 0 } : fadeUp.initial}
