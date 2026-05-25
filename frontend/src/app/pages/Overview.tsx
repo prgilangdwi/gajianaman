@@ -27,7 +27,7 @@ export default function Overview() {
   const prefersReduced = useReducedMotion();
 
   const data = useDashboardData();
-  const { transactions } = useTransactions();
+  const { transactions } = useTransactions(month, year);
   const [chartInsight, setChartInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
