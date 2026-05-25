@@ -70,8 +70,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </p>
               </div>
 
-              {/* Error Details */}
-              {this.state.error && (
+              {/* Error Details (development only) */}
+              {process.env.NODE_ENV === 'development' && this.state.error && (
                 <div className="bg-[var(--color-sentiment-negative-bg)] rounded p-3">
                   <p className="text-xs font-mono text-[var(--color-sentiment-negative)] break-words">
                     {this.state.error.message}

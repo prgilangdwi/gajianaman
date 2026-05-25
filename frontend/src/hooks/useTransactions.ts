@@ -2,11 +2,15 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase, type Transaction } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 
-export function useTransactions(month: number, year: number) {
+export function useTransactions(monthArg?: number, yearArg?: number) {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const now = new Date();
+  const month = monthArg ?? now.getMonth() + 1;
+  const year = yearArg ?? now.getFullYear();
 
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = new Date(year, month, 0).toISOString().split('T')[0];
