@@ -159,14 +159,21 @@ export const useChatStore = create<ChatState>()(
           messages: state.messages.slice(-10),
           suggestedActions: state.suggestedActions,
         }),
-        // JSON.parse turns Date → string; revive them so ChatBubble can call .toLocaleTimeString()
-        onRehydrateStorage: () => (state) => {
-          if (state?.messages) {
-            state.messages = state.messages.map((m) => ({
-              ...m,
-              timestamp: new Date(m.timestamp),
-            }));
-          }
+        storage: {
+          getItem: (name) => {
+            const str = localStorage.getItem(name);
+            if (!str) return null;
+            const parsed = JSON.parse(str);
+            if (parsed?.state?.messages) {
+              parsed.state.messages = parsed.state.messages.map((m: ChatMessage) => ({
+                ...m,
+                timestamp: new Date(m.timestamp as unknown as string),
+              }));
+            }
+            return parsed;
+          },
+          setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+          removeItem: (name) => localStorage.removeItem(name),
         },
       }
     )

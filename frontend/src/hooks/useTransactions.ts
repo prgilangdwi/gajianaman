@@ -13,7 +13,8 @@ export function useTransactions(monthArg?: number, yearArg?: number) {
   const year = yearArg ?? now.getFullYear();
 
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   const fetch = useCallback(async () => {
     if (!user) return;
