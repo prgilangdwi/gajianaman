@@ -6,6 +6,7 @@ import { Eye, EyeOff, Bell, SlidersHorizontal, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
 import { useDompetFilter } from '@/hooks/useDompetFilter';
+import { useLanguage } from '@/hooks/useLanguage';
 import { cn, textColorVar, bgColorVar } from '@/lib/utils';
 import { NAV_SECTIONS, getActiveSectionFromPath } from '@/lib/navigationConfig';
 import { useLocation } from 'react-router';
@@ -19,6 +20,7 @@ interface HeaderBarProps {
 export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps) {
   const { user } = useAuth();
   const location = useLocation();
+  const lang = useLanguage();
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   const { wallets = [] } = useWallets(user?.userId);
   const { selectedDompet, setDompet } = useDompetFilter();
@@ -26,13 +28,14 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
   const userInitials = (user?.name ?? 'U').slice(0, 2).toUpperCase();
   const avatarSeed = user?.name ?? 'user';
 
-  // Derive page title from current route
   const derivedTitle = pageTitle ?? (() => {
     const sectionId = getActiveSectionFromPath(location.pathname);
     const section = NAV_SECTIONS.find((s) => s.id === sectionId);
-    if (!section) return 'Beranda';
+    if (!section) return lang === 'en' ? 'Home' : 'Beranda';
     const child = section.children.find((c) => location.pathname === c.path);
-    return child?.labelId ?? section.labelId;
+    return lang === 'en'
+      ? (child?.label ?? section.label)
+      : (child?.labelId ?? section.labelId);
   })();
 
   if (variant === 'mobile') {

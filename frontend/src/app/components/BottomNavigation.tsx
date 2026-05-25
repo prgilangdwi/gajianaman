@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import { NAV_SECTIONS } from '@/lib/navigationConfig';
 import { useNavigation } from '@/hooks/useNavigation';
+import { useLanguage } from '@/hooks/useLanguage';
 import { cn } from '@/lib/utils';
 import { useReducedMotion } from '@/lib/transitions';
 import { useRef, useCallback } from 'react';
@@ -15,6 +16,7 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const { activeSection, navigateToSection, getActiveTab } = useNavigation();
   const prefersReduced = useReducedMotion();
+  const lang = useLanguage();
   const navRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -62,7 +64,7 @@ export function BottomNavigation({
                   : 'text-[var(--color-content-tertiary)]'
               )}
               aria-current={isActive ? 'page' : undefined}
-              aria-label={`${section.labelId} — ${section.label}`}
+              aria-label={`${lang === 'en' ? section.label : section.labelId}`}
             >
               <div className="relative">
                 <Icon
@@ -93,7 +95,7 @@ export function BottomNavigation({
                   isActive && 'font-semibold'
                 )}
               >
-                {section.labelId}
+                {lang === 'en' ? section.label : section.labelId}
               </span>
             </Link>
           );

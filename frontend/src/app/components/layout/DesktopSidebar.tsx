@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { NAV_SECTIONS, type NavSection } from '@/lib/navigationConfig';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { cn, bgColorVar, textColorVar, borderColorVar } from '@/lib/utils';
 
 interface DesktopSidebarProps {
@@ -134,6 +135,9 @@ function SidebarSection({
   isRailMode: boolean;
 }) {
   const Icon = section.icon;
+  const lang = useLanguage();
+  const getLabel = (item: { label: string; labelId: string }) =>
+    lang === 'en' ? item.label : item.labelId;
 
   return (
     <div className="space-y-0.5">
@@ -151,12 +155,12 @@ function SidebarSection({
       >
  <Icon className="size-4.5 .5 shrink-0" />
         {!isRailMode && (
-          <span className="text-sm font-semibold truncate">{section.labelId}</span>
+          <span className="text-sm font-semibold truncate">{getLabel(section)}</span>
         )}
         {/* Rail mode tooltip */}
         {isRailMode && (
           <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--color-content-primary)] text-white text-xs rounded-[var(--radius-sm)] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-            {section.labelId}
+            {getLabel(section)}
           </div>
         )}
       </Link>
@@ -186,7 +190,7 @@ function SidebarSection({
                   )}
                 >
  <ChildIcon className="size-3.5 .5 shrink-0" />
-                  <span className="truncate">{child.labelId}</span>
+                  <span className="truncate">{getLabel(child)}</span>
                 </Link>
               );
             })}
