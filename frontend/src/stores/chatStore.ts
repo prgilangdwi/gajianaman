@@ -156,9 +156,18 @@ export const useChatStore = create<ChatState>()(
       {
         name: 'gajian-aman-chat-store',
         partialize: (state) => ({
-          messages: state.messages.slice(-10), // Persist only last 10 messages
+          messages: state.messages.slice(-10),
           suggestedActions: state.suggestedActions,
         }),
+        // JSON.parse turns Date → string; revive them so ChatBubble can call .toLocaleTimeString()
+        onRehydrateStorage: () => (state) => {
+          if (state?.messages) {
+            state.messages = state.messages.map((m) => ({
+              ...m,
+              timestamp: new Date(m.timestamp),
+            }));
+          }
+        },
       }
     )
   )
