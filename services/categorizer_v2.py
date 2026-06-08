@@ -1,24 +1,19 @@
 # services/categorizer_v2.py
-import anthropic
 import json
-import os
-from services.categorization_profile import CategorizationProfile, load_profile
+from services.categorization_profile import CategorizationProfile
 from services.optimized_prompts import (
     generate_cached_system_prompt,
     generate_cached_image_prompt,
-    get_prompt_cache_control,
 )
 from services.fast_check import fast_categorize
-
-# Initialize Anthropic client
-anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+from services.openrouter_client import chat_completion, chat_completion_with_image
 
 def categorize_transaction(note: str, profile: CategorizationProfile) -> dict:
     """
     Enhanced transaction categorization with three layers:
 
     Layer 1: Fast pre-check (rule-based, <5ms, ~50% hit rate)
-    Layer 2: Claude Haiku with context injection (if Layer 1 uncertain)
+    Layer 2: Gemini Flash Lite via OpenRouter (if Layer 1 uncertain)
     Layer 3: Confidence-based fallback (suggest clarification if low confidence)
 
     Args:
@@ -34,26 +29,15 @@ def categorize_transaction(note: str, profile: CategorizationProfile) -> dict:
     if fast_result.matched:
         return fast_result.to_dict()
 
-    # LAYER 2: Haiku call with context injection
+    # LAYER 2: OpenRouter call with context injection
     system_prompt = generate_cached_system_prompt(profile)
 
     try:
-        response = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        raw = chat_completion(
+            system=system_prompt,
+            user=f"Transaction note: {note}",
             max_tokens=256,
-            system=[
-                {
-                    "type": "text",
-                    "text": system_prompt,
-                    "cache_control": get_prompt_cache_control(),
-                }
-            ],
-            messages=[
-                {"role": "user", "content": f"Transaction note: {note}"}
-            ]
-        )
-
-        raw = response.content[0].text.strip()
+        ).strip()
 
         # Strip markdown if present
         if "```" in raw:
@@ -109,9 +93,7 @@ def categorize_transaction(note: str, profile: CategorizationProfile) -> dict:
 
 def parse_image_transaction(image_b64: str, profile: CategorizationProfile, media_type: str = "image/jpeg") -> dict:
     """
-    Extract transaction info from receipt/payment image using Claude Haiku.
-
-    Now unified to use Haiku (instead of Gemini Flash) for consistency + caching.
+    Extract transaction info from receipt/payment image using OpenRouter (Gemini Flash Lite 2.0).
 
     Args:
         image_b64: Base64-encoded image bytes
@@ -126,38 +108,13 @@ def parse_image_transaction(image_b64: str, profile: CategorizationProfile, medi
     system_prompt = generate_cached_image_prompt(profile)
 
     try:
-        response = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        raw = chat_completion_with_image(
+            system=system_prompt,
+            user="Extract transaction from this image. Return JSON only.",
+            image_b64=image_b64,
+            media_type=media_type,
             max_tokens=512,
-            system=[
-                {
-                    "type": "text",
-                    "text": system_prompt,
-                    "cache_control": get_prompt_cache_control(),
-                }
-            ],
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": image_b64,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": "Extract transaction from this image. Return JSON only."
-                        }
-                    ],
-                }
-            ]
-        )
-
-        raw = response.content[0].text.strip()
+        ).strip()
 
         # Strip markdown if present
         if "```" in raw:

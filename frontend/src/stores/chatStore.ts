@@ -156,9 +156,25 @@ export const useChatStore = create<ChatState>()(
       {
         name: 'gajian-aman-chat-store',
         partialize: (state) => ({
-          messages: state.messages.slice(-10), // Persist only last 10 messages
+          messages: state.messages.slice(-10),
           suggestedActions: state.suggestedActions,
         }),
+        storage: {
+          getItem: (name) => {
+            const str = localStorage.getItem(name);
+            if (!str) return null;
+            const parsed = JSON.parse(str);
+            if (parsed?.state?.messages) {
+              parsed.state.messages = parsed.state.messages.map((m: ChatMessage) => ({
+                ...m,
+                timestamp: new Date(m.timestamp as unknown as string),
+              }));
+            }
+            return parsed;
+          },
+          setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+          removeItem: (name) => localStorage.removeItem(name),
+        },
       }
     )
   )

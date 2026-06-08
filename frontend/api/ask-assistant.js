@@ -1,6 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic();
+import { chatCompletion } from './lib/openrouter.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,7 +18,6 @@ export default async function handler(req, res) {
     : [];
 
   try {
-    // Aggregate transaction data for context
     const totalIncome = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -52,19 +49,13 @@ Pertanyaan pengguna: ${question}
 Berikan jawaban yang singkat, praktis, dan dalam Bahasa Indonesia. Fokus pada insight dan actionable advice.
     `;
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+    const answer = await chatCompletion({
       system: 'Kamu adalah asisten keuangan pribadi untuk pengguna Indonesia. Berikan saran yang singkat, praktis, dan actionable.',
-      messages: [
-        ...historyMessages,
-        { role: 'user', content: contextStr },
-      ],
+      messages: [...historyMessages, { role: 'user', content: contextStr }],
+      max_tokens: 500,
     });
 
-    const answer = response.content[0]?.text || 'Maaf, tidak ada jawaban yang tersedia.';
-
-    return res.status(200).json({ response: answer });
+    return res.status(200).json({ response: answer || 'Maaf, tidak ada jawaban yang tersedia.' });
   } catch (error) {
     console.error('Error:', error);
     return res.status(500).json({ error: 'Failed to process request' });

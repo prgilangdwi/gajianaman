@@ -1211,7 +1211,7 @@ async def handle_split_callbacks(update: Update, context: ContextTypes.DEFAULT_T
     if data.startswith('copy_split_'):
         token = data.replace('copy_split_', '')
         import os
-        app_url = os.getenv('APP_URL', 'https://gajianam.com')
+        app_url = os.getenv('APP_URL', 'https://gajianaman.xyz')
         url = f"{app_url}/split/{token}"
         await query.message.reply_text(f"🔗 Link split bill:\n{url}")
 

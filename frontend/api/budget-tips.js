@@ -1,6 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic();
+import { chatCompletion } from './lib/openrouter.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,19 +27,12 @@ Format setiap saran sebagai satu baris (tanpa bullet atau numbering, hanya teks)
 Saran harus spesifik, actionable, dan berdasarkan data yang diberikan.
     `;
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const text = await chatCompletion({
+      messages: [{ role: 'user', content: prompt }],
       max_tokens: 500,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
     });
 
-    const text = response.content[0]?.text || '';
-    const tips = text
+    const tips = (text || '')
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0);

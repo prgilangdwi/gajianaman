@@ -151,10 +151,10 @@ export function ChatBubble({ message }: ChatBubbleProps) {
               : 'text-[var(--color-content-tertiary)]'
           )}
         >
-          {message.timestamp.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {(message.timestamp instanceof Date
+            ? message.timestamp
+            : new Date(message.timestamp as unknown as string)
+          ).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
     </div>

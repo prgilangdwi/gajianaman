@@ -1,19 +1,15 @@
 // frontend/api/insights.ts
-// Vercel serverless function to generate personalized financial insights using Claude Haiku
+// Vercel serverless function to generate personalized financial insights via OpenRouter
 // Endpoint: GET /api/insights?month=5&year=2026
 
 import { createClient } from '@supabase/supabase-js';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { chatCompletion } from './lib/openrouter.js';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
   process.env.VITE_SUPABASE_ANON_KEY!
 );
-
-const anthropic = new Anthropic({
-  apiKey: process.env.VITE_ANTHROPIC_API_KEY,
-});
 
 interface AIInsight {
   emoji: string;
@@ -25,7 +21,7 @@ interface AIInsight {
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse<AIInsight[] | { error: string }>
+  res: VercelResponse
 ) {
   // Only allow GET requests
   if (req.method !== 'GET') {
@@ -142,7 +138,7 @@ export default async function handler(
       })
       .join('\n') || 'No budgets set';
 
-    // 6. Call Claude Haiku to generate insights
+    // 6. Call OpenRouter to generate insights
     const prompt = `Analyze this Indonesian user's financial situation for ${monthNum}/${yearNum} and provide 2-3 SHORT, ACTIONABLE insights in Indonesian. Be specific, personal, and helpful.
 
 Financial Summary:
@@ -174,19 +170,12 @@ Example:
   {"emoji": "✅", "title": "Hemat Rutin", "body": "Anda konsisten nabung setiap minggu sejak 2 bulan.", "severity": "info", "priority": "medium"}
 ]`;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const rawText = await chatCompletion({
+      messages: [{ role: 'user', content: prompt }],
       max_tokens: 400,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
     });
 
     // 7. Parse response
-    const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
     const insights = parseInsightsJson(rawText);
 
     // 8. Cache result for 24 hours

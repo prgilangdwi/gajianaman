@@ -14,13 +14,21 @@ const MonthFilterContext = createContext<MonthFilterValue | null>(null);
 
 function buildOptions() {
   const now = new Date();
-  return Array.from({ length: 6 }, (_, i) => {
-    const d = subMonths(now, i);
-    return {
-      value: format(d, 'yyyy-MM'),
-      label: format(d, 'MMMM yyyy', { locale: idLocale }),
-    };
-  });
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const opts: { value: string; label: string }[] = [];
+
+  // All months of current year, newest first
+  for (let m = currentMonth; m >= 1; m--) {
+    const d = new Date(currentYear, m - 1, 1);
+    opts.push({ value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy', { locale: idLocale }) });
+  }
+  // Last 3 months of previous year
+  for (let m = 12; m >= 10; m--) {
+    const d = new Date(currentYear - 1, m - 1, 1);
+    opts.push({ value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy', { locale: idLocale }) });
+  }
+  return opts;
 }
 
 export function MonthFilterProvider({ children }: { children: ReactNode }) {

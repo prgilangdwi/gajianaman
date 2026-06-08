@@ -1,17 +1,8 @@
 # services/categorizer.py
-# Uses Claude Haiku for text categorization, Gemini Flash for image parsing
+# Uses OpenRouter (Gemini Flash Lite) for text + image categorization
 
-import anthropic
-import google.generativeai as genai
 import json
-import os
-import base64
-from dotenv import load_dotenv
-
-load_dotenv()
-
-anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+from services.openrouter_client import chat_completion, chat_completion_with_image
 
 SYSTEM_PROMPT = """You are a personal finance categorization assistant for Indonesian users.
 
@@ -96,19 +87,13 @@ def parse_image_transaction(image_b64: str, media_type: str = "image/jpeg") -> d
         OR {"error": "..."} if image unreadable
     """
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-
-        image_data = base64.b64decode(image_b64)
-
-        response = model.generate_content([
-            {
-                "mime_type": media_type,
-                "data": image_data,
-            },
-            IMAGE_PARSE_PROMPT,
-        ])
-
-        raw = response.text.strip()
+        raw = chat_completion_with_image(
+            system=IMAGE_PARSE_PROMPT,
+            user="Extract transaction from this image. Return JSON only.",
+            image_b64=image_b64,
+            media_type=media_type,
+            max_tokens=512,
+        ).strip()
 
         if "```" in raw:
             for part in raw.split("```"):
@@ -142,7 +127,7 @@ def parse_image_transaction(image_b64: str, media_type: str = "image/jpeg") -> d
 
 def categorize_transaction(note: str) -> dict:
     """
-    Categorize a transaction note using Claude Haiku.
+    Categorize a transaction note using OpenRouter (Gemini Flash Lite 2.0).
     Synchronous — call from bot handlers directly.
 
     Args:
@@ -152,16 +137,11 @@ def categorize_transaction(note: str) -> dict:
         dict with keys: category, subcategory, type, confidence, reason
     """
     try:
-        response = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=256,
+        raw = chat_completion(
             system=SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": f"Transaction note: {note}"}
-            ]
-        )
-
-        raw = response.content[0].text.strip()
+            user=f"Transaction note: {note}",
+            max_tokens=256,
+        ).strip()
 
         # Strip markdown fences if model wraps in ```json
         if "```" in raw:
@@ -249,7 +229,7 @@ CRITICAL RULES:
 def parse_batch_transactions(text: str) -> list:
     """
     Parse multiple transactions from a single natural-language input.
-    Uses Claude Haiku to extract structure AND categorize in one call.
+    Uses OpenRouter (Gemini Flash Lite 2.0) to extract structure AND categorize in one call.
 
     Args:
         text: Multi-transaction natural language text (e.g. "makan 50k, bensin 100k, dari Adi 50rb")
@@ -259,16 +239,11 @@ def parse_batch_transactions(text: str) -> list:
         OR [] if parsing fails or input is empty
     """
     try:
-        response = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
+        raw = chat_completion(
             system=BATCH_PARSE_PROMPT,
-            messages=[
-                {"role": "user", "content": f"Parse these transactions:\n\n{text}"}
-            ]
-        )
-
-        raw = response.content[0].text.strip()
+            user=f"Parse these transactions:\n\n{text}",
+            max_tokens=1024,
+        ).strip()
         print(f"[Batch Parser] Raw response (first 200 chars): {raw[:200]}")
 
         # Strip markdown fences if present
@@ -376,15 +351,7 @@ Format ringkasan:
 Contoh: "Total Rp 250.000 • 2 Food & Dining, 1 Transport, 1 Shopping • Mostly weekday expenses"
 """
 
-        response = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=150,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        summary = response.content[0].text.strip()
+        summary = chat_completion(user=prompt, max_tokens=150).strip()
         return summary
 
     except Exception as e:

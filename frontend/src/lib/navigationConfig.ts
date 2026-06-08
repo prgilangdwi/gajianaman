@@ -55,7 +55,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: 'spend',
     label: 'Spend',
-    labelId: 'Belanja',
+    labelId: 'Transaksi',
     icon: Wallet2,
     path: '/spend',
     children: [

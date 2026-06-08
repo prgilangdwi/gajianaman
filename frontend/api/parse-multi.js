@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { chatCompletion } from './lib/openrouter.js';
 
 const BATCH_PARSE_PROMPT = `You are a personal finance transaction parser for Indonesian users.
 Your ONLY job: parse multiple transactions from text and return ONLY a JSON array. NO OTHER TEXT.
@@ -52,29 +52,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'text is required and must be non-empty' });
   }
 
-  const apiKey = process.env.VITE_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
   try {
-    const client = new Anthropic({ apiKey });
+    let raw = (
+      await chatCompletion({
+        system: BATCH_PARSE_PROMPT,
+        messages: [{ role: 'user', content: `Parse these transactions:\n\n${text}` }],
+        max_tokens: 1024,
+      })
+    ).trim();
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: BATCH_PARSE_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Parse these transactions:\n\n${text}`,
-        },
-      ],
-    });
-
-    let raw = response.content[0].text.trim();
-
-    // Strip markdown fences if present
     if (raw.includes('```')) {
       for (const part of raw.split('```')) {
         const cleaned = part.replace(/^json\n?/, '').trim();
@@ -85,16 +71,14 @@ export default async function handler(req, res) {
       }
     }
 
-    // Extra: try to find JSON array even without markdown fences
     if (!raw.startsWith('[')) {
       const bracketIdx = raw.indexOf('[');
       if (bracketIdx !== -1) {
         raw = raw.substring(bracketIdx);
         let bracketCount = 0;
         for (let i = 0; i < raw.length; i++) {
-          if (raw[i] === '[') {
-            bracketCount++;
-          } else if (raw[i] === ']') {
+          if (raw[i] === '[') bracketCount++;
+          else if (raw[i] === ']') {
             bracketCount--;
             if (bracketCount === 0) {
               raw = raw.substring(0, i + 1);
@@ -107,15 +91,12 @@ export default async function handler(req, res) {
 
     const result = JSON.parse(raw);
 
-    // Validate result is a list
     if (!Array.isArray(result)) {
       return res.status(200).json({ transactions: [] });
     }
 
-    // Cap at 10 transactions
     const transactions = result.slice(0, 10);
 
-    // Ensure required fields
     for (const tx of transactions) {
       if (!tx.amount || typeof tx.amount !== 'number') tx.amount = 0;
       if (!tx.type) tx.type = 'expense';
