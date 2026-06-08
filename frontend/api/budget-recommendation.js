@@ -1,6 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { chatCompletion } from './lib/openrouter.js';
 
 const CATEGORIES = [
   'Food & Dining', 'Transport', 'Groceries', 'Bills & Utilities',
@@ -23,9 +21,7 @@ export default async function handler(req, res) {
   const incomeFormatted = Number(monthly_income).toLocaleString('id-ID');
 
   try {
-    const { content } = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+    const raw = await chatCompletion({
       system: 'Kamu financial advisor Indonesia. Return ONLY valid JSON array, no markdown, no explanation.',
       messages: [{
         role: 'user',
@@ -37,21 +33,18 @@ export default async function handler(req, res) {
 Return JSON array dengan TEPAT 8 item (kategori: ${CATEGORIES.join(', ')}):
 [{"category": "Food & Dining", "percentage": 25, "amount": 1250000, "tip": "satu kalimat tips singkat"}]
 
-Jumlah percentage harus = 100. Amount = income × percentage / 100.`
-      }]
+Jumlah percentage harus = 100. Amount = income × percentage / 100.`,
+      }],
+      max_tokens: 500,
     });
 
-    const raw = content[0]?.text ?? '[]';
-
-    // Extract JSON array from response (in case model adds any wrapping text)
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    const jsonMatch = (raw ?? '[]').match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       return res.status(500).json({ error: 'AI returned invalid format' });
     }
 
     const categories = JSON.parse(jsonMatch[0]);
 
-    // Validate: ensure 8 categories, recalculate amounts from actual income
     const validated = categories.slice(0, 8).map((c) => ({
       category: c.category,
       percentage: Math.round(c.percentage),

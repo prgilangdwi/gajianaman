@@ -3,5 +3,9 @@ dist
 .env
 .env.local
 .env.*.local
+.env.vercel
 .vercel
 *.tsbuildinfo
+
+*storybook.log
+storybook-static

@@ -1,6 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic();
+import { chatCompletion } from './lib/openrouter.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -44,15 +42,13 @@ Return ONLY this JSON (no other text):
 {"budgetItems":[{"category":"Food & Dining","amount":800000,"confidence":0.9}],"totalRecommended":${discretionary},"savingsRate":0.2,"explanation":"Berdasarkan penghasilan Anda sebesar Rp ${salaryAmount}..."}`;
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1000,
+    const raw = await chatCompletion({
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
+      max_tokens: 1000,
     });
 
-    const raw = response.content[0]?.text ?? '{}';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const jsonMatch = (raw ?? '{}').match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
 
     return res.status(200).json(JSON.parse(jsonMatch[0]));

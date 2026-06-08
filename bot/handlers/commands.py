@@ -11,6 +11,8 @@ from datetime import date
 
 import os
 from db.database import AsyncSessionLocal
+
+APP_URL = os.getenv("APP_URL", "https://gajianaman.xyz")
 from db import operations as db
 from services.categorizer import categorize_transaction
 from services.categorizer_v2 import categorize_transaction as categorize_transaction_v2
@@ -1114,7 +1116,7 @@ async def cmd_insights(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 msg += "  ✅ Pengeluaran bulanmu sesuai target.\n"
 
         msg += "\n🌐 Lihat analisis lengkap di Dashboard!\n"
-        msg += "[Buka Dashboard](https://gajianam.com)"
+        msg += f"[Buka Dashboard]({APP_URL})"
 
         await update.message.reply_text(msg, parse_mode='Markdown', disable_web_page_preview=True)
 
@@ -2137,8 +2139,6 @@ async def cmd_goal_progress(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── /splitbill ConversationHandler ───────────────────────────────────────────
 
 SB_TOTAL, SB_PARTICIPANTS, SB_MODE, SB_AMOUNTS = range(10, 14)
-
-APP_URL = os.getenv('APP_URL', 'https://gajianam.com')
 
 
 async def splitbill_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

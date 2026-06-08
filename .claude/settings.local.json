@@ -95,7 +95,14 @@
       "Bash(python -m py_compile bot/handlers/commands.py)",
       "Bash(gh repo *)",
       "Bash(bash ~/claude-flow/setup.sh --skip-templates)",
-      "Bash(bun pm *)"
+      "Bash(bun pm *)",
+      "Bash(npx react-doctor@latest)",
+      "Bash(npm create *)",
+      "Bash(npx storybook *)",
+      "Bash(npx msw *)",
+      "Bash(npx vitest *)",
+      "Bash(curl -s http://localhost:6006)",
+      "Bash(Remove-Item *)"
     ]
   }
 }

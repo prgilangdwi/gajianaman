@@ -1,7 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { chatCompletion } from './lib/openrouter.js';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
@@ -18,7 +17,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'user_id, month, year required' });
   }
 
-  // Query transactions
   let query = supabase
     .from('transactions')
     .select('date, category, type, amount, note, wallet_id, wallets(name)')
@@ -27,7 +25,6 @@ export default async function handler(req, res) {
 
   if (wallet_id !== 'all') query = query.eq('wallet_id', wallet_id);
 
-  // Filter by month/year using date range
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = new Date(year, month, 0).toISOString().split('T')[0];
   query = query.gte('date', startDate).lte('date', endDate);
@@ -42,7 +39,7 @@ export default async function handler(req, res) {
       t.category ?? '',
       t.type === 'expense' ? 'Pengeluaran' : 'Pemasukan',
       t.amount ?? 0,
-      (t.note ?? '').replace(/,/g, ';'), // escape commas in notes
+      (t.note ?? '').replace(/,/g, ';'),
       t.wallets?.name ?? '',
     ]);
 
@@ -52,7 +49,7 @@ export default async function handler(req, res) {
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    return res.status(200).send('﻿' + csv); // BOM for Excel compatibility
+    return res.status(200).send('﻿' + csv);
   }
 
   if (format === 'pdf') {
@@ -60,7 +57,6 @@ export default async function handler(req, res) {
     const totalIncome = txs.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
     const totalExpense = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
-    // Aggregate top 3 categories
     const catMap = {};
     txs.filter((t) => t.type === 'expense').forEach((t) => {
       catMap[t.category] = (catMap[t.category] ?? 0) + Number(t.amount);
@@ -73,10 +69,7 @@ export default async function handler(req, res) {
 
     const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-    // One Claude Haiku call with aggregated data only
-    const { content } = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+    const narrative = await chatCompletion({
       messages: [{
         role: 'user',
         content: `Buat ringkasan keuangan 3 paragraf singkat dalam bahasa Indonesia casual (gaya Gojek/Grab) berdasarkan data berikut:
@@ -89,11 +82,10 @@ Jumlah Transaksi: ${txs.length}
 
 Paragraf 1: ringkasan kondisi keuangan bulan ini.
 Paragraf 2: analisis singkat pengeluaran terbesar.
-Paragraf 3: satu saran praktis yang actionable.`
-      }]
-    });
-
-    const narrative = content[0]?.text ?? 'Laporan tidak tersedia.';
+Paragraf 3: satu saran praktis yang actionable.`,
+      }],
+      max_tokens: 300,
+    }) || 'Laporan tidak tersedia.';
 
     const html = `<!DOCTYPE html>
 <html lang="id">

@@ -1,6 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic();
+import { chatCompletionWithImage } from './lib/openrouter.js';
 
 const IMAGE_PARSE_PROMPT = `Analyze this image and extract financial transaction information.
 
@@ -38,36 +36,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType ?? 'image/jpeg',
-                data: imageBase64,
-              },
-            },
-            {
-              type: 'text',
-              text: IMAGE_PARSE_PROMPT,
-            },
-          ],
-        },
-      ],
-    });
+    let raw = (
+      await chatCompletionWithImage({
+        userText: IMAGE_PARSE_PROMPT,
+        imageBase64,
+        mediaType: mediaType ?? 'image/jpeg',
+        max_tokens: 1024,
+      })
+    ).trim();
 
-    let raw = response.content[0]?.text?.trim() || '';
     if (!raw) {
       return res.status(500).json({ error: 'Terjadi error saat menganalisis gambar' });
     }
 
-    // Strip markdown fences if model wraps in ```json
     if (raw.includes('```')) {
       for (const part of raw.split('```')) {
         const cleaned = part.replace(/^json\n?/, '').trim();
