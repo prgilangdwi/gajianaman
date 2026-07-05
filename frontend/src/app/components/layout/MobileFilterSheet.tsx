@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useWallets } from '@/hooks/useWallets';
 import { useAuth } from '@/hooks/useAuth';
+import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
@@ -14,14 +15,9 @@ interface MobileFilterSheetProps {
 export function MobileFilterSheet({ isOpen, onClose }: MobileFilterSheetProps) {
   const { user } = useAuth();
   const { wallets = [] } = useWallets(user?.userId);
-  const [selectedMonth, setSelectedMonth] = useState('current');
+  const { selectedMonth, setSelectedMonth, monthOptions } = useMonthFilter();
   const [selectedWallet, setSelectedWallet] = useState('all');
   const sheetRef = useRef<HTMLDivElement>(null);
-
-  const monthOptions = [
-    { value: 'current', label: 'This Month' },
-    { value: 'last', label: 'Last Month' },
-  ];
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {

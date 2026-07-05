@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { format, subMonths } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 interface MonthFilterValue {
   selectedMonth: string;       // "YYYY-MM"
@@ -12,15 +11,23 @@ interface MonthFilterValue {
 
 const MonthFilterContext = createContext<MonthFilterValue | null>(null);
 
+const FIRST_YEAR = 2026;
+
 function buildOptions() {
   const now = new Date();
-  return Array.from({ length: 6 }, (_, i) => {
-    const d = subMonths(now, i);
-    return {
-      value: format(d, 'yyyy-MM'),
-      label: format(d, 'MMMM yyyy', { locale: idLocale }),
-    };
-  });
+  const start = new Date(FIRST_YEAR, 0, 1);
+  const months: { value: string; label: string }[] = [];
+  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  while (cursor >= start) {
+    months.push({
+      value: format(cursor, 'yyyy-MM'),
+      label: format(cursor, 'MMM-yy'),
+    });
+    cursor.setMonth(cursor.getMonth() - 1);
+  }
+
+  return months;
 }
 
 export function MonthFilterProvider({ children }: { children: ReactNode }) {

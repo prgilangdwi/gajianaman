@@ -6,6 +6,7 @@ import { Eye, EyeOff, Bell, SlidersHorizontal, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
 import { useDompetFilter } from '@/hooks/useDompetFilter';
+import { useMonthFilter } from '@/hooks/useMonthFilter';
 import { cn, textColorVar, bgColorVar } from '@/lib/utils';
 import { NAV_SECTIONS, getActiveSectionFromPath } from '@/lib/navigationConfig';
 import { useLocation } from 'react-router';
@@ -22,6 +23,7 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   const { wallets = [] } = useWallets(user?.userId);
   const { selectedDompet, setDompet } = useDompetFilter();
+  const { selectedMonth, setSelectedMonth, monthOptions } = useMonthFilter();
 
   const userInitials = (user?.name ?? 'U').slice(0, 2).toUpperCase();
   const avatarSeed = user?.name ?? 'user';
@@ -96,12 +98,14 @@ export function HeaderBar({ variant, onOpenFilters, pageTitle }: HeaderBarProps)
             ))}
           </select>
           <select
-            value="current-month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
             className="px-2.5 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-border-neutral)] bg-[var(--color-bg-screen)] text-xs font-medium text-[var(--color-content-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]"
             aria-label="Filter bulan"
           >
-            <option value="current-month">This Month</option>
-            <option value="last-month">Last Month</option>
+            {monthOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
           <Button
             variant="ghost"
