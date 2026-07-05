@@ -8,10 +8,14 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/prgilangdwi/gajianaman/internal/model"
+	"github.com/prgilangdwi/gajianaman/pkg/logger"
 )
 
 func (b *Bot) handlePhoto(ctx context.Context, msg *tgbotapi.Message) {
 	user, err := b.getUser(ctx, msg.From.ID)
+	if err != nil {
+		logger.Error(ctx, "failed to get user in photo handler", "err", err, "telegram_id", msg.From.ID)
+	}
 	if err != nil || user == nil {
 		b.reply(msg.Chat.ID, "👋 Ketik /start untuk mendaftar dan mulai menggunakan Gajian Aman.")
 		return
@@ -31,6 +35,7 @@ func (b *Bot) handlePhoto(ctx context.Context, msg *tgbotapi.Message) {
 	fileConfig := tgbotapi.FileConfig{FileID: photo.FileID}
 	file, err := b.api.GetFile(fileConfig)
 	if err != nil {
+		logger.Error(ctx, "failed to get file from telegram", "err", err, "file_id", photo.FileID)
 		b.reply(msg.Chat.ID, "⚠️ Gagal mengunduh foto.")
 		return
 	}
@@ -38,6 +43,7 @@ func (b *Bot) handlePhoto(ctx context.Context, msg *tgbotapi.Message) {
 	fileURL := file.Link(b.api.Token)
 	resp, err := http.Get(fileURL)
 	if err != nil {
+		logger.Error(ctx, "failed to download photo", "err", err, "url", fileURL)
 		b.reply(msg.Chat.ID, "⚠️ Gagal mengunduh foto.")
 		return
 	}
@@ -45,6 +51,7 @@ func (b *Bot) handlePhoto(ctx context.Context, msg *tgbotapi.Message) {
 
 	photoBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Error(ctx, "failed to read photo bytes", "err", err)
 		b.reply(msg.Chat.ID, "⚠️ Gagal membaca foto.")
 		return
 	}

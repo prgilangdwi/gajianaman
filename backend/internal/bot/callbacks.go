@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/prgilangdwi/gajianaman/internal/model"
 	"github.com/prgilangdwi/gajianaman/internal/service"
+	"github.com/prgilangdwi/gajianaman/pkg/logger"
 )
 
 func (b *Bot) handleCallback(ctx context.Context, query *tgbotapi.CallbackQuery) {
@@ -374,6 +375,7 @@ func (b *Bot) callbackQuickBudgetAmount(ctx context.Context, query *tgbotapi.Cal
 
 	categoryID, err := b.resolveCategoryID(ctx, user.ID, categoryCode, model.TypeExpense)
 	if err != nil {
+		logger.Warn(ctx, "category not found in quick budget", "err", err, "category", categoryCode)
 		kb := backToMainKeyboard()
 		b.editMessage(chatID, msgID, "⚠️ Kategori tidak ditemukan.", &kb)
 		return
@@ -382,6 +384,7 @@ func (b *Bot) callbackQuickBudgetAmount(ctx context.Context, query *tgbotapi.Cal
 	now := time.Now()
 	err = b.budgetRepo.Upsert(ctx, user.ID, categoryID, amount, int16(now.Month()), int16(now.Year()))
 	if err != nil {
+		logger.Error(ctx, "failed to upsert budget", "err", err, "user_id", user.ID, "category", categoryCode)
 		kb := backToMainKeyboard()
 		b.editMessage(chatID, msgID, "⚠️ Gagal menyimpan budget.", &kb)
 		return
@@ -432,12 +435,15 @@ func (b *Bot) callbackRecat(ctx context.Context, query *tgbotapi.CallbackQuery, 
 
 	categoryID, err := b.resolveCategoryID(ctx, user.ID, categoryCode, tx.Type)
 	if err != nil {
+		logger.Warn(ctx, "category not found for recategorization", "err", err, "category", categoryCode)
 		kb := backToMainKeyboard()
 		b.editMessage(chatID, msgID, "⚠️ Kategori tidak ditemukan.", &kb)
 		return
 	}
 
-	b.txRepo.UpdateCategory(ctx, tx.ID, categoryID)
+	if err := b.txRepo.UpdateCategory(ctx, tx.ID, categoryID); err != nil {
+		logger.Error(ctx, "failed to update transaction category", "err", err, "tx_id", tx.ID)
+	}
 
 	kb := backToMainKeyboard()
 	b.editMessage(chatID, msgID, fmt.Sprintf("✅ *Kategori diperbarui!*\n\nKategori baru: *%s*", service.CodeToDisplayName(categoryCode)), &kb)
@@ -598,7 +604,11 @@ func (b *Bot) callbackDeleteConfirm(ctx context.Context, query *tgbotapi.Callbac
 		return
 	}
 
-	b.txRepo.Delete(ctx, txID, user.ID)
+	if err := b.txRepo.Delete(ctx, txID, user.ID); err != nil {
+		logger.Error(ctx, "failed to delete transaction", "err", err, "tx_id", txID, "user_id", user.ID)
+	} else {
+		logger.Info(ctx, "transaction deleted", "tx_id", txID, "user_id", user.ID)
+	}
 
 	kb := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
@@ -649,6 +659,7 @@ func (b *Bot) callbackPhoto(ctx context.Context, query *tgbotapi.CallbackQuery, 
 		pending := state.PendingPhotoTx
 		_, err := b.createTransaction(ctx, user, pending.Amount, pending.Type, pending.CategoryCode, pending.Note, time.Now(), pending.Confidence)
 		if err != nil {
+			logger.Error(ctx, "failed to save photo transaction", "err", err, "user_id", user.ID, "amount", pending.Amount)
 			kb := backToMainKeyboard()
 			b.editMessage(chatID, msgID, "⚠️ Gagal menyimpan: "+err.Error(), &kb)
 			return

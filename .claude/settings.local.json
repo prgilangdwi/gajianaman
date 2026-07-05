@@ -13,7 +13,15 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(gh api *)",
       "WebFetch(domain:opencode.ai)",
-      "Bash(rtk grep *)"
+      "Bash(rtk grep *)",
+      "Bash(rtk find *)",
+      "Bash(bunx create-svelte@latest *)",
+      "Bash(bunx sv *)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "Bash(bun install *)",
+      "Bash(bun add *)",
+      "Bash(bun run *)",
+      "WebFetch(domain:svelte.dev)"
     ]
   }
 }

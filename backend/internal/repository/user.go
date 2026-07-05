@@ -36,7 +36,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User
 	var user model.User
 	err := r.db.GetContext(ctx, &user,
 		`SELECT id, telegram_id, email, name, currency, created_at, updated_at, deleted_at
-		 FROM users WHERE id = $1 AND deleted_at IS NULL`, id)
+		 FROM users WHERE id = $1 AND deleted_at IS NULL`, id.String())
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -52,7 +52,7 @@ func (r *UserRepository) Create(ctx context.Context, telegramID, name string) (*
 		`INSERT INTO users (id, telegram_id, name, currency)
 		 VALUES ($1, $2, $3, 'IDR')
 		 ON CONFLICT (telegram_id) DO UPDATE SET name = EXCLUDED.name`,
-		id, telegramID, name)
+		id.String(), telegramID, name)
 	if err != nil {
 		return nil, err
 	}

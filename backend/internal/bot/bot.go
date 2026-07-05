@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/prgilangdwi/gajianaman/internal/parser"
 	"github.com/prgilangdwi/gajianaman/internal/repository"
 	"github.com/prgilangdwi/gajianaman/internal/service"
+	"github.com/prgilangdwi/gajianaman/pkg/logger"
 )
 
 type Bot struct {
@@ -73,7 +73,7 @@ func (b *Bot) Start(ctx context.Context) error {
 	u.Timeout = 60
 
 	updates := b.api.GetUpdatesChan(u)
-	log.Printf("Bot @%s started", b.api.Self.UserName)
+	logger.Info(ctx, "bot started", "username", b.api.Self.UserName)
 
 	for {
 		select {
@@ -88,7 +88,7 @@ func (b *Bot) Start(ctx context.Context) error {
 func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("Recovered from panic: %v", r)
+			logger.Error(ctx, "recovered from panic", "panic", r)
 		}
 	}()
 
@@ -201,7 +201,7 @@ func (b *Bot) getUser(ctx context.Context, telegramID int64) (*model.User, error
 func (b *Bot) requireUser(ctx context.Context, msg *tgbotapi.Message) (*model.User, bool) {
 	user, err := b.getUser(ctx, msg.From.ID)
 	if err != nil {
-		log.Printf("Error getting user: %v", err)
+		logger.Error(ctx, "failed to get user", "err", err, "telegram_id", msg.From.ID)
 		b.reply(msg.Chat.ID, "⚠️ Terjadi kesalahan. Coba lagi.")
 		return nil, false
 	}
@@ -293,7 +293,7 @@ func (b *Bot) createTransaction(ctx context.Context, user *model.User, amount fl
 		delta = -amount
 	}
 	if err := b.accountRepo.UpdateBalance(ctx, account.ID, delta); err != nil {
-		log.Printf("Warning: failed to update account balance: %v", err)
+		logger.Warn(ctx, "failed to update account balance", "err", err, "account_id", account.ID)
 	}
 
 	return tx, nil

@@ -4,11 +4,15 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/prgilangdwi/gajianaman/pkg/utils"
 )
 
 var amountRe = regexp.MustCompile(`(?i)\b(\d+(?:[.,]\d+)?)\s*(k|rb|ribu|jt|juta|mio)?\b`)
+var amountReV2 = regexp.MustCompile(`\b(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\b`)
 
 // ParseAmount parses Indonesian amount strings like 15000, 15k, 15rb, 15ribu, 1.5jt, 2juta, 10mio
+// DEPRECATED: Use ParseAmountV2 for strict number parsing without shortcuts
 func ParseAmount(raw string) (float64, bool) {
 	raw = strings.TrimSpace(strings.ToLower(raw))
 	raw = strings.ReplaceAll(raw, " ", "")
@@ -45,7 +49,15 @@ func ParseAmount(raw string) (float64, bool) {
 	return f, true
 }
 
-// ExtractAmount finds the first amount in a text string
+// ParseAmountV2 parses amount strings strictly - no shortcuts.
+// Supports: 15000, 15.000, 15,000, 1.500.000,50
+// Does NOT support shortcuts like k, rb, jt - use raw numbers.
+func ParseAmountV2(raw string) (float64, bool) {
+	return utils.ParseAmount(raw)
+}
+
+// ExtractAmount finds the first amount in a text string (with shortcuts)
+// DEPRECATED: Use ExtractAmountV2 for strict number parsing
 func ExtractAmount(text string) (float64, bool) {
 	match := amountRe.FindStringSubmatch(text)
 	if match == nil {
@@ -74,7 +86,27 @@ func ExtractAmount(text string) (float64, bool) {
 	return num, true
 }
 
+// ExtractAmountV2 finds the first amount in a text string (strict, no shortcuts)
+func ExtractAmountV2(text string) (float64, bool) {
+	match := amountReV2.FindString(text)
+	if match == "" {
+		return 0, false
+	}
+
+	amount, ok := utils.ParseAmount(match)
+	if !ok || amount < 100 {
+		return 0, false
+	}
+
+	return amount, true
+}
+
 // RemoveAmount removes amount patterns from text
 func RemoveAmount(text string) string {
 	return strings.TrimSpace(amountRe.ReplaceAllString(text, ""))
+}
+
+// RemoveAmountV2 removes strict amount patterns from text
+func RemoveAmountV2(text string) string {
+	return strings.TrimSpace(amountReV2.ReplaceAllString(text, ""))
 }

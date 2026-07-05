@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"log"
 	"strings"
 
 	"github.com/prgilangdwi/gajianaman/internal/config"
+	"github.com/prgilangdwi/gajianaman/pkg/logger"
 )
 
 // CategorizerProvider specifies which AI provider to use
@@ -41,41 +41,43 @@ func NewCategorizerFromConfig(cfg *config.Config) TransactionCategorizer {
 
 	var primary, fallback TransactionCategorizer
 
+	ctx := context.Background()
+
 	switch provider {
 	case ProviderOpenCode:
 		if opencodeURL == "" {
-			log.Println("categorizer.provider=opencode but opencode_url not set")
+			logger.Warn(ctx, "categorizer.provider=opencode but opencode_url not set")
 			if anthropicKey != "" {
-				log.Println("Falling back to Anthropic")
+				logger.Info(ctx, "falling back to Anthropic")
 				return NewCategorizer(anthropicKey)
 			}
-			log.Println("WARNING: No categorizer configured, using defaults")
+			logger.Warn(ctx, "no categorizer configured, using defaults")
 			return &fallbackCategorizer{}
 		}
 		primary = NewOpenCodeCategorizer()
 		if anthropicKey != "" {
 			fallback = NewCategorizer(anthropicKey)
-			log.Println("Using OpenCode as primary categorizer with Anthropic fallback")
+			logger.Info(ctx, "using OpenCode as primary categorizer with Anthropic fallback")
 		} else {
-			log.Println("Using OpenCode as sole categorizer")
+			logger.Info(ctx, "using OpenCode as sole categorizer")
 		}
 
 	default:
 		if anthropicKey == "" {
-			log.Println("WARNING: anthropic_key not set")
+			logger.Warn(ctx, "anthropic_key not set")
 			if opencodeURL != "" {
-				log.Println("Falling back to OpenCode")
+				logger.Info(ctx, "falling back to OpenCode")
 				return NewOpenCodeCategorizer()
 			}
-			log.Println("WARNING: No categorizer configured, using defaults")
+			logger.Warn(ctx, "no categorizer configured, using defaults")
 			return &fallbackCategorizer{}
 		}
 		primary = NewCategorizer(anthropicKey)
 		if opencodeURL != "" {
 			fallback = NewOpenCodeCategorizer()
-			log.Println("Using Anthropic as primary categorizer with OpenCode fallback")
+			logger.Info(ctx, "using Anthropic as primary categorizer with OpenCode fallback")
 		} else {
-			log.Println("Using Anthropic as sole categorizer")
+			logger.Info(ctx, "using Anthropic as sole categorizer")
 		}
 	}
 

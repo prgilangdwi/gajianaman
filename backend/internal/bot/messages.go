@@ -8,11 +8,15 @@ import (
 	"github.com/prgilangdwi/gajianaman/internal/model"
 	"github.com/prgilangdwi/gajianaman/internal/parser"
 	"github.com/prgilangdwi/gajianaman/internal/service"
+	"github.com/prgilangdwi/gajianaman/pkg/logger"
 )
 
 func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 	text := msg.Text
 	user, err := b.getUser(ctx, msg.From.ID)
+	if err != nil {
+		logger.Error(ctx, "failed to get user in message handler", "err", err, "telegram_id", msg.From.ID)
+	}
 	if err != nil || user == nil {
 		b.reply(msg.Chat.ID, "👋 Halo! Ketik /start untuk mendaftar dan mulai menggunakan Gajian Aman.")
 		return
@@ -52,6 +56,7 @@ func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 	// Categorize with AI
 	result, err := b.categorizer.Categorize(ctx, note)
 	if err != nil {
+		logger.Warn(ctx, "categorization failed in message handler", "err", err, "note", note)
 		result = &service.CategorizationResult{
 			CategoryCode: "OTHER",
 			Type:         string(txType),
@@ -76,6 +81,7 @@ func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 	// Create transaction
 	tx, err := b.createTransaction(ctx, user, amount, modelTxType, result.CategoryCode, note, time.Now(), result.Confidence)
 	if err != nil {
+		logger.Error(ctx, "failed to create transaction from message", "err", err, "user_id", user.ID, "amount", amount)
 		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan transaksi: "+err.Error())
 		return
 	}

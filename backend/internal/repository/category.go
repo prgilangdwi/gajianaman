@@ -29,7 +29,7 @@ func (r *CategoryRepository) GetByCode(ctx context.Context, userID uuid.UUID, co
 		`SELECT id, user_id, code, name, icon, type, parent_id, created_at, updated_at, deleted_at
 		 FROM categories
 		 WHERE code = $1 AND user_id = $2 AND type = $3 AND deleted_at IS NULL
-		 LIMIT 1`, code, userID, txType)
+		 LIMIT 1`, code, userID.String(), txType)
 	if err == nil {
 		return &cat, nil
 	}
@@ -41,7 +41,7 @@ func (r *CategoryRepository) GetByCode(ctx context.Context, userID uuid.UUID, co
 	err = r.db.GetContext(ctx, &cat,
 		`SELECT id, user_id, code, name, icon, type, parent_id, created_at, updated_at, deleted_at
 		 FROM categories
-		 WHERE code = $1 AND user_id IS NULL AND type = $3 AND deleted_at IS NULL
+		 WHERE code = $1 AND user_id IS NULL AND type = $2 AND deleted_at IS NULL
 		 LIMIT 1`, code, txType)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -60,7 +60,7 @@ func (r *CategoryRepository) GetByCodeAnyType(ctx context.Context, userID uuid.U
 		`SELECT id, user_id, code, name, icon, type, parent_id, created_at, updated_at, deleted_at
 		 FROM categories
 		 WHERE code = $1 AND user_id = $2 AND deleted_at IS NULL
-		 LIMIT 1`, code, userID)
+		 LIMIT 1`, code, userID.String())
 	if err == nil {
 		return &cat, nil
 	}
@@ -100,7 +100,7 @@ func (r *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.
 	var cat model.Category
 	err := r.db.GetContext(ctx, &cat,
 		`SELECT id, user_id, code, name, icon, type, parent_id, created_at, updated_at, deleted_at
-		 FROM categories WHERE id = $1 AND deleted_at IS NULL`, id)
+		 FROM categories WHERE id = $1 AND deleted_at IS NULL`, id.String())
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -129,13 +129,13 @@ func (r *CategoryRepository) ListForUser(ctx context.Context, userID uuid.UUID, 
 			`SELECT id, user_id, code, name, icon, type, parent_id, created_at, updated_at, deleted_at
 			 FROM categories
 			 WHERE (user_id IS NULL OR user_id = $1) AND type = $2 AND deleted_at IS NULL
-			 ORDER BY user_id NULLS FIRST, name`, userID, *txType)
+			 ORDER BY user_id NULLS FIRST, name`, userID.String(), *txType)
 	} else {
 		err = r.db.SelectContext(ctx, &cats,
 			`SELECT id, user_id, code, name, icon, type, parent_id, created_at, updated_at, deleted_at
 			 FROM categories
 			 WHERE (user_id IS NULL OR user_id = $1) AND deleted_at IS NULL
-			 ORDER BY user_id NULLS FIRST, type, name`, userID)
+			 ORDER BY user_id NULLS FIRST, type, name`, userID.String())
 	}
 	return cats, err
 }
@@ -147,10 +147,18 @@ func (r *CategoryRepository) Create(ctx context.Context, cat *model.Category) er
 	if cat.Code == "" {
 		cat.Code = NameToCode(cat.Name)
 	}
+	// Convert NullUUID to sql.NullString for proper NULL handling
+	var userID, parentID sql.NullString
+	if cat.UserID.Valid {
+		userID = sql.NullString{String: cat.UserID.UUID.String(), Valid: true}
+	}
+	if cat.ParentID.Valid {
+		parentID = sql.NullString{String: cat.ParentID.UUID.String(), Valid: true}
+	}
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO categories (id, user_id, code, name, icon, type, parent_id)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		cat.ID, cat.UserID, cat.Code, cat.Name, cat.Icon, cat.Type, cat.ParentID)
+		cat.ID.String(), userID, cat.Code, cat.Name, cat.Icon, cat.Type, parentID)
 	return err
 }
 
@@ -167,7 +175,7 @@ func (r *CategoryRepository) CreateGlobal(ctx context.Context, code, name, icon 
 		`INSERT INTO categories (id, user_id, code, name, icon, type)
 		 VALUES ($1, NULL, $2, $3, $4, $5)
 		 ON CONFLICT DO NOTHING`,
-		cat.ID, cat.Code, cat.Name, cat.Icon, cat.Type)
+		cat.ID.String(), cat.Code, cat.Name, cat.Icon, cat.Type)
 	if err != nil {
 		return nil, err
 	}

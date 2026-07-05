@@ -7,9 +7,11 @@ import (
 
 	"github.com/prgilangdwi/gajianaman/internal/model"
 	"github.com/prgilangdwi/gajianaman/internal/repository"
+	"github.com/prgilangdwi/gajianaman/pkg/utils"
 )
 
-// FormatCurrency formats amount as Indonesian Rupiah
+// FormatCurrency formats amount as Indonesian Rupiah (shorthand)
+// DEPRECATED: Use FormatCurrencyV2 for proper Indonesian format
 func FormatCurrency(amount float64) string {
 	if amount >= 1_000_000 {
 		return fmt.Sprintf("Rp %.1fjt", amount/1_000_000)
@@ -20,10 +22,10 @@ func FormatCurrency(amount float64) string {
 	return fmt.Sprintf("Rp %.0f", amount)
 }
 
-// FormatCurrencyFull formats amount with full number
+// FormatCurrencyFull formats amount with thousand separators
+// DEPRECATED: Use FormatCurrencyV2 for proper Indonesian format
 func FormatCurrencyFull(amount float64) string {
 	s := fmt.Sprintf("%.0f", amount)
-	// Add thousand separators
 	n := len(s)
 	if n <= 3 {
 		return "Rp " + s
@@ -37,6 +39,18 @@ func FormatCurrencyFull(amount float64) string {
 		parts = append([]string{s[start:i]}, parts...)
 	}
 	return "Rp " + strings.Join(parts, ".")
+}
+
+// FormatCurrencyV2 formats amount as proper Indonesian Rupiah
+// 5000000 -> "Rp 5.000.000"
+func FormatCurrencyV2(amount float64) string {
+	return utils.FormatIDRCompact(amount)
+}
+
+// FormatCurrencyV2Full formats amount with decimals
+// 5000000 -> "Rp 5.000.000,00"
+func FormatCurrencyV2Full(amount float64) string {
+	return utils.FormatIDR(amount)
 }
 
 type ConfirmInfo struct {

@@ -10,11 +10,13 @@ import (
 	"github.com/prgilangdwi/gajianaman/internal/model"
 	"github.com/prgilangdwi/gajianaman/internal/parser"
 	"github.com/prgilangdwi/gajianaman/internal/service"
+	"github.com/prgilangdwi/gajianaman/pkg/logger"
 )
 
 func (b *Bot) cmdStart(ctx context.Context, msg *tgbotapi.Message) {
 	user, err := b.ensureUser(ctx, msg.From)
 	if err != nil {
+		logger.Error(ctx, "failed to ensure user", "err", err, "telegram_id", msg.From.ID)
 		b.reply(msg.Chat.ID, "⚠️ Gagal mendaftarkan user. Coba lagi.")
 		return
 	}
@@ -100,6 +102,7 @@ func (b *Bot) cmdAdd(ctx context.Context, msg *tgbotapi.Message) {
 	// Categorize with AI
 	result, err := b.categorizer.Categorize(ctx, note)
 	if err != nil {
+		logger.Warn(ctx, "categorization failed, using default", "err", err, "note", note)
 		result = &service.CategorizationResult{
 			CategoryCode: "OTHER",
 			Type:         "expense",
@@ -110,6 +113,7 @@ func (b *Bot) cmdAdd(ctx context.Context, msg *tgbotapi.Message) {
 	// Create transaction
 	tx, err := b.createTransaction(ctx, user, amount, model.TypeExpense, result.CategoryCode, note, txDate, result.Confidence)
 	if err != nil {
+		logger.Error(ctx, "failed to create transaction", "err", err, "user_id", user.ID, "amount", amount)
 		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan transaksi: "+err.Error())
 		return
 	}
@@ -184,12 +188,15 @@ func (b *Bot) cmdIncome(ctx context.Context, msg *tgbotapi.Message) {
 
 	tx, err := b.createTransaction(ctx, user, amount, model.TypeIncome, result.CategoryCode, note, time.Now(), result.Confidence)
 	if err != nil {
+		logger.Error(ctx, "failed to create income transaction", "err", err, "user_id", user.ID, "amount", amount)
 		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan transaksi: "+err.Error())
 		return
 	}
 
 	state := b.getUserState(msg.From.ID)
 	state.LastTxID = tx.ID
+
+	logger.Info(ctx, "income recorded", "user_id", user.ID, "amount", amount, "category", result.CategoryCode)
 
 	confMsg := service.BuildTransactionConfirm(service.ConfirmInfo{
 		Amount:       amount,
@@ -300,6 +307,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 
 	categoryID, err := b.resolveCategoryID(ctx, user.ID, categoryName, model.TypeExpense)
 	if err != nil {
+		logger.Warn(ctx, "category not found", "err", err, "category", categoryName)
 		b.reply(msg.Chat.ID, "❌ Kategori tidak ditemukan: "+categoryName)
 		return
 	}
@@ -307,6 +315,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 	now := time.Now()
 	err = b.budgetRepo.Upsert(ctx, user.ID, categoryID, amount, int16(now.Month()), int16(now.Year()))
 	if err != nil {
+		logger.Error(ctx, "failed to save budget", "err", err, "user_id", user.ID, "category", categoryName)
 		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan budget: "+err.Error())
 		return
 	}
@@ -350,6 +359,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 
 		_, err := b.goalRepo.Create(ctx, user.ID, name, target)
 		if err != nil {
+			logger.Error(ctx, "failed to create goal", "err", err, "user_id", user.ID, "goal_name", name)
 			b.reply(msg.Chat.ID, "⚠️ Gagal membuat goal: "+err.Error())
 			return
 		}
@@ -373,6 +383,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 	// List goals
 	goals, err := b.goalRepo.ListWithProgress(ctx, user.ID)
 	if err != nil {
+		logger.Error(ctx, "failed to list goals", "err", err, "user_id", user.ID)
 		b.reply(msg.Chat.ID, "⚠️ Gagal memuat goals: "+err.Error())
 		return
 	}
@@ -393,6 +404,9 @@ func (b *Bot) cmdDelete(ctx context.Context, msg *tgbotapi.Message) {
 	}
 
 	tx, err := b.txRepo.GetLast(ctx, user.ID)
+	if err != nil {
+		logger.Error(ctx, "failed to get last transaction", "err", err, "user_id", user.ID)
+	}
 	if err != nil || tx == nil {
 		b.reply(msg.Chat.ID, "📭 Tidak ada transaksi yang bisa dihapus.")
 		return
@@ -440,6 +454,7 @@ func (b *Bot) cmdStats(ctx context.Context, msg *tgbotapi.Message) {
 
 	stats, err := b.txRepo.GetTodayStats(ctx, user.ID)
 	if err != nil {
+		logger.Error(ctx, "failed to get today stats", "err", err, "user_id", user.ID)
 		b.reply(msg.Chat.ID, "⚠️ Gagal memuat statistik.")
 		return
 	}

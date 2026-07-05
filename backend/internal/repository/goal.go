@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/prgilangdwi/gajianaman/internal/model"
+	"github.com/prgilangdwi/gajianaman/pkg/utils"
 )
 
 type GoalRepository struct {
@@ -22,13 +23,15 @@ func (r *GoalRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Goal
 	var g model.Goal
 	err := r.db.GetContext(ctx, &g,
 		`SELECT id, user_id, name, target_amount, deadline, created_at, updated_at, deleted_at
-		 FROM goals WHERE id = $1 AND deleted_at IS NULL`, id)
+		 FROM goals WHERE id = $1 AND deleted_at IS NULL`, id.String())
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	// Denormalize amount
+	g.TargetAmount = utils.Denormalize(int64(g.TargetAmount))
 	return &g, nil
 }
 
@@ -37,16 +40,22 @@ func (r *GoalRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]mo
 	err := r.db.SelectContext(ctx, &goals,
 		`SELECT id, user_id, name, target_amount, deadline, created_at, updated_at, deleted_at
 		 FROM goals WHERE user_id = $1 AND deleted_at IS NULL
-		 ORDER BY created_at DESC`, userID)
+		 ORDER BY created_at DESC`, userID.String())
+	// Denormalize amounts
+	for i := range goals {
+		goals[i].TargetAmount = utils.Denormalize(int64(goals[i].TargetAmount))
+	}
 	return goals, err
 }
 
 func (r *GoalRepository) Create(ctx context.Context, userID uuid.UUID, name string, target float64) (*model.Goal, error) {
 	id := uuid.New()
+	// Normalize amount for storage
+	normalizedTarget := utils.Normalize(target)
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO goals (id, user_id, name, target_amount)
 		 VALUES ($1, $2, $3, $4)`,
-		id, userID, name, target)
+		id.String(), userID.String(), name, normalizedTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +68,9 @@ func (r *GoalRepository) GetSavedAmount(ctx context.Context, goalID uuid.UUID) (
 	err := r.db.GetContext(ctx, &total,
 		`SELECT COALESCE(SUM(amount), 0)
 		 FROM transactions
-		 WHERE goal_id = $1 AND deleted_at IS NULL`, goalID)
-	return total, err
+		 WHERE goal_id = $1 AND deleted_at IS NULL`, goalID.String())
+	// Denormalize amount
+	return utils.Denormalize(int64(total)), err
 }
 
 type GoalWithProgress struct {
@@ -77,6 +87,11 @@ func (r *GoalRepository) ListWithProgress(ctx context.Context, userID uuid.UUID)
 		 LEFT JOIN transactions t ON t.goal_id = g.id AND t.deleted_at IS NULL
 		 WHERE g.user_id = $1 AND g.deleted_at IS NULL
 		 GROUP BY g.id
-		 ORDER BY g.created_at DESC`, userID)
+		 ORDER BY g.created_at DESC`, userID.String())
+	// Denormalize amounts
+	for i := range goals {
+		goals[i].TargetAmount = utils.Denormalize(int64(goals[i].TargetAmount))
+		goals[i].SavedAmount = utils.Denormalize(int64(goals[i].SavedAmount))
+	}
 	return goals, err
 }
