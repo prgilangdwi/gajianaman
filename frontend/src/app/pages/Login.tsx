@@ -76,8 +76,12 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
-    await loginWithGoogle();
-    // Page will redirect — no need to reset loading
+    const result = await loginWithGoogle();
+    if (result.error) {
+      toast.error(result.error);
+      setGoogleLoading(false);
+    }
+    // On success, page redirects to Google — no need to reset loading
   };
 
   if (authLoading) {
