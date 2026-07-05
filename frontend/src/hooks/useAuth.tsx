@@ -17,7 +17,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   loginWithTelegram: (telegramId: string) => Promise<{ error?: string }>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<{ error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -117,15 +117,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // ── Google OAuth login ────────────────────────────────────────────────────
-  const loginWithGoogle = async (): Promise<void> => {
+  const loginWithGoogle = async (): Promise<{ error?: string }> => {
     const redirectTo = import.meta.env.VITE_AUTH_REDIRECT_URL
       || `${window.location.origin}/auth/callback`;
 
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
     });
+
+    if (error) {
+      return { error: error.message };
+    }
     // Page will redirect to Google, then back to redirectTo URL
+    return {};
   };
 
   // ── Logout ────────────────────────────────────────────────────────────────
