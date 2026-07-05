@@ -87,7 +87,7 @@ func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 			"📝 Catatan: _%s_",
 		typeLabel, service.FormatCurrencyV2(amount), note)
 
-	b.replyWithKeyboard(msg.Chat.ID, text, keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, text, keyboard)
 }
 
 func (b *Bot) handlePhotoEditAmount(ctx context.Context, msg *tgbotapi.Message, user *model.User, state *UserState) {
@@ -106,7 +106,7 @@ func (b *Bot) handlePhotoEditAmount(ctx context.Context, msg *tgbotapi.Message, 
 	state.PendingPhotoTx.Amount = amount
 
 	confMsg := buildPhotoConfirmText(state.PendingPhotoTx)
-	b.replyWithKeyboard(msg.Chat.ID, confMsg, photoConfirmKeyboard())
+	b.replyWithKeyboard(ctx, msg.Chat.ID, confMsg, photoConfirmKeyboard())
 }
 
 func buildPhotoConfirmText(p *PendingPhotoTx) string {

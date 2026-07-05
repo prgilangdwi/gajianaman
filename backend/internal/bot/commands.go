@@ -40,7 +40,7 @@ func (b *Bot) cmdStart(ctx context.Context, msg *tgbotapi.Message) {
 			service.FormatCurrencyV2(stats.Income),
 			stats.TxCount,
 		)
-		b.replyWithKeyboard(msg.Chat.ID, text, mainMenuKeyboard())
+		b.replyWithKeyboard(ctx, msg.Chat.ID, text, mainMenuKeyboard())
 	} else {
 		text := fmt.Sprintf(
 			"🎉 *Selamat datang di Gajian Aman, %s!*\n\n"+
@@ -62,7 +62,7 @@ func (b *Bot) cmdStart(ctx context.Context, msg *tgbotapi.Message) {
 				tgbotapi.NewInlineKeyboardButtonData("💚 Catat Pemasukan", "quick:income"),
 			),
 		)
-		b.replyWithKeyboard(msg.Chat.ID, text, keyboard)
+		b.replyWithKeyboard(ctx, msg.Chat.ID, text, keyboard)
 	}
 }
 
@@ -111,7 +111,7 @@ func (b *Bot) cmdAdd(ctx context.Context, msg *tgbotapi.Message) {
 		text += fmt.Sprintf("\n📅 Tanggal: _%s_", txDate.Format("02 January 2006"))
 	}
 
-	b.replyWithKeyboard(msg.Chat.ID, text, expenseCategoryKeyboard("cat"))
+	b.replyWithKeyboard(ctx, msg.Chat.ID, text, expenseCategoryKeyboard("cat"))
 }
 
 func (b *Bot) cmdIncome(ctx context.Context, msg *tgbotapi.Message) {
@@ -145,7 +145,7 @@ func (b *Bot) cmdIncome(ctx context.Context, msg *tgbotapi.Message) {
 			"📝 Catatan: _%s_",
 		service.FormatCurrencyV2(amount), note)
 
-	b.replyWithKeyboard(msg.Chat.ID, text, incomeCategoryKeyboard())
+	b.replyWithKeyboard(ctx, msg.Chat.ID, text, incomeCategoryKeyboard())
 }
 
 func (b *Bot) cmdSummary(ctx context.Context, msg *tgbotapi.Message) {
@@ -179,7 +179,7 @@ func (b *Bot) cmdSummary(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?", keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?", keyboard)
 }
 
 func (b *Bot) cmdHistory(ctx context.Context, msg *tgbotapi.Message) {
@@ -207,7 +207,7 @@ func (b *Bot) cmdHistory(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:", keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:", keyboard)
 }
 
 func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
@@ -218,7 +218,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 
 	parts := splitCommand(msg.Text)
 	if len(parts) < 3 {
-		b.replyWithKeyboard(msg.Chat.ID,
+		b.replyWithKeyboard(ctx, msg.Chat.ID,
 			"🎯 *Quick Budget Setup*\n\n"+
 				"Pilih kategori yang ingin kamu set budgetnya.\n"+
 				"Kamu bisa set beberapa kategori sekaligus!\n\n"+
@@ -255,7 +255,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+	b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 		"✅ *Budget berhasil diset!*\n\n"+
 			"📁 Kategori : *%s*\n"+
 			"🎯 Budget   : %s\n"+
@@ -299,7 +299,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 			),
 		)
 
-		b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+		b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 			"🎯 *Goal berhasil ditambahkan!*\n\n"+
 				"📌 Nama   : *%s*\n"+
 				"💰 Target : %s\n\n"+
@@ -323,7 +323,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, service.BuildGoalsMessage(goals), keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, service.BuildGoalsMessage(goals), keyboard)
 }
 
 func (b *Bot) cmdDelete(ctx context.Context, msg *tgbotapi.Message) {
@@ -364,7 +364,7 @@ func (b *Bot) cmdDelete(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+	b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 		"🗑️ *Hapus Transaksi Terakhir?*\n\n"+
 			"%s Jenis    : %s\n"+
 			"💸 Nominal  : %s\n"+
@@ -401,7 +401,7 @@ func (b *Bot) cmdStats(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+	b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 		"📊 *Statistik Hari Ini*\n"+
 			"📅 %s\n"+
 			"━━━━━━━━━━━━━━━━━━━━\n"+
@@ -434,7 +434,7 @@ func (b *Bot) cmdHelp(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID,
+	b.replyWithKeyboard(ctx, msg.Chat.ID,
 		"📖 *Gajian Aman — Pusat Bantuan*\n\n"+
 			"Halo! Saya Gajian Aman, asisten keuangan pribadimu 🤖\n\n"+
 			"Pilih topik yang ingin kamu pelajari 👇",
@@ -448,7 +448,7 @@ func (b *Bot) cmdCommands(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID,
+	b.replyWithKeyboard(ctx, msg.Chat.ID,
 		"📜 *Daftar Semua Command — Gajian Aman*\n\n"+
 			"━━━━━━━━━━━━━━━━━━━━\n"+
 			"💸 *Transaksi*\n"+
