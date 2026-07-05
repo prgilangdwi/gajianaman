@@ -34,29 +34,26 @@ type ConfirmInfo struct {
 // CodeToDisplayName converts a category code to display name
 func CodeToDisplayName(code string) string {
 	names := map[string]string{
-		"FOOD_AND_DINING":     "Food & Dining",
-		"GROCERIES":           "Groceries",
-		"TRANSPORT":           "Transport",
-		"SHOPPING":            "Shopping",
-		"HEALTH":              "Health",
-		"ENTERTAINMENT":       "Entertainment",
-		"BILLS_AND_UTILITIES": "Bills & Utilities",
-		"EDUCATION":           "Education",
-		"PERSONAL_CARE":       "Personal Care",
-		"DINING_OUT":          "Dining Out",
-		"OTHER":               "Other",
-		"SALARY":              "Salary",
-		"FREELANCE":           "Freelance",
-		"INVESTMENT_RETURN":   "Investment Return",
-		"OTHER_INCOME":        "Other Income",
-		"SAVINGS":             "Savings",
-		"INVESTMENT":          "Investment",
-		"TRANSFER":            "Transfer",
+		// Expense categories (8 fixed)
+		"HOUSING":            "Housing",
+		"BILLS":              "Utilities",
+		"LIFESTYLE":          "Lifestyle & Entertainment",
+		"TRANSPORTATION":     "Transportation",
+		"DINING":             "Food & Dining",
+		"UNEXPECTED_EXPENSE": "Unexpected Expenses",
+		"SAVING":             "Savings & Investment",
+		"EDUCATION":          "Education",
+		// Income categories
+		"SALARY":            "Salary",
+		"FREELANCE":         "Freelance",
+		"INVESTMENT_RETURN": "Investment Return",
+		"OTHER_INCOME":      "Other Income",
+		// Transfer
+		"TRANSFER": "Transfer",
 	}
 	if name, ok := names[code]; ok {
 		return name
 	}
-	// Fallback: replace underscores with spaces and title case
 	return strings.ReplaceAll(code, "_", " ")
 }
 

@@ -12,6 +12,11 @@ type Config struct {
 	Database    DatabaseConfig    `mapstructure:"database"`
 	Bot         BotConfig         `mapstructure:"bot"`
 	Categorizer CategorizerConfig `mapstructure:"categorizer"`
+	Features    FeaturesConfig    `mapstructure:"features"`
+}
+
+type FeaturesConfig struct {
+	AICategorizationEnabled bool `mapstructure:"ai_categorization_enabled"`
 }
 
 type DatabaseConfig struct {
@@ -48,13 +53,11 @@ func IsProduction() bool {
 }
 
 func Load(configPath ...string) *Config {
+	path := "./config.yaml"
 	if len(configPath) > 0 && configPath[0] != "" {
-		viper.SetConfigFile(configPath[0])
-	} else {
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
+		path = configPath[0]
 	}
+	viper.SetConfigFile(path)
 
 	// Environment variable overrides
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -74,6 +77,7 @@ func Load(configPath ...string) *Config {
 	// Defaults
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("categorizer.provider", "opencode")
+	viper.SetDefault("features.ai_categorization_enabled", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

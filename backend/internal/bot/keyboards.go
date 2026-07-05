@@ -31,26 +31,45 @@ func mainMenuKeyboard() tgbotapi.InlineKeyboardMarkup {
 }
 
 func recatKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return expenseCategoryKeyboard("recat")
+}
+
+func expenseCategoryKeyboard(prefix string) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🍜 Food & Dining", "recat:FOOD_AND_DINING"),
-			tgbotapi.NewInlineKeyboardButtonData("🛒 Groceries", "recat:GROCERIES"),
+			tgbotapi.NewInlineKeyboardButtonData("🏠 Housing", prefix+":HOUSING"),
+			tgbotapi.NewInlineKeyboardButtonData("📱 Utilities", prefix+":BILLS"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🚗 Transport", "recat:TRANSPORT"),
-			tgbotapi.NewInlineKeyboardButtonData("🛍️ Shopping", "recat:SHOPPING"),
+			tgbotapi.NewInlineKeyboardButtonData("🎮 Lifestyle", prefix+":LIFESTYLE"),
+			tgbotapi.NewInlineKeyboardButtonData("🚗 Transport", prefix+":TRANSPORTATION"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("💊 Health", "recat:HEALTH"),
-			tgbotapi.NewInlineKeyboardButtonData("🎮 Entertainment", "recat:ENTERTAINMENT"),
+			tgbotapi.NewInlineKeyboardButtonData("🍜 Food & Dining", prefix+":DINING"),
+			tgbotapi.NewInlineKeyboardButtonData("⚠️ Unexpected", prefix+":UNEXPECTED_EXPENSE"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📱 Bills", "recat:BILLS_AND_UTILITIES"),
-			tgbotapi.NewInlineKeyboardButtonData("🏦 Savings", "recat:SAVINGS"),
+			tgbotapi.NewInlineKeyboardButtonData("🏦 Savings", prefix+":SAVING"),
+			tgbotapi.NewInlineKeyboardButtonData("📚 Education", prefix+":EDUCATION"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📁 Other", "recat:OTHER"),
-			tgbotapi.NewInlineKeyboardButtonData("🏠 Menu Utama", "menu:main"),
+			tgbotapi.NewInlineKeyboardButtonData("❌ Batal", "cancel_pending"),
+		),
+	)
+}
+
+func incomeCategoryKeyboard() tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("💼 Salary", "cat:SALARY"),
+			tgbotapi.NewInlineKeyboardButtonData("💻 Freelance", "cat:FREELANCE"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📈 Investment", "cat:INVESTMENT_RETURN"),
+			tgbotapi.NewInlineKeyboardButtonData("💚 Other", "cat:OTHER_INCOME"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("❌ Batal", "cancel_pending"),
 		),
 	)
 }
@@ -58,20 +77,20 @@ func recatKeyboard() tgbotapi.InlineKeyboardMarkup {
 func quickBudgetCategoryKeyboard() tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🍜 Makanan", "qb_cat:food"),
-			tgbotapi.NewInlineKeyboardButtonData("🚗 Transport", "qb_cat:transport"),
+			tgbotapi.NewInlineKeyboardButtonData("🏠 Housing", "qb_cat:housing"),
+			tgbotapi.NewInlineKeyboardButtonData("📱 Utilities", "qb_cat:bills"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🛍️ Shopping", "qb_cat:shopping"),
-			tgbotapi.NewInlineKeyboardButtonData("💊 Kesehatan", "qb_cat:health"),
+			tgbotapi.NewInlineKeyboardButtonData("🎮 Lifestyle", "qb_cat:lifestyle"),
+			tgbotapi.NewInlineKeyboardButtonData("🚗 Transport", "qb_cat:transportation"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🎮 Hiburan", "qb_cat:entertainment"),
-			tgbotapi.NewInlineKeyboardButtonData("📱 Tagihan", "qb_cat:bills"),
+			tgbotapi.NewInlineKeyboardButtonData("🍜 Food & Dining", "qb_cat:dining"),
+			tgbotapi.NewInlineKeyboardButtonData("⚠️ Unexpected", "qb_cat:unexpected"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📚 Pendidikan", "qb_cat:education"),
-			tgbotapi.NewInlineKeyboardButtonData("🛒 Groceries", "qb_cat:groceries"),
+			tgbotapi.NewInlineKeyboardButtonData("🏦 Savings", "qb_cat:saving"),
+			tgbotapi.NewInlineKeyboardButtonData("📚 Education", "qb_cat:education"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("✅ Selesai", "qb_done"),

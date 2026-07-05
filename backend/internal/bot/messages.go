@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -33,8 +34,6 @@ func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 
 	// Check for multi-transaction
 	if parser.IsMultiTransaction(text) {
-		// For simplicity, we'll handle single transactions for now
-		// Multi-transaction can be added later
 		b.reply(msg.Chat.ID, "💡 Untuk transaksi multiple, gunakan command `/multi` atau kirim satu per satu.")
 		return
 	}
@@ -45,79 +44,50 @@ func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 		b.reply(msg.Chat.ID,
 			"💬 Tidak mengerti maksudmu.\n\n"+
 				"Untuk catat transaksi:\n"+
-				"• *Pengeluaran:* `beli kopi 15000` atau `/add 15000 beli kopi`\n"+
-				"• *Pemasukan:* `uang masuk 200k` atau `/income 200k gaji`\n\n"+
+				"• *Pengeluaran:* `/add 15000 beli kopi`\n"+
+				"• *Pemasukan:* `/income 200k gaji`\n\n"+
 				"Ketik /help untuk panduan lengkap.")
 		return
 	}
 
-	b.api.Send(tgbotapi.NewChatAction(msg.Chat.ID, "typing"))
-
-	// Categorize with AI
-	result, err := b.categorizer.Categorize(ctx, note)
-	if err != nil {
-		logger.Warn(ctx, "categorization failed in message handler", "err", err, "note", note)
-		result = &service.CategorizationResult{
-			CategoryCode: "OTHER",
-			Type:         string(txType),
-			Confidence:   0.3,
-		}
-	}
-
-	// Override type based on detection
+	// Determine transaction type
 	var modelTxType model.TransactionType
 	switch txType {
 	case parser.TxIncome:
 		modelTxType = model.TypeIncome
-		result.Type = "income"
 	case parser.TxTransfer:
 		modelTxType = model.TypeTransfer
-		result.Type = "transfer"
 	default:
 		modelTxType = model.TypeExpense
-		result.Type = "expense"
 	}
 
-	// Create transaction
-	tx, err := b.createTransaction(ctx, user, amount, modelTxType, result.CategoryCode, note, time.Now(), result.Confidence)
-	if err != nil {
-		logger.Error(ctx, "failed to create transaction from message", "err", err, "user_id", user.ID, "amount", amount)
-		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan transaksi: "+err.Error())
-		return
+	// Store pending transaction
+	state.PendingTx = &PendingTx{
+		Amount: amount,
+		Note:   note,
+		Type:   modelTxType,
+		Date:   time.Now(),
 	}
 
-	state.LastTxID = tx.ID
+	// Show category selection keyboard
+	var keyboard tgbotapi.InlineKeyboardMarkup
+	var typeLabel string
 
-	// Build confirmation
-	confMsg := service.BuildTransactionConfirm(service.ConfirmInfo{
-		Amount:       amount,
-		Note:         note,
-		CategoryCode: result.CategoryCode,
-		Type:         modelTxType,
-		Confidence:   service.ConfidenceLevel(result.Confidence),
-	})
-
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🗑️ Hapus Transaksi Ini", "delete:last"),
-		),
-	)
-
-	if result.Confidence < 0.5 {
-		confMsg += "\n\n⚠️ _Confidence rendah. Pilih kategori yang tepat:_"
-		keyboard = recatKeyboard()
+	if modelTxType == model.TypeIncome {
+		keyboard = incomeCategoryKeyboard()
+		typeLabel = "pemasukan"
+	} else {
+		keyboard = expenseCategoryKeyboard("cat")
+		typeLabel = "pengeluaran"
 	}
 
-	b.replyWithKeyboard(msg.Chat.ID, confMsg, keyboard)
+	text = fmt.Sprintf(
+		"📝 *Pilih kategori %s:*\n\n"+
+			"💰 Nominal: *%s*\n"+
+			"📝 Catatan: _%s_",
+		typeLabel, service.FormatCurrencyV2(amount), note)
 
-	// Check budget alert for expenses
-	if modelTxType == model.TypeExpense {
-		categoryID, _ := b.resolveCategoryID(ctx, user.ID, result.CategoryCode, model.TypeExpense)
-		b.checkBudgetAlert(ctx, msg, user, categoryID)
-	}
-
-	// Send streak message
-	b.sendStreakMessage(ctx, msg, user.ID)
+	b.replyWithKeyboard(msg.Chat.ID, text, keyboard)
 }
 
 func (b *Bot) handlePhotoEditAmount(ctx context.Context, msg *tgbotapi.Message, user *model.User, state *UserState) {

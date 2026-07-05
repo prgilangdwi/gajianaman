@@ -21,18 +21,15 @@ type DefaultCategory struct {
 }
 
 var defaultCategories = []DefaultCategory{
-	// Expense categories
-	{"FOOD_AND_DINING", "Food & Dining", "🍜", model.TypeExpense},
-	{"GROCERIES", "Groceries", "🛒", model.TypeExpense},
-	{"TRANSPORT", "Transport", "🚗", model.TypeExpense},
-	{"SHOPPING", "Shopping", "🛍️", model.TypeExpense},
-	{"HEALTH", "Health", "💊", model.TypeExpense},
-	{"ENTERTAINMENT", "Entertainment", "🎮", model.TypeExpense},
-	{"BILLS_AND_UTILITIES", "Bills & Utilities", "📱", model.TypeExpense},
+	// Fixed expense categories (8 categories)
+	{"HOUSING", "Housing", "🏠", model.TypeExpense},
+	{"BILLS", "Utilities", "📱", model.TypeExpense},
+	{"LIFESTYLE", "Lifestyle & Entertainment", "🎮", model.TypeExpense},
+	{"TRANSPORTATION", "Transportation", "🚗", model.TypeExpense},
+	{"DINING", "Food & Dining", "🍜", model.TypeExpense},
+	{"UNEXPECTED_EXPENSE", "Unexpected Expenses", "⚠️", model.TypeExpense},
+	{"SAVING", "Savings & Investment", "🏦", model.TypeExpense},
 	{"EDUCATION", "Education", "📚", model.TypeExpense},
-	{"PERSONAL_CARE", "Personal Care", "💆", model.TypeExpense},
-	{"DINING_OUT", "Dining Out", "🍽️", model.TypeExpense},
-	{"OTHER", "Other", "📁", model.TypeExpense},
 
 	// Income categories
 	{"SALARY", "Salary", "💼", model.TypeIncome},
@@ -40,17 +37,13 @@ var defaultCategories = []DefaultCategory{
 	{"INVESTMENT_RETURN", "Investment Return", "📈", model.TypeIncome},
 	{"OTHER_INCOME", "Other Income", "💚", model.TypeIncome},
 
-	// Savings/Investment categories (treated as expense type for categorization)
-	{"SAVINGS", "Savings", "🏦", model.TypeExpense},
-	{"INVESTMENT", "Investment", "📊", model.TypeExpense},
-
 	// Transfer category
 	{"TRANSFER", "Transfer", "🔄", model.TypeTransfer},
 }
 
 func main() {
 	var configPath string
-	flag.StringVar(&configPath, "c", "", "path to config file")
+	flag.StringVar(&configPath, "config", "./config.yaml", "path to config file")
 	flag.Parse()
 
 	cfg := config.Load(configPath)

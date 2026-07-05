@@ -36,6 +36,14 @@ type UserState struct {
 	LastTxID       uuid.UUID
 	Awaiting       string
 	PendingPhotoTx *PendingPhotoTx
+	PendingTx      *PendingTx
+}
+
+type PendingTx struct {
+	Amount float64
+	Note   string
+	Type   model.TransactionType
+	Date   time.Time
 }
 
 type PendingPhotoTx struct {
