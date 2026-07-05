@@ -335,7 +335,7 @@ func parseCommandArgs(text string) (amount float64, note string, ok bool) {
 	if len(parts) < 3 {
 		return 0, "", false
 	}
-	amount, ok = parser.ParseAmount(parts[1])
+	amount, ok = parser.ParseAmountV2(parts[1])
 	if !ok || amount <= 0 {
 		return 0, "", false
 	}

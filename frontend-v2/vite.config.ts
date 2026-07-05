@@ -8,14 +8,20 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit(),
 		SvelteKitPWA({
+			devOptions: {
+				enabled: false
+			},
 			registerType: 'autoUpdate',
 			manifest: {
 				name: 'Gajian Aman',
 				short_name: 'Gajian',
-				description: 'Personal finance tracker',
+				description: 'Personal finance tracker for Indonesian users',
 				theme_color: '#10b981',
 				background_color: '#ffffff',
-				display: 'standalone',
+				display: 'fullscreen',
+				start_url: '/',
+				scope: '/',
+				orientation: 'portrait',
 				icons: [
 					{
 						src: '/icon-192.png',
@@ -26,6 +32,12 @@ export default defineConfig({
 						src: '/icon-512.png',
 						sizes: '512x512',
 						type: 'image/png'
+					},
+					{
+						src: '/icon-512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'maskable'
 					}
 				]
 			},

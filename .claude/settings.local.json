@@ -21,7 +21,14 @@
       "Bash(bun install *)",
       "Bash(bun add *)",
       "Bash(bun run *)",
-      "WebFetch(domain:svelte.dev)"
+      "WebFetch(domain:svelte.dev)",
+      "Bash(rtk wc *)",
+      "Bash(rtk read *)",
+      "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 192x192 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/icon-192.png)",
+      "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 512x512 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/icon-512.png)",
+      "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 180x180 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/apple-touch-icon.png)",
+      "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 32x32 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/favicon.png)",
+      "Bash(rtk curl *)"
     ]
   }
 }

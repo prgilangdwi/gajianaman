@@ -10,37 +10,6 @@ import (
 	"github.com/prgilangdwi/gajianaman/pkg/utils"
 )
 
-// FormatCurrency formats amount as Indonesian Rupiah (shorthand)
-// DEPRECATED: Use FormatCurrencyV2 for proper Indonesian format
-func FormatCurrency(amount float64) string {
-	if amount >= 1_000_000 {
-		return fmt.Sprintf("Rp %.1fjt", amount/1_000_000)
-	}
-	if amount >= 1_000 {
-		return fmt.Sprintf("Rp %.0fk", amount/1_000)
-	}
-	return fmt.Sprintf("Rp %.0f", amount)
-}
-
-// FormatCurrencyFull formats amount with thousand separators
-// DEPRECATED: Use FormatCurrencyV2 for proper Indonesian format
-func FormatCurrencyFull(amount float64) string {
-	s := fmt.Sprintf("%.0f", amount)
-	n := len(s)
-	if n <= 3 {
-		return "Rp " + s
-	}
-	var parts []string
-	for i := n; i > 0; i -= 3 {
-		start := i - 3
-		if start < 0 {
-			start = 0
-		}
-		parts = append([]string{s[start:i]}, parts...)
-	}
-	return "Rp " + strings.Join(parts, ".")
-}
-
 // FormatCurrencyV2 formats amount as proper Indonesian Rupiah
 // 5000000 -> "Rp 5.000.000"
 func FormatCurrencyV2(amount float64) string {
@@ -120,7 +89,7 @@ func BuildTransactionConfirm(info ConfirmInfo) string {
 			"📝 *Catatan:* %s\n"+
 			"%s _AI Confidence: %s_",
 		typeIcon, typeLabel,
-		FormatCurrency(info.Amount),
+		FormatCurrencyV2(info.Amount),
 		categoryName,
 		info.Note,
 		confIcon, info.Confidence,
@@ -140,15 +109,15 @@ func BuildSummaryMessage(userName string, month, year int, income, expense float
 	sb.WriteString(fmt.Sprintf("📊 *Ringkasan %s %d*\n", monthName, year))
 	sb.WriteString(fmt.Sprintf("👤 %s\n\n", userName))
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString(fmt.Sprintf("💚 Pemasukan  : %s\n", FormatCurrency(income)))
-	sb.WriteString(fmt.Sprintf("🔴 Pengeluaran: %s\n", FormatCurrency(expense)))
-	sb.WriteString(fmt.Sprintf("%s Saldo Bersih : %s\n", netIcon, FormatCurrency(net)))
+	sb.WriteString(fmt.Sprintf("💚 Pemasukan  : %s\n", FormatCurrencyV2(income)))
+	sb.WriteString(fmt.Sprintf("🔴 Pengeluaran: %s\n", FormatCurrencyV2(expense)))
+	sb.WriteString(fmt.Sprintf("%s Saldo Bersih : %s\n", netIcon, FormatCurrencyV2(net)))
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	if len(categories) > 0 {
 		sb.WriteString("📁 *Pengeluaran per Kategori:*\n")
 		for _, c := range categories {
-			sb.WriteString(fmt.Sprintf("• %s: %s (%d tx)\n", c.Category, FormatCurrency(c.Total), c.Count))
+			sb.WriteString(fmt.Sprintf("• %s: %s (%d tx)\n", c.Category, FormatCurrencyV2(c.Total), c.Count))
 		}
 		sb.WriteString("\n")
 	}
@@ -165,7 +134,7 @@ func BuildSummaryMessage(userName string, month, year int, income, expense float
 				icon = "🟡"
 			}
 			sb.WriteString(fmt.Sprintf("%s %s\n   %s %.0f%%\n   %s / %s\n",
-				icon, b.CategoryName, bar, pct, FormatCurrency(b.Actual), FormatCurrency(b.Budget)))
+				icon, b.CategoryName, bar, pct, FormatCurrencyV2(b.Actual), FormatCurrencyV2(b.Budget)))
 		}
 	}
 
@@ -196,15 +165,15 @@ func BuildDailySummaryMessage(userName string, date time.Time, income, expense f
 	sb.WriteString(fmt.Sprintf("📆 *Ringkasan %s*\n", dateStr))
 	sb.WriteString(fmt.Sprintf("👤 %s\n\n", userName))
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString(fmt.Sprintf("💚 Pemasukan  : %s\n", FormatCurrency(income)))
-	sb.WriteString(fmt.Sprintf("🔴 Pengeluaran: %s\n", FormatCurrency(expense)))
-	sb.WriteString(fmt.Sprintf("%s Saldo       : %s\n", netIcon, FormatCurrency(net)))
+	sb.WriteString(fmt.Sprintf("💚 Pemasukan  : %s\n", FormatCurrencyV2(income)))
+	sb.WriteString(fmt.Sprintf("🔴 Pengeluaran: %s\n", FormatCurrencyV2(expense)))
+	sb.WriteString(fmt.Sprintf("%s Saldo       : %s\n", netIcon, FormatCurrencyV2(net)))
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	if len(categories) > 0 {
 		sb.WriteString("📁 *Pengeluaran per Kategori:*\n")
 		for _, c := range categories {
-			sb.WriteString(fmt.Sprintf("• %s: %s\n", c.Category, FormatCurrency(c.Total)))
+			sb.WriteString(fmt.Sprintf("• %s: %s\n", c.Category, FormatCurrencyV2(c.Total)))
 		}
 	}
 
@@ -229,7 +198,7 @@ func BuildHistoryMessage(txs []repository.TransactionWithCategory) string {
 		if len(note) > 25 {
 			note = note[:25] + "..."
 		}
-		sb.WriteString(fmt.Sprintf("%s %s • %s • %s\n", icon, FormatCurrency(tx.Amount), note, dateStr))
+		sb.WriteString(fmt.Sprintf("%s %s • %s • %s\n", icon, FormatCurrencyV2(tx.Amount), note, dateStr))
 	}
 
 	return sb.String()
@@ -257,7 +226,7 @@ func BuildGoalsMessage(goals []repository.GoalWithProgress) string {
 			status = "🔥"
 		}
 		sb.WriteString(fmt.Sprintf("%s *%s*\n   %s %.0f%%\n   %s / %s\n\n",
-			status, g.Name, bar, pct, FormatCurrency(g.SavedAmount), FormatCurrency(g.TargetAmount)))
+			status, g.Name, bar, pct, FormatCurrencyV2(g.SavedAmount), FormatCurrencyV2(g.TargetAmount)))
 	}
 
 	return sb.String()
@@ -306,7 +275,7 @@ func GetBudgetAlertMessage(category string, budget, actual float64) string {
 			"Terpakai  : %s (%.0f%%)\n"+
 			"%s    : %s",
 		icon, status, category,
-		FormatCurrency(budget), FormatCurrency(actual), pct,
-		label, FormatCurrency(remaining),
+		FormatCurrencyV2(budget), FormatCurrencyV2(actual), pct,
+		label, FormatCurrencyV2(remaining),
 	)
 }

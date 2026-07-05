@@ -21,6 +21,18 @@ declare global {
 		interface PageData {
 			session: Session | null;
 		}
+		interface Platform {
+			env: {
+				AUTH_SECRET: string;
+				AUTH_GOOGLE_ID: string;
+				AUTH_GOOGLE_SECRET: string;
+				SUPABASE_SERVICE_KEY: string;
+			};
+			context: {
+				waitUntil(promise: Promise<unknown>): void;
+			};
+			caches: CacheStorage & { default: Cache };
+		}
 	}
 }
 

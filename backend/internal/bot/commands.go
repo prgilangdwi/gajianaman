@@ -36,8 +36,8 @@ func (b *Bot) cmdStart(ctx context.Context, msg *tgbotapi.Message) {
 				"Mau ngapain hari ini? 👇",
 			msg.From.FirstName,
 			time.Now().Format("02 January 2006"),
-			service.FormatCurrency(stats.Expense),
-			service.FormatCurrency(stats.Income),
+			service.FormatCurrencyV2(stats.Expense),
+			service.FormatCurrencyV2(stats.Income),
 			stats.TxCount,
 		)
 		b.replyWithKeyboard(msg.Chat.ID, text, mainMenuKeyboard())
@@ -299,7 +299,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 	}
 
 	categoryName := mapCategoryShortcut(parts[1])
-	amount, ok := parser.ParseAmount(parts[2])
+	amount, ok := parser.ParseAmountV2(parts[2])
 	if !ok || amount <= 0 {
 		b.reply(msg.Chat.ID, "❌ Nominal tidak valid.")
 		return
@@ -332,7 +332,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 			"🎯 Budget   : %s\n"+
 			"📅 Periode  : %s %d\n\n"+
 			"Cek progress budget di /summary",
-		categoryName, service.FormatCurrency(amount), now.Month().String(), now.Year(),
+		categoryName, service.FormatCurrencyV2(amount), now.Month().String(), now.Year(),
 	), keyboard)
 }
 
@@ -346,7 +346,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 
 	// Check for /goal add <name> <target>
 	if len(parts) >= 4 && strings.ToLower(parts[1]) == "add" {
-		target, ok := parser.ParseAmount(parts[len(parts)-1])
+		target, ok := parser.ParseAmountV2(parts[len(parts)-1])
 		if !ok || target <= 0 {
 			b.reply(msg.Chat.ID, "❌ Format: `/goal add <nama> <target>`\nContoh: `/goal add Liburan Bali 5jt`")
 			return
@@ -375,7 +375,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 				"📌 Nama   : *%s*\n"+
 				"💰 Target : %s\n\n"+
 				"Pantau progress di /goal",
-			name, service.FormatCurrency(target),
+			name, service.FormatCurrencyV2(target),
 		), keyboard)
 		return
 	}
@@ -442,7 +442,7 @@ func (b *Bot) cmdDelete(ctx context.Context, msg *tgbotapi.Message) {
 			"📁 Kategori : %s\n"+
 			"📝 Catatan  : %s\n\n"+
 			"_Tindakan ini tidak bisa dibatalkan._",
-		typeIcon, typeLabel, service.FormatCurrency(tx.Amount), catName, tx.Note.String,
+		typeIcon, typeLabel, service.FormatCurrencyV2(tx.Amount), catName, tx.Note.String,
 	), keyboard)
 }
 
@@ -482,9 +482,9 @@ func (b *Bot) cmdStats(ctx context.Context, msg *tgbotapi.Message) {
 			"━━━━━━━━━━━━━━━━━━━━\n"+
 			"📝 Transaksi   : %d transaksi",
 		time.Now().Format("02 January 2006"),
-		service.FormatCurrency(stats.Expense),
-		service.FormatCurrency(stats.Income),
-		netIcon, service.FormatCurrency(net),
+		service.FormatCurrencyV2(stats.Expense),
+		service.FormatCurrencyV2(stats.Income),
+		netIcon, service.FormatCurrencyV2(net),
 		stats.TxCount,
 	), keyboard)
 }

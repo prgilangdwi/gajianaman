@@ -1,85 +1,72 @@
 import { SvelteKitAuth } from '@auth/sveltekit';
 import Google from '@auth/sveltekit/providers/google';
-import { findOrCreateUser } from '$lib/supabase.server';
+import {
+	AUTH_SECRET,
+	AUTH_GOOGLE_ID,
+	AUTH_GOOGLE_SECRET,
+	SUPABASE_SERVICE_KEY
+} from '$env/static/private';
 
-const isProduction = process.env.NODE_ENV === 'production';
-const useSecure = true; // Always use secure since we're on HTTPS
+export const { handle, signIn, signOut } = SvelteKitAuth(async (event) => {
+	const env = event.platform?.env;
+	const secret = env?.AUTH_SECRET ?? AUTH_SECRET;
+	const googleId = env?.AUTH_GOOGLE_ID ?? AUTH_GOOGLE_ID;
+	const googleSecret = env?.AUTH_GOOGLE_SECRET ?? AUTH_GOOGLE_SECRET;
+	const serviceKey = env?.SUPABASE_SERVICE_KEY ?? SUPABASE_SERVICE_KEY;
 
-export const { handle, signIn, signOut } = SvelteKitAuth({
-	providers: [Google],
-	pages: {
-		signIn: '/login'
-	},
-	debug: true,
-	trustHost: true,
-	cookies: {
-		sessionToken: {
-			name: useSecure ? '__Secure-authjs.session-token' : 'authjs.session-token',
-			options: {
-				httpOnly: true,
-				sameSite: 'lax',
-				path: '/',
-				secure: useSecure
-			}
+	const isSecure = event.url.protocol === 'https:';
+
+	return {
+		providers: [
+			Google({
+				clientId: googleId,
+				clientSecret: googleSecret
+			})
+		],
+		secret,
+		trustHost: true,
+		useSecureCookies: isSecure,
+		pages: {
+			signIn: '/login'
 		},
-		callbackUrl: {
-			name: useSecure ? '__Secure-authjs.callback-url' : 'authjs.callback-url',
-			options: {
-				httpOnly: true,
-				sameSite: 'lax',
-				path: '/',
-				secure: useSecure
-			}
-		},
-		csrfToken: {
-			name: useSecure ? '__Host-authjs.csrf-token' : 'authjs.csrf-token',
-			options: {
-				httpOnly: true,
-				sameSite: 'lax',
-				path: '/',
-				secure: useSecure
+		callbacks: {
+			async signIn({ user, account }) {
+				if (account?.provider === 'google' && user.email) {
+					const { findOrCreateUser } = await import('$lib/supabase.server');
+					try {
+						const dbUser = await findOrCreateUser(user.email, user.name ?? null, serviceKey);
+						console.log('[auth:signIn] DB user created/found:', dbUser?.id);
+						return true;
+					} catch (err) {
+						console.error('[auth:signIn] error:', err);
+						return false;
+					}
+				}
+				return true;
+			},
+			async jwt({ token, user, account }) {
+				if (account && user?.email) {
+					const { findOrCreateUser } = await import('$lib/supabase.server');
+					try {
+						const dbUser = await findOrCreateUser(user.email, user.name ?? null, serviceKey);
+						token.dbUserId = dbUser.id;
+						token.telegramId = dbUser.telegram_id;
+						token.currency = dbUser.currency;
+						token.email = user.email;
+					} catch (err) {
+						console.error('[auth:jwt] error:', err);
+					}
+				}
+				return token;
+			},
+			async session({ session, token }) {
+				if (token.dbUserId) {
+					session.user.id = token.dbUserId as string;
+					session.user.telegramId = token.telegramId as string | null;
+					session.user.currency = token.currency as string;
+				}
+				return session;
 			}
 		}
-	},
-	callbacks: {
-		async signIn({ user, account }) {
-			console.log('[auth:signIn] provider:', account?.provider, 'email:', user.email);
-			if (account?.provider === 'google' && user.email) {
-				try {
-					const dbUser = await findOrCreateUser(user.email, user.name ?? null);
-					console.log('[auth:signIn] DB user created/found:', dbUser?.id);
-					return true;
-				} catch (err) {
-					console.error('[auth:signIn] error:', err);
-					return false;
-				}
-			}
-			return true;
-		},
-		async jwt({ token, user, account }) {
-			console.log('[auth:jwt] called, account:', !!account, 'user:', !!user);
-			if (account && user?.email) {
-				try {
-					const dbUser = await findOrCreateUser(user.email, user.name ?? null);
-					token.dbUserId = dbUser.id;
-					token.telegramId = dbUser.telegram_id;
-					token.currency = dbUser.currency;
-					token.email = user.email;
-					console.log('[auth:jwt] token updated with dbUserId:', dbUser.id);
-				} catch (err) {
-					console.error('[auth:jwt] error:', err);
-				}
-			}
-			return token;
-		},
-		async session({ session, token }) {
-			console.log('[auth:session] token.dbUserId:', token.dbUserId);
-			if (token.dbUserId) {
-				session.user.id = token.dbUserId as string;
-				session.user.telegramId = token.telegramId as string | null;
-				session.user.currency = token.currency as string;
-			}
-			return session;
-		}
-	}
+	};
 });

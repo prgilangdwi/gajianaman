@@ -135,8 +135,8 @@ func (b *Bot) callbackMainMenu(ctx context.Context, query *tgbotapi.CallbackQuer
 			"Mau ngapain hari ini? 👇",
 		query.From.FirstName,
 		time.Now().Format("02 January 2006"),
-		service.FormatCurrency(expense),
-		service.FormatCurrency(income),
+		service.FormatCurrencyV2(expense),
+		service.FormatCurrencyV2(income),
 		txCount,
 	)
 
@@ -405,7 +405,7 @@ func (b *Bot) callbackQuickBudgetAmount(ctx context.Context, query *tgbotapi.Cal
 			"📁 Kategori : *%s*\n"+
 			"🎯 Budget   : %s\n"+
 			"📅 Periode  : %s %d",
-		service.CodeToDisplayName(categoryCode), service.FormatCurrency(amount), now.Month().String(), now.Year(),
+		service.CodeToDisplayName(categoryCode), service.FormatCurrencyV2(amount), now.Month().String(), now.Year(),
 	), &kb)
 }
 
@@ -524,7 +524,7 @@ func (b *Bot) callbackDeleteList(ctx context.Context, query *tgbotapi.CallbackQu
 			note = note[:20]
 		}
 		dateStr := tx.Date.Format("02/01")
-		lines = append(lines, fmt.Sprintf("*%d.* %s %s • %s • %s", i+1, icon, service.FormatCurrency(tx.Amount), note, dateStr))
+		lines = append(lines, fmt.Sprintf("*%d.* %s %s • %s • %s", i+1, icon, service.FormatCurrencyV2(tx.Amount), note, dateStr))
 
 		row = append(row, tgbotapi.NewInlineKeyboardButtonData(
 			fmt.Sprintf("%d", i+1),
@@ -590,7 +590,7 @@ func (b *Bot) callbackDeleteTx(ctx context.Context, query *tgbotapi.CallbackQuer
 			"📁 Kategori : %s\n"+
 			"📝 Catatan  : %s\n\n"+
 			"_Tindakan ini tidak bisa dibatalkan._",
-		typeIcon, typeLabel, service.FormatCurrency(tx.Amount), catName, tx.Note.String,
+		typeIcon, typeLabel, service.FormatCurrencyV2(tx.Amount), catName, tx.Note.String,
 	), &kb)
 }
 
@@ -669,7 +669,7 @@ func (b *Bot) callbackPhoto(ctx context.Context, query *tgbotapi.CallbackQuery, 
 		kb := backToMainKeyboard()
 		b.editMessage(chatID, msgID, fmt.Sprintf(
 			"✅ *Transaksi berhasil disimpan!*\n\n💰 %s — %s",
-			service.FormatCurrency(pending.Amount), pending.Note,
+			service.FormatCurrencyV2(pending.Amount), pending.Note,
 		), &kb)
 
 	case "cancel":

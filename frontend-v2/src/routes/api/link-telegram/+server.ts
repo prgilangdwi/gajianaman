@@ -1,14 +1,17 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { supabaseAdmin } from '$lib/supabase.server';
+import { createAdminClient } from '$lib/supabase.server';
+import { SUPABASE_SERVICE_KEY } from '$env/static/private';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, platform }) => {
 	const session = await locals.auth?.();
 
 	if (!session?.user?.id) {
 		return error(401, { message: 'Unauthorized' });
 	}
 
+	const serviceKey = platform?.env?.SUPABASE_SERVICE_KEY ?? SUPABASE_SERVICE_KEY;
+	const supabaseAdmin = createAdminClient(serviceKey);
 	const { telegramId } = await request.json();
 
 	if (!telegramId || typeof telegramId !== 'string') {

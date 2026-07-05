@@ -5,7 +5,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 	const { session } = await parent();
 
 	if (!session) {
-		redirect(302, '/login');
+		throw redirect(302, '/login');
 	}
 
 	return {};

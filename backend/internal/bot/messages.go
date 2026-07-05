@@ -121,7 +121,7 @@ func (b *Bot) handleMessage(ctx context.Context, msg *tgbotapi.Message) {
 }
 
 func (b *Bot) handlePhotoEditAmount(ctx context.Context, msg *tgbotapi.Message, user *model.User, state *UserState) {
-	amount, ok := parser.ParseAmount(msg.Text)
+	amount, ok := parser.ParseAmountV2(msg.Text)
 	if !ok {
 		b.reply(msg.Chat.ID, "❌ Format tidak dikenali.\n\nContoh: `25000` · `25k` · `1.5jt`")
 		return
@@ -158,7 +158,7 @@ func buildPhotoConfirmText(p *PendingPhotoTx) string {
 	categoryName := service.CodeToDisplayName(p.CategoryCode)
 
 	return "📸 *Hasil Analisis Foto*\n\n" +
-		"💰 Jumlah: *" + service.FormatCurrency(p.Amount) + "*\n" +
+		"💰 Jumlah: *" + service.FormatCurrencyV2(p.Amount) + "*\n" +
 		"📂 Kategori: *" + categoryName + "*\n" +
 		"📝 Catatan: *" + p.Note + "*\n" +
 		"📅 Tipe: *" + typeLabel + "*\n" +

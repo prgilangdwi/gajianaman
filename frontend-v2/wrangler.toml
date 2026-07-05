@@ -1,0 +1,15 @@
+name = "gajianaman"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+[vars]
+# Public vars (non-sensitive) - set here or in Cloudflare dashboard
+# PUBLIC_SUPABASE_URL = "https://your-project.supabase.co"
+
+# Secrets (sensitive) - set via `wrangler secret put <NAME>` or Cloudflare dashboard:
+# - AUTH_SECRET
+# - AUTH_GOOGLE_ID
+# - AUTH_GOOGLE_SECRET
+# - SUPABASE_SERVICE_KEY
+# - PUBLIC_SUPABASE_ANON_KEY
