@@ -8,6 +8,7 @@ const (
 	AccountBank
 	AccountEwallet
 	AccountCreditCard
+	AccountInvestment
 )
 
 func (a AccountType) String() string {
@@ -20,6 +21,8 @@ func (a AccountType) String() string {
 		return "ewallet"
 	case AccountCreditCard:
 		return "credit_card"
+	case AccountInvestment:
+		return "investment"
 	}
 	return "unknown"
 }

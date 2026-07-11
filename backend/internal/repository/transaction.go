@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/prgilangdwi/gajianaman/internal/model"
+	"github.com/prgilangdwi/gajianaman/pkg/generator"
 	"github.com/prgilangdwi/gajianaman/pkg/utils"
 )
 
@@ -34,7 +35,7 @@ type CreateTransactionParams struct {
 }
 
 func (r *TransactionRepository) Create(ctx context.Context, p CreateTransactionParams) (*model.Transaction, error) {
-	id := uuid.New()
+	id := generator.NewUUID()
 	var aiConf sql.NullFloat64
 	if p.AIConfidence != nil {
 		aiConf = sql.NullFloat64{Float64: *p.AIConfidence, Valid: true}
@@ -102,6 +103,16 @@ func (r *TransactionRepository) Delete(ctx context.Context, id uuid.UUID, userID
 func (r *TransactionRepository) UpdateCategory(ctx context.Context, id uuid.UUID, categoryID uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE transactions SET category_id = $2 WHERE id = $1`, id.String(), categoryID.String())
+	return err
+}
+
+func (r *TransactionRepository) Update(ctx context.Context, tx *model.Transaction) error {
+	normalizedAmount := utils.Normalize(tx.Amount)
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE transactions
+		 SET account_id = $2, category_id = $3, amount = $4, type = $5, note = $6, date = $7, updated_at = NOW()
+		 WHERE id = $1 AND deleted_at IS NULL`,
+		tx.ID.String(), tx.AccountID.String(), tx.CategoryID.String(), normalizedAmount, tx.Type, tx.Note, tx.Date)
 	return err
 }
 
@@ -194,6 +205,49 @@ func (r *TransactionRepository) GetDailyIncome(ctx context.Context, userID uuid.
 type TransactionWithCategory struct {
 	model.Transaction
 	CategoryName string `db:"category_name"`
+}
+
+type PaginatedResult struct {
+	Items []TransactionWithCategory
+	Total int
+}
+
+func (r *TransactionRepository) ListByMonthPaginated(ctx context.Context, userID uuid.UUID, month, year, page, limit int) (*PaginatedResult, error) {
+	offset := (page - 1) * limit
+
+	// Get total count
+	var total int
+	err := r.db.GetContext(ctx, &total,
+		`SELECT COUNT(*)
+		 FROM transactions t
+		 WHERE t.user_id = $1 AND t.deleted_at IS NULL
+		   AND EXTRACT(MONTH FROM t.date) = $2
+		   AND EXTRACT(YEAR FROM t.date) = $3`, userID.String(), month, year)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get paginated items
+	var rows []TransactionWithCategory
+	err = r.db.SelectContext(ctx, &rows,
+		`SELECT t.id, t.user_id, t.account_id, t.category_id, t.goal_id, t.amount, t.type, t.note, t.date, t.source, t.ai_confidence, t.created_at, t.updated_at, t.deleted_at, c.name as category_name
+		 FROM transactions t
+		 JOIN categories c ON t.category_id = c.id
+		 WHERE t.user_id = $1 AND t.deleted_at IS NULL
+		   AND EXTRACT(MONTH FROM t.date) = $2
+		   AND EXTRACT(YEAR FROM t.date) = $3
+		 ORDER BY t.date DESC, t.id DESC
+		 LIMIT $4 OFFSET $5`, userID.String(), month, year, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// Denormalize amounts
+	for i := range rows {
+		rows[i].Amount = utils.Denormalize(int64(rows[i].Amount))
+	}
+
+	return &PaginatedResult{Items: rows, Total: total}, nil
 }
 
 func (r *TransactionRepository) ListByMonth(ctx context.Context, userID uuid.UUID, month, year, limit int) ([]TransactionWithCategory, error) {

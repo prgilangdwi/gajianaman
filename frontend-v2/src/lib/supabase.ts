@@ -7,7 +7,23 @@ export const supabase = createClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPAB
 // Enums matching backend SMALLINT values
 export const TransactionType = { EXPENSE: 0, INCOME: 1, TRANSFER: 2 } as const;
 export const CategoryType = { EXPENSE: 0, INCOME: 1 } as const;
-export const AccountType = { CASH: 0, BANK: 1, EWALLET: 2, CREDIT: 3 } as const;
+export const AccountType = { CASH: 0, BANK: 1, EWALLET: 2, CREDIT: 3, INVESTMENT: 4 } as const;
+
+export const AccountTypeLabels: Record<number, string> = {
+	0: 'Cash',
+	1: 'Bank',
+	2: 'E-Wallet',
+	3: 'Credit Card',
+	4: 'Investment'
+};
+
+export const AccountTypeIcons: Record<number, string> = {
+	0: '💵',
+	1: '🏦',
+	2: '📱',
+	3: '💳',
+	4: '📈'
+};
 
 // Re-export generated types for convenience
 export type User = Database['public']['Tables']['users']['Row'];

@@ -28,7 +28,13 @@
       "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 512x512 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/icon-512.png)",
       "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 180x180 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/apple-touch-icon.png)",
       "Bash(convert /home/lazu/Documents/code/side_projects/gajianaman/logo/arc/gajian_aman_icon_1024.png -resize 32x32 /home/lazu/Documents/code/side_projects/gajianaman/frontend-v2/static/favicon.png)",
-      "Bash(rtk curl *)"
+      "Bash(rtk curl *)",
+      "Bash(xargs -I{} basename {})",
+      "Bash(grep -v \"^ui$\")",
+      "Bash(grep -v '$app')",
+      "Bash(xargs -I {} dirname {})",
+      "Bash(xargs -I {} basename {})",
+      "Bash(npm search *)"
     ]
   }
 }

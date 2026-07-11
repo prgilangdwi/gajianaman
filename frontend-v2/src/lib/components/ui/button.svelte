@@ -47,16 +47,21 @@
 
 <script lang="ts">
 	import { cn } from '$lib/utils';
-	import type { HTMLButtonAttributes } from 'svelte/elements';
 	import type { Snippet } from 'svelte';
 	import Spinner from './spinner.svelte';
 
-	type Props = HTMLButtonAttributes & {
+	type Props = {
+		class?: string;
 		variant?: ButtonVariant;
 		size?: ButtonSize;
+		type?: 'button' | 'submit' | 'reset';
+		disabled?: boolean;
 		isLoading?: boolean;
 		loadingText?: string;
+		href?: string;
+		onclick?: (e: MouseEvent) => void;
 		children?: Snippet;
+		[key: string]: unknown;
 	};
 
 	let {
@@ -67,6 +72,8 @@
 		disabled = false,
 		isLoading = false,
 		loadingText,
+		href,
+		onclick,
 		children,
 		...restProps
 	}: Props = $props();
@@ -74,23 +81,37 @@
 	const isDisabled = $derived(disabled || isLoading);
 </script>
 
-<button
-	data-slot="button"
-	data-loading={isLoading || undefined}
-	aria-busy={isLoading || undefined}
-	{type}
-	disabled={isDisabled}
-	class={cn(buttonVariants({ variant, size }), className)}
-	{...restProps}
->
-	{#if isLoading}
-		<Spinner class="size-4" />
-		{#if loadingText}
-			<span data-slot="button-content">{loadingText}</span>
-		{:else if children}
-			<span data-slot="button-content">{@render children()}</span>
+{#if href}
+	<a
+		{href}
+		data-slot="button"
+		class={cn(buttonVariants({ variant, size }), className)}
+		{...restProps}
+	>
+		{#if children}
+			{@render children()}
 		{/if}
-	{:else if children}
-		{@render children()}
-	{/if}
-</button>
+	</a>
+{:else}
+	<button
+		data-slot="button"
+		data-loading={isLoading || undefined}
+		aria-busy={isLoading || undefined}
+		{type}
+		disabled={isDisabled}
+		{onclick}
+		class={cn(buttonVariants({ variant, size }), className)}
+		{...restProps}
+	>
+		{#if isLoading}
+			<Spinner class="size-4" />
+			{#if loadingText}
+				<span data-slot="button-content">{loadingText}</span>
+			{:else if children}
+				<span data-slot="button-content">{@render children()}</span>
+			{/if}
+		{:else if children}
+			{@render children()}
+		{/if}
+	</button>
+{/if}
