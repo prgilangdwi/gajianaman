@@ -239,6 +239,42 @@
         ]
       }
     },
+    "/api/categories": {
+      "get": {
+        "description": "Returns all categories available to the authenticated user (global + user-specific).\nOptionally filter by transaction type.",
+        "tags": [
+          "categories"
+        ],
+        "summary": "List categories.",
+        "operationId": "listCategories",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Type",
+            "description": "Filter by transaction type: 0=Expense, 1=Income",
+            "name": "type",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/categoryListResponse"
+          },
+          "401": {
+            "$ref": "#/responses/errorResponse"
+          },
+          "500": {
+            "$ref": "#/responses/errorResponse"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/transactions": {
       "get": {
         "description": "Returns transactions for the authenticated user, filtered by month and year.\nDefaults to the current month if not specified.",
@@ -583,6 +619,44 @@
           "type": "boolean",
           "x-go-name": "Success",
           "example": true
+        }
+      },
+      "x-go-package": "github.com/prgilangdwi/gajianaman/internal/handler"
+    },
+    "CategoryDTO": {
+      "description": "CategoryDTO represents a transaction category",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "Category code",
+          "type": "string",
+          "x-go-name": "Code",
+          "example": "FOOD_AND_DINING"
+        },
+        "icon": {
+          "description": "Category icon emoji",
+          "type": "string",
+          "x-go-name": "Icon",
+          "example": "🍔"
+        },
+        "id": {
+          "description": "Category ID",
+          "type": "string",
+          "x-go-name": "ID",
+          "example": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "name": {
+          "description": "Category display name",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Food \u0026 Dining"
+        },
+        "type": {
+          "description": "Category type: 0=Expense, 1=Income",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Type",
+          "example": 0
         }
       },
       "x-go-package": "github.com/prgilangdwi/gajianaman/internal/handler"
@@ -1036,6 +1110,29 @@
         "properties": {
           "data": {
             "$ref": "#/definitions/AccountDTO"
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          },
+          "success": {
+            "type": "boolean",
+            "x-go-name": "Success"
+          }
+        }
+      }
+    },
+    "categoryListResponse": {
+      "description": "",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/CategoryDTO"
+            },
+            "x-go-name": "Data"
           },
           "message": {
             "type": "string",

@@ -45,12 +45,14 @@ func main() {
 
 	accountSvc := service.NewAccountService(accountRepo, txRepo)
 	txSvc := service.NewTransactionService(txRepo, accountRepo, categoryRepo)
+	categorySvc := service.NewCategoryService(categoryRepo)
 
 	authMiddleware := handler.NewAuthMiddleware(userRepo, cfg.API.SupabaseJWTSecret)
 	accountHandler := handler.NewAccountHandler(accountSvc)
 	txHandler := handler.NewTransactionHandler(txSvc)
+	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
-	router := handler.NewRouter(authMiddleware, accountHandler, txHandler, cfg.API.CORSOrigins)
+	router := handler.NewRouter(authMiddleware, accountHandler, txHandler, categoryHandler, cfg.API.CORSOrigins)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.API.Port),

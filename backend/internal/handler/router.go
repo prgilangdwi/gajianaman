@@ -5,25 +5,28 @@ import (
 )
 
 type Router struct {
-	mux            *http.ServeMux
-	authMiddleware *AuthMiddleware
-	accountHandler *AccountHandler
-	txHandler      *TransactionHandler
-	corsOrigins    []string
+	mux             *http.ServeMux
+	authMiddleware  *AuthMiddleware
+	accountHandler  *AccountHandler
+	txHandler       *TransactionHandler
+	categoryHandler *CategoryHandler
+	corsOrigins     []string
 }
 
 func NewRouter(
 	authMiddleware *AuthMiddleware,
 	accountHandler *AccountHandler,
 	txHandler *TransactionHandler,
+	categoryHandler *CategoryHandler,
 	corsOrigins []string,
 ) *Router {
 	return &Router{
-		mux:            http.NewServeMux(),
-		authMiddleware: authMiddleware,
-		accountHandler: accountHandler,
-		txHandler:      txHandler,
-		corsOrigins:    corsOrigins,
+		mux:             http.NewServeMux(),
+		authMiddleware:  authMiddleware,
+		accountHandler:  accountHandler,
+		txHandler:       txHandler,
+		categoryHandler: categoryHandler,
+		corsOrigins:     corsOrigins,
 	}
 }
 
@@ -45,6 +48,8 @@ func (r *Router) Setup() http.Handler {
 	r.mux.HandleFunc("GET /api/transactions/{id}", r.auth(r.txHandler.Get))
 	r.mux.HandleFunc("PATCH /api/transactions/{id}", r.auth(r.txHandler.Update))
 	r.mux.HandleFunc("DELETE /api/transactions/{id}", r.auth(r.txHandler.Delete))
+
+	r.mux.HandleFunc("GET /api/categories", r.auth(r.categoryHandler.List))
 
 	return CORSMiddleware(r.corsOrigins)(r.mux)
 }

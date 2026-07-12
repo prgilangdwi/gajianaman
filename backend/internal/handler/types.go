@@ -426,3 +426,44 @@ type errorResponseWrapper struct {
 
 // swagger:response noContentResponse
 type noContentResponseWrapper struct{}
+
+// CategoryDTO represents a transaction category
+// swagger:model
+type CategoryDTO struct {
+	// Category ID
+	// example: 550e8400-e29b-41d4-a716-446655440000
+	ID string `json:"id"`
+
+	// Category code
+	// example: FOOD_AND_DINING
+	Code string `json:"code"`
+
+	// Category display name
+	// example: Food & Dining
+	Name string `json:"name"`
+
+	// Category icon emoji
+	// example: 🍔
+	Icon string `json:"icon"`
+
+	// Category type: 0=Expense, 1=Income
+	// example: 0
+	Type int `json:"type"`
+}
+
+// swagger:parameters listCategories
+type listCategoriesParams struct {
+	// Filter by transaction type: 0=Expense, 1=Income
+	// in: query
+	Type int `json:"type"`
+}
+
+// swagger:response categoryListResponse
+type categoryListResponseWrapper struct {
+	// in: body
+	Body struct {
+		Success bool          `json:"success"`
+		Message string        `json:"message"`
+		Data    []CategoryDTO `json:"data"`
+	}
+}

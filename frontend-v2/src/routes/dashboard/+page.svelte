@@ -1,8 +1,13 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { TransactionType } from '$lib/supabase';
 	import { Button, Separator } from '$lib/components/ui';
+	import FAB from '$lib/components/FAB.svelte';
+	import QuickAddTransaction from '$lib/components/QuickAddTransaction.svelte';
 
 	let { data } = $props();
+
+	let quickAddOpen = $state(false);
 
 	const net = $derived((data.totals?.income ?? 0) - (data.totals?.expense ?? 0));
 
@@ -126,4 +131,7 @@
 			</div>
 		</details>
 	</main>
+
+	<FAB onclick={() => (quickAddOpen = true)} />
+	<QuickAddTransaction bind:open={quickAddOpen} onSuccess={() => invalidateAll()} />
 </div>
