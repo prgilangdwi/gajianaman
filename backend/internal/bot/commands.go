@@ -40,7 +40,7 @@ func (b *Bot) cmdStart(ctx context.Context, msg *tgbotapi.Message) {
 			service.FormatCurrencyV2(stats.Income),
 			stats.TxCount,
 		)
-		b.replyWithKeyboard(msg.Chat.ID, text, mainMenuKeyboard())
+		b.replyWithKeyboard(ctx, msg.Chat.ID, text, mainMenuKeyboard())
 	} else {
 		text := fmt.Sprintf(
 			"🎉 *Selamat datang di Gajian Aman, %s!*\n\n"+
@@ -62,12 +62,12 @@ func (b *Bot) cmdStart(ctx context.Context, msg *tgbotapi.Message) {
 				tgbotapi.NewInlineKeyboardButtonData("💚 Catat Pemasukan", "quick:income"),
 			),
 		)
-		b.replyWithKeyboard(msg.Chat.ID, text, keyboard)
+		b.replyWithKeyboard(ctx, msg.Chat.ID, text, keyboard)
 	}
 }
 
 func (b *Bot) cmdAdd(ctx context.Context, msg *tgbotapi.Message) {
-	user, ok := b.requireUser(ctx, msg)
+	_, ok := b.requireUser(ctx, msg)
 	if !ok {
 		return
 	}
@@ -75,11 +75,7 @@ func (b *Bot) cmdAdd(ctx context.Context, msg *tgbotapi.Message) {
 	amount, note, ok := parseCommandArgs(msg.Text)
 	if !ok {
 		b.reply(msg.Chat.ID,
-			"💡 *Tahukah kamu?* Kamu tidak perlu pakai command!\n"+
-				"Cukup ketik langsung, AI yang urusin sisanya:\n"+
-				"`beli jajan 7500` atau `makan siang 50rb`\n\n"+
-				"━━━━━━━━━━━━━━━━━━━━\n"+
-				"❌ *Format command salah.*\n\n"+
+			"❌ *Format command salah.*\n\n"+
 				"Gunakan: `/add <nominal> <keterangan>`\n"+
 				"Contoh: `/add 7500 beli jajan di warung`\n\n"+
 				"*Format nominal:*\n"+
@@ -94,73 +90,32 @@ func (b *Bot) cmdAdd(ctx context.Context, msg *tgbotapi.Message) {
 	if !hasDate {
 		txDate = time.Now()
 	}
-	note = cleanNote
 
-	// Show typing indicator
-	b.api.Send(tgbotapi.NewChatAction(msg.Chat.ID, "typing"))
-
-	// Categorize with AI
-	result, err := b.categorizer.Categorize(ctx, note)
-	if err != nil {
-		logger.Warn(ctx, "categorization failed, using default", "err", err, "note", note)
-		result = &service.CategorizationResult{
-			CategoryCode: "OTHER",
-			Type:         "expense",
-			Confidence:   0.3,
-		}
-	}
-
-	// Create transaction
-	tx, err := b.createTransaction(ctx, user, amount, model.TypeExpense, result.CategoryCode, note, txDate, result.Confidence)
-	if err != nil {
-		logger.Error(ctx, "failed to create transaction", "err", err, "user_id", user.ID, "amount", amount)
-		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan transaksi: "+err.Error())
-		return
-	}
-
-	// Store for potential undo
+	// Store pending transaction
 	state := b.getUserState(msg.From.ID)
-	state.LastTxID = tx.ID
+	state.PendingTx = &PendingTx{
+		Amount: amount,
+		Note:   cleanNote,
+		Type:   model.TypeExpense,
+		Date:   txDate,
+	}
 
-	// Build confirmation message
-	confMsg := service.BuildTransactionConfirm(service.ConfirmInfo{
-		Amount:       amount,
-		Note:         note,
-		CategoryCode: result.CategoryCode,
-		Type:         model.TypeExpense,
-		Confidence:   service.ConfidenceLevel(result.Confidence),
-	})
+	// Show category selection keyboard
+	text := fmt.Sprintf(
+		"📝 *Pilih kategori untuk:*\n\n"+
+			"💰 Nominal: *%s*\n"+
+			"📝 Catatan: _%s_",
+		service.FormatCurrencyV2(amount), cleanNote)
 
 	if hasDate && !txDate.Equal(time.Now().Truncate(24*time.Hour)) {
-		confMsg += fmt.Sprintf("\n📅 _Dicatat untuk tanggal: %s_", txDate.Format("02 January 2006"))
+		text += fmt.Sprintf("\n📅 Tanggal: _%s_", txDate.Format("02 January 2006"))
 	}
 
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🗑️ Hapus Transaksi Ini", "delete:last"),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🏠 Menu Utama", "menu:main"),
-		),
-	)
-
-	if result.Confidence < 0.5 {
-		confMsg += "\n\n⚠️ _Confidence rendah. Pilih kategori yang tepat:_"
-		keyboard = recatKeyboard()
-	}
-
-	b.replyWithKeyboard(msg.Chat.ID, confMsg, keyboard)
-
-	// Check budget alert
-	categoryID, _ := b.resolveCategoryID(ctx, user.ID, result.CategoryCode, model.TypeExpense)
-	b.checkBudgetAlert(ctx, msg, user, categoryID)
-
-	// Send streak message
-	b.sendStreakMessage(ctx, msg, user.ID)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, text, expenseCategoryKeyboard("cat"))
 }
 
 func (b *Bot) cmdIncome(ctx context.Context, msg *tgbotapi.Message) {
-	user, ok := b.requireUser(ctx, msg)
+	_, ok := b.requireUser(ctx, msg)
 	if !ok {
 		return
 	}
@@ -168,55 +123,29 @@ func (b *Bot) cmdIncome(ctx context.Context, msg *tgbotapi.Message) {
 	amount, note, ok := parseCommandArgs(msg.Text)
 	if !ok {
 		b.reply(msg.Chat.ID,
-			"💡 *Tahukah kamu?* Kamu tidak perlu pakai command!\n"+
-				"Cukup ketik langsung, AI yang urusin sisanya:\n"+
-				"`gaji april 5jt` atau `freelance desain 500k`\n\n"+
-				"━━━━━━━━━━━━━━━━━━━━\n"+
-				"❌ *Format command salah.*\n\n"+
+			"❌ *Format command salah.*\n\n"+
 				"Gunakan: `/income <nominal> <keterangan>`\n"+
 				"Contoh: `/income 5jt gaji bulan ini`")
 		return
 	}
 
-	b.api.Send(tgbotapi.NewChatAction(msg.Chat.ID, "typing"))
-
-	result, _ := b.categorizer.Categorize(ctx, note)
-	if result == nil {
-		result = &service.CategorizationResult{CategoryCode: "OTHER_INCOME", Confidence: 0.5}
-	}
-	result.Type = "income"
-
-	tx, err := b.createTransaction(ctx, user, amount, model.TypeIncome, result.CategoryCode, note, time.Now(), result.Confidence)
-	if err != nil {
-		logger.Error(ctx, "failed to create income transaction", "err", err, "user_id", user.ID, "amount", amount)
-		b.reply(msg.Chat.ID, "⚠️ Gagal menyimpan transaksi: "+err.Error())
-		return
-	}
-
+	// Store pending transaction
 	state := b.getUserState(msg.From.ID)
-	state.LastTxID = tx.ID
+	state.PendingTx = &PendingTx{
+		Amount: amount,
+		Note:   note,
+		Type:   model.TypeIncome,
+		Date:   time.Now(),
+	}
 
-	logger.Info(ctx, "income recorded", "user_id", user.ID, "amount", amount, "category", result.CategoryCode)
+	// Show category selection keyboard
+	text := fmt.Sprintf(
+		"💚 *Pilih kategori pemasukan:*\n\n"+
+			"💰 Nominal: *%s*\n"+
+			"📝 Catatan: _%s_",
+		service.FormatCurrencyV2(amount), note)
 
-	confMsg := service.BuildTransactionConfirm(service.ConfirmInfo{
-		Amount:       amount,
-		Note:         note,
-		CategoryCode: result.CategoryCode,
-		Type:         model.TypeIncome,
-		Confidence:   service.ConfidenceLevel(result.Confidence),
-	})
-
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🗑️ Hapus Transaksi Ini", "delete:last"),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🏠 Menu Utama", "menu:main"),
-		),
-	)
-
-	b.replyWithKeyboard(msg.Chat.ID, confMsg, keyboard)
-	b.sendStreakMessage(ctx, msg, user.ID)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, text, incomeCategoryKeyboard())
 }
 
 func (b *Bot) cmdSummary(ctx context.Context, msg *tgbotapi.Message) {
@@ -250,7 +179,7 @@ func (b *Bot) cmdSummary(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?", keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, "📊 *Summary — Pilih Periode*\n\nMau lihat ringkasan untuk kapan?", keyboard)
 }
 
 func (b *Bot) cmdHistory(ctx context.Context, msg *tgbotapi.Message) {
@@ -278,7 +207,7 @@ func (b *Bot) cmdHistory(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:", keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, "📋 *Riwayat Transaksi — Pilih Periode*\n\nPilih bulan:", keyboard)
 }
 
 func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
@@ -289,7 +218,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 
 	parts := splitCommand(msg.Text)
 	if len(parts) < 3 {
-		b.replyWithKeyboard(msg.Chat.ID,
+		b.replyWithKeyboard(ctx, msg.Chat.ID,
 			"🎯 *Quick Budget Setup*\n\n"+
 				"Pilih kategori yang ingin kamu set budgetnya.\n"+
 				"Kamu bisa set beberapa kategori sekaligus!\n\n"+
@@ -326,7 +255,7 @@ func (b *Bot) cmdBudget(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+	b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 		"✅ *Budget berhasil diset!*\n\n"+
 			"📁 Kategori : *%s*\n"+
 			"🎯 Budget   : %s\n"+
@@ -370,7 +299,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 			),
 		)
 
-		b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+		b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 			"🎯 *Goal berhasil ditambahkan!*\n\n"+
 				"📌 Nama   : *%s*\n"+
 				"💰 Target : %s\n\n"+
@@ -394,7 +323,7 @@ func (b *Bot) cmdGoal(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, service.BuildGoalsMessage(goals), keyboard)
+	b.replyWithKeyboard(ctx, msg.Chat.ID, service.BuildGoalsMessage(goals), keyboard)
 }
 
 func (b *Bot) cmdDelete(ctx context.Context, msg *tgbotapi.Message) {
@@ -435,7 +364,7 @@ func (b *Bot) cmdDelete(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+	b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 		"🗑️ *Hapus Transaksi Terakhir?*\n\n"+
 			"%s Jenis    : %s\n"+
 			"💸 Nominal  : %s\n"+
@@ -472,7 +401,7 @@ func (b *Bot) cmdStats(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID, fmt.Sprintf(
+	b.replyWithKeyboard(ctx, msg.Chat.ID, fmt.Sprintf(
 		"📊 *Statistik Hari Ini*\n"+
 			"📅 %s\n"+
 			"━━━━━━━━━━━━━━━━━━━━\n"+
@@ -505,7 +434,7 @@ func (b *Bot) cmdHelp(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID,
+	b.replyWithKeyboard(ctx, msg.Chat.ID,
 		"📖 *Gajian Aman — Pusat Bantuan*\n\n"+
 			"Halo! Saya Gajian Aman, asisten keuangan pribadimu 🤖\n\n"+
 			"Pilih topik yang ingin kamu pelajari 👇",
@@ -519,7 +448,7 @@ func (b *Bot) cmdCommands(ctx context.Context, msg *tgbotapi.Message) {
 		),
 	)
 
-	b.replyWithKeyboard(msg.Chat.ID,
+	b.replyWithKeyboard(ctx, msg.Chat.ID,
 		"📜 *Daftar Semua Command — Gajian Aman*\n\n"+
 			"━━━━━━━━━━━━━━━━━━━━\n"+
 			"💸 *Transaksi*\n"+
@@ -551,22 +480,20 @@ func (b *Bot) cmdCancel(ctx context.Context, msg *tgbotapi.Message) {
 
 func mapCategoryShortcut(input string) string {
 	shortcuts := map[string]string{
-		"food":          "FOOD_AND_DINING",
-		"groceries":     "GROCERIES",
-		"transport":     "TRANSPORT",
-		"shopping":      "SHOPPING",
-		"health":        "HEALTH",
-		"entertainment": "ENTERTAINMENT",
-		"bills":         "BILLS_AND_UTILITIES",
-		"education":     "EDUCATION",
-		"personal":      "PERSONAL_CARE",
-		"dining":        "DINING_OUT",
-		"savings":       "SAVINGS",
-		"other":         "OTHER",
+		"housing":    "HOUSING",
+		"bills":      "BILLS",
+		"utilities":  "BILLS",
+		"lifestyle":  "LIFESTYLE",
+		"transport":  "TRANSPORTATION",
+		"dining":     "DINING",
+		"food":       "DINING",
+		"unexpected": "UNEXPECTED_EXPENSE",
+		"saving":     "SAVING",
+		"savings":    "SAVING",
+		"education":  "EDUCATION",
 	}
 	if mapped, ok := shortcuts[strings.ToLower(input)]; ok {
 		return mapped
 	}
-	// Return uppercase with underscores (assume it's already a code or close to one)
 	return strings.ToUpper(strings.ReplaceAll(input, " ", "_"))
 }

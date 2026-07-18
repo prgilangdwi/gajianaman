@@ -18,7 +18,7 @@ func main() {
 		steps      int
 	)
 
-	flag.StringVar(&configPath, "c", "", "path to config file")
+	flag.StringVar(&configPath, "config", "./config.yaml", "path to config file")
 	flag.IntVar(&steps, "steps", 1, "number of migrations to run (for up/down)")
 	flag.Parse()
 
@@ -98,6 +98,6 @@ Commands:
   force <ver>     Force set version (use to fix dirty state)
 
 Flags:
-  -c <path>       Path to config file (default: ./config.yaml)
+  --config <path>  Path to config file (default: ./config.yaml)
   -steps=N        Number of migrations for down (default: 1)`)
 }

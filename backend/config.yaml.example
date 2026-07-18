@@ -8,6 +8,13 @@ database:
 bot:
   token: "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
 
+api:
+  port: 8080
+  cors_origins:
+    - "http://localhost:5173"
+    - "https://your-frontend.pages.dev"
+  supabase_jwt_secret: "your-supabase-jwt-secret"  # From Supabase Dashboard > Settings > API > JWT Secret
+
 categorizer:
   provider: anthropic  # "anthropic" or "opencode"
   anthropic_key: sk-ant-xxxxx

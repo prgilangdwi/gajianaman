@@ -73,8 +73,14 @@ func (b *Bot) handleCallback(ctx context.Context, query *tgbotapi.CallbackQuery)
 		kb := backToMainKeyboard()
 		b.editMessage(chatID, msgID, "✅ *Budget Setup Selesai!*\n\nBudget kamu sudah aktif.", &kb)
 
+	case strings.HasPrefix(data, "cat:"):
+		b.callbackSelectCategory(ctx, query, user, data)
+
 	case strings.HasPrefix(data, "recat:"):
 		b.callbackRecat(ctx, query, user, data)
+
+	case data == "cancel_pending":
+		b.callbackCancelPending(ctx, query)
 
 	case data == "delete:last":
 		b.callbackDeleteLast(ctx, query, user)
@@ -294,14 +300,14 @@ func (b *Bot) callbackQuickBudgetCategory(ctx context.Context, query *tgbotapi.C
 
 	catKey := strings.TrimPrefix(data, "qb_cat:")
 	catNames := map[string]string{
-		"food":          "🍜 Makanan",
-		"transport":     "🚗 Transport",
-		"shopping":      "🛍️ Shopping",
-		"health":        "💊 Kesehatan",
-		"entertainment": "🎮 Hiburan",
-		"bills":         "📱 Tagihan",
-		"education":     "📚 Pendidikan",
-		"groceries":     "🛒 Groceries",
+		"housing":        "🏠 Housing",
+		"bills":          "📱 Utilities",
+		"lifestyle":      "🎮 Lifestyle",
+		"transportation": "🚗 Transport",
+		"dining":         "🍜 Food & Dining",
+		"unexpected":     "⚠️ Unexpected",
+		"saving":         "🏦 Savings",
+		"education":      "📚 Education",
 	}
 
 	label := catNames[catKey]
@@ -357,18 +363,18 @@ func (b *Bot) callbackQuickBudgetAmount(ctx context.Context, query *tgbotapi.Cal
 	catKey := parts[1]
 	amount, _ := strconv.ParseFloat(parts[2], 64)
 
-	catNames := map[string]string{
-		"food":          "FOOD_AND_DINING",
-		"transport":     "TRANSPORT",
-		"shopping":      "SHOPPING",
-		"health":        "HEALTH",
-		"entertainment": "ENTERTAINMENT",
-		"bills":         "BILLS_AND_UTILITIES",
-		"education":     "EDUCATION",
-		"groceries":     "GROCERIES",
+	catCodes := map[string]string{
+		"housing":        "HOUSING",
+		"bills":          "BILLS",
+		"lifestyle":      "LIFESTYLE",
+		"transportation": "TRANSPORTATION",
+		"dining":         "DINING",
+		"unexpected":     "UNEXPECTED_EXPENSE",
+		"saving":         "SAVING",
+		"education":      "EDUCATION",
 	}
 
-	categoryCode := catNames[catKey]
+	categoryCode := catCodes[catKey]
 	if categoryCode == "" {
 		categoryCode = strings.ToUpper(strings.ReplaceAll(catKey, " ", "_"))
 	}
@@ -407,6 +413,99 @@ func (b *Bot) callbackQuickBudgetAmount(ctx context.Context, query *tgbotapi.Cal
 			"📅 Periode  : %s %d",
 		service.CodeToDisplayName(categoryCode), service.FormatCurrencyV2(amount), now.Month().String(), now.Year(),
 	), &kb)
+}
+
+func (b *Bot) callbackSelectCategory(ctx context.Context, query *tgbotapi.CallbackQuery, user *model.User, data string) {
+	chatID := query.Message.Chat.ID
+	msgID := query.Message.MessageID
+
+	categoryCode := strings.TrimPrefix(data, "cat:")
+	state := b.getUserState(query.From.ID)
+
+	if state.PendingTx == nil || user == nil {
+		kb := backToMainKeyboard()
+		b.editMessage(chatID, msgID, "⚠️ Tidak ada transaksi pending. Silakan mulai ulang.", &kb)
+		return
+	}
+
+	pending := state.PendingTx
+
+	// Create transaction with selected category
+	tx, err := b.createTransaction(ctx, user, pending.Amount, pending.Type, categoryCode, pending.Note, pending.Date, 1.0)
+	if err != nil {
+		logger.Error(ctx, "failed to create transaction from category selection", "err", err, "user_id", user.ID, "amount", pending.Amount)
+		kb := backToMainKeyboard()
+		b.editMessage(chatID, msgID, "⚠️ Gagal menyimpan transaksi: "+err.Error(), &kb)
+		state.PendingTx = nil
+		return
+	}
+
+	// Store for potential undo
+	state.LastTxID = tx.ID
+	state.PendingTx = nil
+
+	// Build confirmation message
+	typeIcon := "🔴"
+	typeLabel := "Pengeluaran"
+	if pending.Type == model.TypeIncome {
+		typeIcon = "💚"
+		typeLabel = "Pemasukan"
+	}
+
+	confMsg := fmt.Sprintf(
+		"✅ *Transaksi Berhasil!*\n\n"+
+			"%s %s: *%s*\n"+
+			"📁 Kategori: *%s*\n"+
+			"📝 Catatan: _%s_",
+		typeIcon, typeLabel,
+		service.FormatCurrencyV2(pending.Amount),
+		service.CodeToDisplayName(categoryCode),
+		pending.Note)
+
+	kb := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🗑️ Hapus", "delete:last"),
+			tgbotapi.NewInlineKeyboardButtonData("🏠 Menu", "menu:main"),
+		),
+	)
+
+	b.editMessage(chatID, msgID, confMsg, &kb)
+
+	// Check budget alert for expenses
+	if pending.Type == model.TypeExpense {
+		categoryID, _ := b.resolveCategoryID(ctx, user.ID, categoryCode, model.TypeExpense)
+		b.checkBudgetAlertCallback(ctx, chatID, user, categoryID)
+	}
+}
+
+func (b *Bot) callbackCancelPending(ctx context.Context, query *tgbotapi.CallbackQuery) {
+	chatID := query.Message.Chat.ID
+	msgID := query.Message.MessageID
+
+	state := b.getUserState(query.From.ID)
+	state.PendingTx = nil
+
+	kb := backToMainKeyboard()
+	b.editMessage(chatID, msgID, "❌ Transaksi dibatalkan.", &kb)
+}
+
+func (b *Bot) checkBudgetAlertCallback(ctx context.Context, chatID int64, user *model.User, categoryID uuid.UUID) {
+	now := time.Now()
+	alert, err := b.budgetRepo.CheckAlert(ctx, user.ID, categoryID, int(now.Month()), now.Year())
+	if err != nil || alert == nil || alert.Budget <= 0 {
+		return
+	}
+
+	cat, _ := b.categoryRepo.GetByID(ctx, categoryID)
+	catName := "Unknown"
+	if cat != nil {
+		catName = cat.Name
+	}
+
+	alertMsg := service.GetBudgetAlertMessage(catName, alert.Budget, alert.Actual)
+	if alertMsg != "" {
+		b.reply(chatID, alertMsg)
+	}
 }
 
 func (b *Bot) callbackRecat(ctx context.Context, query *tgbotapi.CallbackQuery, user *model.User, data string) {

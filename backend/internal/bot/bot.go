@@ -36,6 +36,14 @@ type UserState struct {
 	LastTxID       uuid.UUID
 	Awaiting       string
 	PendingPhotoTx *PendingPhotoTx
+	PendingTx      *PendingTx
+}
+
+type PendingTx struct {
+	Amount float64
+	Note   string
+	Type   model.TransactionType
+	Date   time.Time
 }
 
 type PendingPhotoTx struct {
@@ -158,11 +166,15 @@ func (b *Bot) reply(chatID int64, text string) {
 	b.api.Send(msg)
 }
 
-func (b *Bot) replyWithKeyboard(chatID int64, text string, keyboard tgbotapi.InlineKeyboardMarkup) {
+func (b *Bot) replyWithKeyboard(ctx context.Context, chatID int64, text string, keyboard tgbotapi.InlineKeyboardMarkup) {
 	msg := tgbotapi.NewMessage(chatID, text)
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = keyboard
-	b.api.Send(msg)
+	_, err := b.api.Send(msg)
+	if err != nil {
+		logger.Error(ctx, "error sending keyboard message", "err", err.Error())
+		return
+	}
 }
 
 func (b *Bot) editMessage(chatID int64, msgID int, text string, keyboard *tgbotapi.InlineKeyboardMarkup) {

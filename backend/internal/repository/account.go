@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/prgilangdwi/gajianaman/internal/model"
+	"github.com/prgilangdwi/gajianaman/pkg/generator"
 	"github.com/prgilangdwi/gajianaman/pkg/utils"
 )
 
@@ -84,7 +85,7 @@ func (r *AccountRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([
 
 func (r *AccountRepository) Create(ctx context.Context, acc *model.Account) error {
 	if acc.ID == uuid.Nil {
-		acc.ID = uuid.New()
+		acc.ID = generator.NewUUID()
 	}
 	// Normalize balance for storage
 	normalizedBalance := utils.Normalize(acc.Balance)
@@ -106,7 +107,7 @@ func (r *AccountRepository) EnsureDefault(ctx context.Context, userID uuid.UUID)
 
 	// Create default cash account
 	acc = &model.Account{
-		ID:        uuid.New(),
+		ID:        generator.NewUUID(),
 		UserID:    userID,
 		Name:      "Cash",
 		Type:      model.AccountCash,
@@ -125,4 +126,31 @@ func (r *AccountRepository) UpdateBalance(ctx context.Context, id uuid.UUID, del
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE accounts SET balance = balance + $2 WHERE id = $1`, id.String(), normalizedDelta)
 	return err
+}
+
+func (r *AccountRepository) ClearDefault(ctx context.Context, userID uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE accounts SET is_default = false WHERE user_id = $1 AND deleted_at IS NULL`, userID.String())
+	return err
+}
+
+func (r *AccountRepository) Update(ctx context.Context, acc *model.Account) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE accounts SET name = $2, type = $3, is_default = $4, updated_at = NOW()
+		 WHERE id = $1 AND deleted_at IS NULL`,
+		acc.ID.String(), acc.Name, acc.Type, acc.IsDefault)
+	return err
+}
+
+func (r *AccountRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE accounts SET deleted_at = NOW() WHERE id = $1`, id.String())
+	return err
+}
+
+func (r *AccountRepository) CountByUser(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.GetContext(ctx, &count,
+		`SELECT COUNT(*) FROM accounts WHERE user_id = $1 AND deleted_at IS NULL`, userID.String())
+	return count, err
 }

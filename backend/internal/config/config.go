@@ -11,7 +11,19 @@ import (
 type Config struct {
 	Database    DatabaseConfig    `mapstructure:"database"`
 	Bot         BotConfig         `mapstructure:"bot"`
+	API         APIConfig         `mapstructure:"api"`
 	Categorizer CategorizerConfig `mapstructure:"categorizer"`
+	Features    FeaturesConfig    `mapstructure:"features"`
+}
+
+type APIConfig struct {
+	Port              int      `mapstructure:"port"`
+	CORSOrigins       []string `mapstructure:"cors_origins"`
+	SupabaseJWTSecret string   `mapstructure:"supabase_jwt_secret"`
+}
+
+type FeaturesConfig struct {
+	AICategorizationEnabled bool `mapstructure:"ai_categorization_enabled"`
 }
 
 type DatabaseConfig struct {
@@ -48,13 +60,11 @@ func IsProduction() bool {
 }
 
 func Load(configPath ...string) *Config {
+	path := "./config.yaml"
 	if len(configPath) > 0 && configPath[0] != "" {
-		viper.SetConfigFile(configPath[0])
-	} else {
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
+		path = configPath[0]
 	}
+	viper.SetConfigFile(path)
 
 	// Environment variable overrides
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -70,10 +80,16 @@ func Load(configPath ...string) *Config {
 	viper.BindEnv("categorizer.provider", "CATEGORIZER_PROVIDER")
 	viper.BindEnv("categorizer.anthropic_key", "ANTHROPIC_API_KEY")
 	viper.BindEnv("categorizer.opencode_url", "OPENCODE_BASE_URL")
+	viper.BindEnv("api.port", "API_PORT")
+	viper.BindEnv("api.cors_origins", "API_CORS_ORIGINS")
+	viper.BindEnv("api.supabase_jwt_secret", "SUPABASE_JWT_SECRET")
 
 	// Defaults
 	viper.SetDefault("database.port", 5432)
+	viper.SetDefault("api.port", 8080)
+	viper.SetDefault("api.cors_origins", []string{"http://localhost:5173"})
 	viper.SetDefault("categorizer.provider", "opencode")
+	viper.SetDefault("features.ai_categorization_enabled", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

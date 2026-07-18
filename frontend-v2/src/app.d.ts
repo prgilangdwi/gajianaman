@@ -27,6 +27,8 @@ declare global {
 				AUTH_GOOGLE_ID: string;
 				AUTH_GOOGLE_SECRET: string;
 				SUPABASE_SERVICE_KEY: string;
+				SUPABASE_JWT_SECRET: string;
+				API_BASE_URL: string;
 			};
 			context: {
 				waitUntil(promise: Promise<unknown>): void;
