@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
-	import type { Snippet, ComponentProps } from 'svelte';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-	type Props = ComponentProps<typeof DrawerPrimitive.Title> & {
+	type Props = HTMLAttributes<HTMLHeadingElement> & {
 		class?: string;
 		children?: Snippet;
 	};

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
-	import type { Snippet, ComponentProps } from 'svelte';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-	type Props = ComponentProps<typeof DrawerPrimitive.Content> & {
+	type Props = HTMLAttributes<HTMLDivElement> & {
 		class?: string;
 		children?: Snippet;
 	};
@@ -24,7 +25,7 @@
 		)}
 		{...restProps}
 	>
-		<div class="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+		<div class="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted"></div>
 		{#if children}
 			{@render children()}
 		{/if}

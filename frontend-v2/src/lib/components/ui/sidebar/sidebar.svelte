@@ -74,7 +74,7 @@
 					? 'group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+1rem)]'
 					: 'group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]'
 			)}
-		/>
+		></div>
 		<div
 			data-slot="sidebar-container"
 			data-side={side}

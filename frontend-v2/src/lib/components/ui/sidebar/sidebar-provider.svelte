@@ -34,7 +34,7 @@
 	let internalOpen = $state(defaultOpen);
 
 	const open = $derived(openProp ?? internalOpen);
-	const state: SidebarState = $derived(open ? 'expanded' : 'collapsed');
+	const sidebarState: SidebarState = $derived(open ? 'expanded' : 'collapsed');
 
 	function setOpen(value: boolean) {
 		if (onOpenChange) {
@@ -80,7 +80,7 @@
 
 	setSidebarContext({
 		get state() {
-			return state;
+			return sidebarState;
 		},
 		get open() {
 			return open;

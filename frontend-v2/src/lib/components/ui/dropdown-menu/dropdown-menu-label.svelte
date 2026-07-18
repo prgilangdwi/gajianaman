@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
 	import { cn } from '$lib/utils';
 	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-	type Props = {
+	type Props = HTMLAttributes<HTMLDivElement> & {
 		class?: string;
 		inset?: boolean;
 		children?: Snippet;
-		[key: string]: unknown;
 	};
 
 	let { class: className, inset = false, children, ...restProps }: Props = $props();
 </script>
 
-<DropdownMenuPrimitive.Label
+<div
 	data-slot="dropdown-menu-label"
 	data-inset={inset || undefined}
 	class={cn('px-3 py-2.5 text-xs text-muted-foreground data-[inset]:pl-9.5', className)}
@@ -22,4 +21,4 @@
 	{#if children}
 		{@render children()}
 	{/if}
-</DropdownMenuPrimitive.Label>
+</div>

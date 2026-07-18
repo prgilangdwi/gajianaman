@@ -1,10 +1,21 @@
 <script lang="ts">
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
-	import type { ComponentProps } from 'svelte';
+	import type { Snippet } from 'svelte';
 
-	type Props = ComponentProps<typeof DrawerPrimitive.Root>;
+	type Props = {
+		open?: boolean;
+		onOpenChange?: (open: boolean) => void;
+		dismissible?: boolean;
+		shouldScaleBackground?: boolean;
+		children?: Snippet;
+		[key: string]: unknown;
+	};
 
-	let { ...restProps }: Props = $props();
+	let { children, ...restProps }: Props = $props();
 </script>
 
-<DrawerPrimitive.Root data-slot="drawer" {...restProps} />
+<DrawerPrimitive.Root {...restProps}>
+	{#if children}
+		{@render children()}
+	{/if}
+</DrawerPrimitive.Root>

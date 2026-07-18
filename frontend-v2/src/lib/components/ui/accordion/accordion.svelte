@@ -23,7 +23,7 @@
 </script>
 
 <AccordionPrimitive.Root
-	multiple
+	type="multiple"
 	bind:value
 	{onValueChange}
 	{disabled}

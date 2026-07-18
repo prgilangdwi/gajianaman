@@ -12,7 +12,6 @@
 </script>
 
 <nav
-	role="navigation"
 	aria-label="pagination"
 	data-slot="pagination"
 	class={cn('mx-auto flex w-full justify-center', className)}
