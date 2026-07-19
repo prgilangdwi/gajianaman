@@ -10,6 +10,7 @@ type Router struct {
 	accountHandler  *AccountHandler
 	txHandler       *TransactionHandler
 	categoryHandler *CategoryHandler
+	ledgerHandler   *LedgerHandler
 	corsOrigins     []string
 }
 
@@ -18,6 +19,7 @@ func NewRouter(
 	accountHandler *AccountHandler,
 	txHandler *TransactionHandler,
 	categoryHandler *CategoryHandler,
+	ledgerHandler *LedgerHandler,
 	corsOrigins []string,
 ) *Router {
 	return &Router{
@@ -26,6 +28,7 @@ func NewRouter(
 		accountHandler:  accountHandler,
 		txHandler:       txHandler,
 		categoryHandler: categoryHandler,
+		ledgerHandler:   ledgerHandler,
 		corsOrigins:     corsOrigins,
 	}
 }
@@ -50,6 +53,9 @@ func (r *Router) Setup() http.Handler {
 	r.mux.HandleFunc("DELETE /api/transactions/{id}", r.auth(r.txHandler.Delete))
 
 	r.mux.HandleFunc("GET /api/categories", r.auth(r.categoryHandler.List))
+
+	r.mux.HandleFunc("GET /api/ledger", r.auth(r.ledgerHandler.List))
+	r.mux.HandleFunc("GET /api/ledger/{id}", r.auth(r.ledgerHandler.Get))
 
 	return CORSMiddleware(r.corsOrigins)(r.mux)
 }

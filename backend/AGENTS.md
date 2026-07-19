@@ -48,7 +48,7 @@ Bot/API → Service Layer → Repository → PostgreSQL (Supabase)
 |-----------|---------|
 | `internal/bot/` | Telegram handlers, keyboards, callbacks |
 | `internal/handler/` | HTTP handlers with go-swagger annotations |
-| `internal/service/` | Business logic (categorization, formatting, accounts, transactions) |
+| `internal/service/` | Business logic (categorization, formatting, accounts, transactions, ledger) |
 | `internal/repository/` | Database queries with amount normalization |
 | `internal/model/` | Domain structs and enums |
 | `pkg/generator/` | UUID v7 generation |
@@ -78,6 +78,35 @@ utils.FormatIDR(5000000)  // "Rp 5.000.000,00"
 ```
 
 Repository layer handles normalization on INSERT and denormalization on SELECT automatically.
+
+### Ledger (Double-Entry Bookkeeping)
+
+The ledger system tracks all balance changes for accounts using double-entry bookkeeping:
+
+```go
+// LedgerEntry tracks a single balance change
+type LedgerEntry struct {
+    ID              uuid.UUID     // UUID v7
+    AccountID       uuid.UUID     // Account affected
+    TransactionID   uuid.NullUUID // Optional link to transaction
+    Type            LedgerType    // "credit" or "debit"
+    Amount          float64       // Change amount
+    StartingBalance float64       // Balance before this entry
+    EndingBalance   float64       // Balance after this entry
+    CreatedAt       time.Time
+}
+```
+
+**Key concepts:**
+- `credit` — Money flowing INTO an account (income, transfer in)
+- `debit` — Money flowing OUT of an account (expense, transfer out)
+- Each transaction creates corresponding ledger entries
+- Account balances are derived from ledger entry chain
+
+**API endpoints:**
+```
+GET /api/ledger?account_id={uuid}&start_date=2026-01-01&end_date=2026-01-31
+```
 
 ### Pagination
 

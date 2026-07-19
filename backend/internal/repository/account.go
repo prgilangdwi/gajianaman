@@ -128,6 +128,19 @@ func (r *AccountRepository) UpdateBalance(ctx context.Context, id uuid.UUID, del
 	return err
 }
 
+func (r *AccountRepository) GetBalanceForUpdate(ctx context.Context, id uuid.UUID) (float64, error) {
+	var balance float64
+	err := r.db.GetContext(ctx, &balance,
+		`SELECT balance FROM accounts WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`, id.String())
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return utils.Denormalize(int64(balance)), nil
+}
+
 func (r *AccountRepository) ClearDefault(ctx context.Context, userID uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE accounts SET is_default = false WHERE user_id = $1 AND deleted_at IS NULL`, userID.String())

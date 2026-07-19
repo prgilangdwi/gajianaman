@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,26 +12,30 @@ import (
 )
 
 var (
-	ErrTransactionNotFound = errors.New("transaction not found")
-	ErrInvalidAccount      = errors.New("invalid account")
-	ErrInvalidCategory     = errors.New("invalid category")
+	ErrTransactionNotFound    = errors.New("transaction not found")
+	ErrTransactionVoided      = errors.New("transaction already voided")
+	ErrInvalidAccount         = errors.New("invalid account")
+	ErrInvalidCategory        = errors.New("invalid category")
 )
 
 type TransactionService struct {
 	txRepo       *repository.TransactionRepository
 	accountRepo  *repository.AccountRepository
 	categoryRepo *repository.CategoryRepository
+	ledgerRepo   *repository.LedgerRepository
 }
 
 func NewTransactionService(
 	txRepo *repository.TransactionRepository,
 	accountRepo *repository.AccountRepository,
 	categoryRepo *repository.CategoryRepository,
+	ledgerRepo *repository.LedgerRepository,
 ) *TransactionService {
 	return &TransactionService{
 		txRepo:       txRepo,
 		accountRepo:  accountRepo,
 		categoryRepo: categoryRepo,
+		ledgerRepo:   ledgerRepo,
 	}
 }
 
@@ -82,10 +87,29 @@ func (s *TransactionService) Create(ctx context.Context, p CreateTransactionPara
 		return nil, err
 	}
 
+	// Determine delta and ledger type
 	delta := p.Amount
+	ledgerType := model.LedgerTypeCredit
 	if p.Type == model.TypeExpense {
 		delta = -p.Amount
+		ledgerType = model.LedgerTypeDebit
 	}
+
+	// Create ledger entry (amount always positive)
+	startingBalance := acc.Balance
+	endingBalance := startingBalance + delta
+	ledgerEntry := &model.LedgerEntry{
+		AccountID:       p.AccountID,
+		TransactionID:   uuid.NullUUID{UUID: tx.ID, Valid: true},
+		Type:            ledgerType,
+		Amount:          math.Abs(p.Amount),
+		StartingBalance: startingBalance,
+		EndingBalance:   endingBalance,
+	}
+	if err := s.ledgerRepo.Create(ctx, ledgerEntry); err != nil {
+		return nil, err
+	}
+
 	if err := s.accountRepo.UpdateBalance(ctx, p.AccountID, delta); err != nil {
 		return nil, err
 	}
@@ -105,6 +129,10 @@ func (s *TransactionService) GetByID(ctx context.Context, id uuid.UUID) (*model.
 }
 
 func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+	return s.Void(ctx, id, userID)
+}
+
+func (s *TransactionService) Void(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
 	tx, err := s.txRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -112,15 +140,43 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID, userID uu
 	if tx == nil || tx.UserID != userID {
 		return ErrTransactionNotFound
 	}
+	if tx.VoidedAt.Valid {
+		return ErrTransactionVoided
+	}
 
-	if err := s.txRepo.Delete(ctx, id, userID); err != nil {
+	// Get current account balance for ledger entry
+	acc, err := s.accountRepo.GetByID(ctx, tx.AccountID)
+	if err != nil {
 		return err
 	}
 
+	// Void the transaction
+	if err := s.txRepo.Void(ctx, id); err != nil {
+		return err
+	}
+
+	// Create reverse ledger entry
 	delta := -tx.Amount
+	ledgerType := model.LedgerTypeDebit // reverse of income
 	if tx.Type == model.TypeExpense {
 		delta = tx.Amount
+		ledgerType = model.LedgerTypeCredit // reverse of expense
 	}
+
+	startingBalance := acc.Balance
+	endingBalance := startingBalance + delta
+	ledgerEntry := &model.LedgerEntry{
+		AccountID:       tx.AccountID,
+		TransactionID:   uuid.NullUUID{UUID: tx.ID, Valid: true},
+		Type:            ledgerType,
+		Amount:          math.Abs(tx.Amount),
+		StartingBalance: startingBalance,
+		EndingBalance:   endingBalance,
+	}
+	if err := s.ledgerRepo.Create(ctx, ledgerEntry); err != nil {
+		return err
+	}
+
 	return s.accountRepo.UpdateBalance(ctx, tx.AccountID, delta)
 }
 

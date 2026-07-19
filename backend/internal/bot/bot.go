@@ -148,6 +148,8 @@ func (b *Bot) handleCommand(ctx context.Context, msg *tgbotapi.Message) {
 		b.cmdCommands(ctx, msg)
 	case "cancel":
 		b.cmdCancel(ctx, msg)
+	case "account":
+		b.cmdAccount(ctx, msg)
 	default:
 		b.reply(msg.Chat.ID, "❓ Command tidak dikenali. Ketik /help untuk bantuan.")
 	}

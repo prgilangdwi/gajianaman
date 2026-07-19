@@ -8,16 +8,16 @@
 	let { data } = $props();
 
 	let quickAddOpen = $state(false);
-
-	const net = $derived((data.totals?.income ?? 0) - (data.totals?.expense ?? 0));
+	let balanceHidden = $state(false);
 
 	function formatCurrency(amount: number): string {
+		if (balanceHidden) return '••••••••';
 		return new Intl.NumberFormat('id-ID', {
 			style: 'currency',
 			currency: data.session?.user?.currency ?? 'IDR',
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 0
-		}).format(amount / 100);
+		}).format(amount);
 	}
 
 	function formatTime(dateStr: string): string {
@@ -39,7 +39,12 @@
 <div class="min-h-screen bg-background">
 	<header class="bg-card border-b border-border px-4 py-3">
 		<div class="max-w-4xl mx-auto flex items-center justify-between">
-			<h1 class="text-title text-primary">Gajian Aman</h1>
+			<div class="flex items-center gap-4">
+				<h1 class="text-title text-primary">Gajian Aman</h1>
+				<nav class="flex items-center gap-2 text-sm">
+					<a href="/dashboard/accounts" class="text-muted-foreground hover:text-foreground">Akun</a>
+				</nav>
+			</div>
 			<div class="flex items-center gap-4">
 				<span class="text-sm text-muted-foreground">{data.session?.user?.name}</span>
 				<Button variant="ghost" size="sm" onclick={handleLogout}>Logout</Button>
@@ -48,26 +53,29 @@
 	</header>
 
 	<main class="max-w-4xl mx-auto p-4 space-y-4">
-		<!-- Summary Cards -->
-		<div class="grid grid-cols-3 gap-3">
-			<div class="bg-card rounded-xl p-4 shadow-sm">
-				<p class="text-caption uppercase tracking-wide">Pemasukan</p>
-				<p class="text-lg font-semibold text-primary">
-					{formatCurrency(data.totals?.income ?? 0)}
-				</p>
+		<!-- Total Balance Card -->
+		<div class="bg-card rounded-xl p-6 shadow-sm">
+			<div class="flex items-center justify-between mb-1">
+				<p class="text-caption uppercase tracking-wide">Total Saldo</p>
+				<button
+					type="button"
+					onclick={() => (balanceHidden = !balanceHidden)}
+					class="text-muted-foreground hover:text-foreground p-1"
+					aria-label={balanceHidden ? 'Show balance' : 'Hide balance'}
+				>
+					{#if balanceHidden}
+						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+					{:else}
+						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+					{/if}
+				</button>
 			</div>
-			<div class="bg-card rounded-xl p-4 shadow-sm">
-				<p class="text-caption uppercase tracking-wide">Pengeluaran</p>
-				<p class="text-lg font-semibold text-destructive">
-					{formatCurrency(data.totals?.expense ?? 0)}
-				</p>
-			</div>
-			<div class="bg-card rounded-xl p-4 shadow-sm">
-				<p class="text-caption uppercase tracking-wide">Net</p>
-				<p class="text-lg font-semibold" class:text-primary={net >= 0} class:text-destructive={net < 0}>
-					{formatCurrency(net)}
-				</p>
-			</div>
+			<p class="text-3xl font-bold" class:text-primary={data.totalBalance >= 0} class:text-destructive={data.totalBalance < 0}>
+				{formatCurrency(data.totalBalance ?? 0)}
+			</p>
+			<p class="text-sm text-muted-foreground mt-2">
+				{data.accounts?.length ?? 0} akun
+			</p>
 		</div>
 
 		<!-- Today's Transactions -->

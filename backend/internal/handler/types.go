@@ -467,3 +467,82 @@ type categoryListResponseWrapper struct {
 		Data    []CategoryDTO `json:"data"`
 	}
 }
+
+// LedgerEntryDTO represents a ledger entry in API responses
+// swagger:model ledgerEntryData
+type LedgerEntryDTO struct {
+	// The ledger entry ID
+	// example: 01JQWZ3N5KP9XYZ8M2V7B4CDEF
+	ID string `json:"id"`
+	// The account ID this entry belongs to
+	// example: 01JQWZ3N5KP9XYZ8M2V7B4CABC
+	AccountID string `json:"account_id"`
+	// The transaction ID that created this entry (null for manual adjustments)
+	// example: 01JQWZ3N5KP9XYZ8M2V7B4CXYZ
+	TransactionID *string `json:"transaction_id,omitempty"`
+	// Type of ledger entry: credit or debit
+	// example: credit
+	Type string `json:"type"`
+	// Amount (always positive)
+	// example: 50000
+	Amount float64 `json:"amount"`
+	// Balance before this entry
+	// example: 100000
+	StartingBalance float64 `json:"starting_balance"`
+	// Balance after this entry
+	// example: 150000
+	EndingBalance float64 `json:"ending_balance"`
+	// When the entry was created
+	// example: 2026-07-19T10:30:00Z
+	CreatedAt string `json:"created_at"`
+}
+
+// swagger:parameters listLedger
+type listLedgerParams struct {
+	// Filter by account ID
+	// in: query
+	AccountID string `json:"account_id"`
+	// Filter from date (YYYY-MM-DD, user timezone)
+	// in: query
+	StartDate string `json:"start_date"`
+	// Filter until date (YYYY-MM-DD, user timezone)
+	// in: query
+	EndDate string `json:"end_date"`
+	// Page number
+	// in: query
+	// default: 1
+	Page int `json:"page"`
+	// Items per page (max 100)
+	// in: query
+	// default: 50
+	Limit int `json:"limit"`
+}
+
+// swagger:parameters getLedgerEntry
+type getLedgerEntryParams struct {
+	// Ledger entry ID
+	// in: path
+	// required: true
+	ID string `json:"id"`
+}
+
+// swagger:response ledgerEntryResponse
+type ledgerEntryResponseWrapper struct {
+	// in: body
+	Body struct {
+		Success bool           `json:"success"`
+		Message string         `json:"message"`
+		Data    LedgerEntryDTO `json:"data"`
+	}
+}
+
+// swagger:response ledgerListResponse
+type ledgerListResponseWrapper struct {
+	// in: body
+	Body struct {
+		Success    bool             `json:"success"`
+		Message    string           `json:"message"`
+		Data       []LedgerEntryDTO `json:"data"`
+		Pagination PaginationDTO    `json:"pagination"`
+	}
+}

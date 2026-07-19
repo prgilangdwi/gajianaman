@@ -497,3 +497,222 @@ func mapCategoryShortcut(input string) string {
 	}
 	return strings.ToUpper(strings.ReplaceAll(input, " ", "_"))
 }
+
+func (b *Bot) cmdAccount(ctx context.Context, msg *tgbotapi.Message) {
+	user, ok := b.requireUser(ctx, msg)
+	if !ok {
+		return
+	}
+
+	args := parseQuotedArgs(msg.Text)
+	// args[0] = "/account", args[1] = subcommand, args[2...] = params
+
+	if len(args) < 2 {
+		// No subcommand, list accounts
+		b.listAccounts(ctx, msg, user)
+		return
+	}
+
+	switch strings.ToLower(args[1]) {
+	case "add":
+		b.accountAdd(ctx, msg, user, args[2:])
+	case "set":
+		b.accountSetDefault(ctx, msg, user, args[2:])
+	case "list":
+		b.listAccounts(ctx, msg, user)
+	default:
+		b.reply(msg.Chat.ID,
+			"❌ *Subcommand tidak dikenali.*\n\n"+
+				"Gunakan:\n"+
+				"• `/account` - Lihat semua akun\n"+
+				"• `/account add \"nama\" tipe` - Tambah akun baru\n"+
+				"• `/account set \"nama\"` - Set akun default\n\n"+
+				"*Tipe akun:* cash, bank, ewallet, credit_card, investment")
+	}
+}
+
+func (b *Bot) listAccounts(ctx context.Context, msg *tgbotapi.Message, user *model.User) {
+	accounts, err := b.accountRepo.ListByUser(ctx, user.ID)
+	if err != nil {
+		logger.Error(ctx, "failed to list accounts", "err", err)
+		b.reply(msg.Chat.ID, "⚠️ Gagal mengambil daftar akun.")
+		return
+	}
+
+	if len(accounts) == 0 {
+		b.reply(msg.Chat.ID, "📂 Belum ada akun. Gunakan `/account add \"nama\" tipe` untuk menambah.")
+		return
+	}
+
+	text := "💳 *Daftar Akun*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+	for _, acc := range accounts {
+		icon := getAccountIcon(acc.Type)
+		defaultMark := ""
+		if acc.IsDefault {
+			defaultMark = " ⭐"
+		}
+		text += fmt.Sprintf("%s *%s*%s\n   └ %s • %s\n\n",
+			icon, acc.Name, defaultMark,
+			acc.Type.String(),
+			service.FormatCurrencyV2(acc.Balance))
+	}
+	text += "━━━━━━━━━━━━━━━━━━━━\n"
+	text += "💡 `/account add \"nama\" tipe` - Tambah akun\n"
+	text += "💡 `/account set \"nama\"` - Set default"
+
+	b.reply(msg.Chat.ID, text)
+}
+
+func (b *Bot) accountAdd(ctx context.Context, msg *tgbotapi.Message, user *model.User, args []string) {
+	if len(args) < 2 {
+		b.reply(msg.Chat.ID,
+			"❌ *Format salah.*\n\n"+
+				"Gunakan: `/account add \"nama akun\" tipe`\n"+
+				"Contoh: `/account add \"BCA Debit\" bank`\n\n"+
+				"*Tipe:* cash, bank, ewallet, credit_card, investment")
+		return
+	}
+
+	name := args[0]
+	typeStr := strings.ToLower(args[1])
+
+	accType, ok := parseAccountType(typeStr)
+	if !ok {
+		b.reply(msg.Chat.ID,
+			"❌ *Tipe akun tidak valid.*\n\n"+
+				"Pilih salah satu: cash, bank, ewallet, credit_card, investment")
+		return
+	}
+
+	// Check if account with same name exists
+	existing, _ := b.accountRepo.GetByName(ctx, user.ID, name)
+	if existing != nil {
+		b.reply(msg.Chat.ID, fmt.Sprintf("⚠️ Akun dengan nama *%s* sudah ada.", name))
+		return
+	}
+
+	acc := &model.Account{
+		UserID:    user.ID,
+		Name:      name,
+		Type:      accType,
+		Balance:   0,
+		IsDefault: false,
+	}
+
+	if err := b.accountRepo.Create(ctx, acc); err != nil {
+		logger.Error(ctx, "failed to create account", "err", err)
+		b.reply(msg.Chat.ID, "⚠️ Gagal membuat akun. Coba lagi.")
+		return
+	}
+
+	icon := getAccountIcon(accType)
+	b.reply(msg.Chat.ID, fmt.Sprintf(
+		"✅ *Akun berhasil dibuat!*\n\n"+
+			"%s *%s*\n"+
+			"Tipe: %s\n\n"+
+			"Gunakan `/account set \"%s\"` untuk menjadikan default.",
+		icon, name, accType.String(), name))
+}
+
+func (b *Bot) accountSetDefault(ctx context.Context, msg *tgbotapi.Message, user *model.User, args []string) {
+	if len(args) < 1 {
+		b.reply(msg.Chat.ID,
+			"❌ *Format salah.*\n\n"+
+				"Gunakan: `/account set \"nama akun\"`\n"+
+				"Contoh: `/account set \"BCA Debit\"`")
+		return
+	}
+
+	name := args[0]
+
+	acc, err := b.accountRepo.GetByName(ctx, user.ID, name)
+	if err != nil {
+		logger.Error(ctx, "failed to get account", "err", err)
+		b.reply(msg.Chat.ID, "⚠️ Gagal mencari akun.")
+		return
+	}
+	if acc == nil {
+		b.reply(msg.Chat.ID, fmt.Sprintf("❌ Akun *%s* tidak ditemukan.", name))
+		return
+	}
+
+	if acc.IsDefault {
+		b.reply(msg.Chat.ID, fmt.Sprintf("ℹ️ *%s* sudah menjadi akun default.", name))
+		return
+	}
+
+	// Clear existing default and set new one
+	if err := b.accountRepo.ClearDefault(ctx, user.ID); err != nil {
+		logger.Error(ctx, "failed to clear default", "err", err)
+		b.reply(msg.Chat.ID, "⚠️ Gagal mengubah akun default.")
+		return
+	}
+
+	acc.IsDefault = true
+	if err := b.accountRepo.Update(ctx, acc); err != nil {
+		logger.Error(ctx, "failed to update account", "err", err)
+		b.reply(msg.Chat.ID, "⚠️ Gagal mengubah akun default.")
+		return
+	}
+
+	icon := getAccountIcon(acc.Type)
+	b.reply(msg.Chat.ID, fmt.Sprintf("✅ *%s* %s sekarang menjadi akun default!", icon, name))
+}
+
+func parseQuotedArgs(text string) []string {
+	var args []string
+	var current strings.Builder
+	inQuotes := false
+
+	for _, r := range text {
+		switch {
+		case r == '"':
+			inQuotes = !inQuotes
+		case r == ' ' && !inQuotes:
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+	return args
+}
+
+func parseAccountType(s string) (model.AccountType, bool) {
+	switch strings.ToLower(s) {
+	case "cash":
+		return model.AccountCash, true
+	case "bank":
+		return model.AccountBank, true
+	case "ewallet", "e-wallet":
+		return model.AccountEwallet, true
+	case "credit_card", "creditcard", "cc":
+		return model.AccountCreditCard, true
+	case "investment", "invest":
+		return model.AccountInvestment, true
+	default:
+		return 0, false
+	}
+}
+
+func getAccountIcon(t model.AccountType) string {
+	switch t {
+	case model.AccountCash:
+		return "💵"
+	case model.AccountBank:
+		return "🏦"
+	case model.AccountEwallet:
+		return "📱"
+	case model.AccountCreditCard:
+		return "💳"
+	case model.AccountInvestment:
+		return "📈"
+	default:
+		return "💰"
+	}
+}

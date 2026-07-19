@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/prgilangdwi/gajianaman/internal/model"
@@ -20,12 +21,14 @@ var (
 type AccountService struct {
 	accountRepo *repository.AccountRepository
 	txRepo      *repository.TransactionRepository
+	ledgerRepo  *repository.LedgerRepository
 }
 
-func NewAccountService(accountRepo *repository.AccountRepository, txRepo *repository.TransactionRepository) *AccountService {
+func NewAccountService(accountRepo *repository.AccountRepository, txRepo *repository.TransactionRepository, ledgerRepo *repository.LedgerRepository) *AccountService {
 	return &AccountService{
 		accountRepo: accountRepo,
 		txRepo:      txRepo,
+		ledgerRepo:  ledgerRepo,
 	}
 }
 
@@ -67,6 +70,24 @@ func (s *AccountService) Create(ctx context.Context, p CreateAccountParams) (*mo
 
 	if err := s.accountRepo.Create(ctx, acc); err != nil {
 		return nil, err
+	}
+
+	// Create initial balance ledger entry if balance is non-zero
+	if p.Balance != 0 {
+		ledgerType := model.LedgerTypeCredit
+		if p.Balance < 0 {
+			ledgerType = model.LedgerTypeDebit
+		}
+		ledgerEntry := &model.LedgerEntry{
+			AccountID:       acc.ID,
+			Type:            ledgerType,
+			Amount:          math.Abs(p.Balance),
+			StartingBalance: 0,
+			EndingBalance:   p.Balance,
+		}
+		if err := s.ledgerRepo.Create(ctx, ledgerEntry); err != nil {
+			return nil, err
+		}
 	}
 
 	return acc, nil

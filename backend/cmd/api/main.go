@@ -42,17 +42,20 @@ func main() {
 	accountRepo := repository.NewAccountRepository(database.DB)
 	txRepo := repository.NewTransactionRepository(database.DB)
 	categoryRepo := repository.NewCategoryRepository(database.DB)
+	ledgerRepo := repository.NewLedgerRepository(database.DB)
 
-	accountSvc := service.NewAccountService(accountRepo, txRepo)
-	txSvc := service.NewTransactionService(txRepo, accountRepo, categoryRepo)
+	accountSvc := service.NewAccountService(accountRepo, txRepo, ledgerRepo)
+	txSvc := service.NewTransactionService(txRepo, accountRepo, categoryRepo, ledgerRepo)
 	categorySvc := service.NewCategoryService(categoryRepo)
+	ledgerSvc := service.NewLedgerService(ledgerRepo, accountRepo)
 
 	authMiddleware := handler.NewAuthMiddleware(userRepo, cfg.API.SupabaseJWTSecret)
 	accountHandler := handler.NewAccountHandler(accountSvc)
 	txHandler := handler.NewTransactionHandler(txSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
+	ledgerHandler := handler.NewLedgerHandler(ledgerSvc)
 
-	router := handler.NewRouter(authMiddleware, accountHandler, txHandler, categoryHandler, cfg.API.CORSOrigins)
+	router := handler.NewRouter(authMiddleware, accountHandler, txHandler, categoryHandler, ledgerHandler, cfg.API.CORSOrigins)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.API.Port),

@@ -58,6 +58,7 @@ type Transaction struct {
 	CreatedAt    time.Time       `db:"created_at"`
 	UpdatedAt    time.Time       `db:"updated_at"`
 	DeletedAt    sql.NullTime    `db:"deleted_at"`
+	VoidedAt     sql.NullTime    `db:"voided_at"`
 }
 
 type Budget struct {

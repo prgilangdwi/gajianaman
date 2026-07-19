@@ -80,3 +80,15 @@ export interface Category {
 	created_at: string;
 	updated_at: string;
 }
+
+// Ledger entry types
+export interface LedgerEntry {
+	id: string;
+	account_id: string;
+	transaction_id: string | null;
+	type: 'credit' | 'debit';
+	amount: number;
+	starting_balance: number;
+	ending_balance: number;
+	created_at: string;
+}

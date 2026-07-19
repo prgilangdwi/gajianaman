@@ -308,3 +308,9 @@ func (r *TransactionRepository) GetHourlyCount(ctx context.Context, userID uuid.
 		   AND created_at >= NOW() - INTERVAL '1 hour'`, userID.String())
 	return count, err
 }
+
+func (r *TransactionRepository) Void(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE transactions SET voided_at = NOW(), updated_at = NOW() WHERE id = $1 AND voided_at IS NULL`, id.String())
+	return err
+}
