@@ -246,6 +246,151 @@ The bot uses `asyncpg` (async). The Streamlit dashboard and scheduler use `psyco
 
 ---
 
+## Go Backend (`backend/`)
+
+Modern rewrite of the Telegram bot in Go. Replaces the Python bot.
+
+### Tech Stack
+- **Go 1.23** with standard library patterns
+- **telegram-bot-api/v5** — Telegram bot framework
+- **sqlx + lib/pq** — PostgreSQL with Supabase
+- **golang-migrate** — Database migrations
+- **viper** — Configuration management
+- **zap** — Structured logging
+- **opencode-sdk-go** — AI categorization (Claude)
+
+### Project Structure
+```
+backend/
+├── cmd/
+│   ├── bot/main.go       # Bot entry point
+│   ├── migrate/main.go   # Migration runner
+│   └── seed/main.go      # Database seeder
+├── internal/
+│   ├── bot/              # Telegram handlers (commands, callbacks, photos, messages)
+│   ├── config/           # Viper config loading
+│   ├── db/               # Database connection (sqlx)
+│   ├── handler/          # HTTP handlers (if any)
+│   ├── model/            # Domain structs
+│   ├── parser/           # AI parsing logic
+│   ├── repository/       # Database queries (one per table)
+│   └── service/          # Business logic
+├── pkg/
+│   ├── logger/           # Zap logger setup
+│   └── utils/            # Currency formatting, helpers
+└── internal/db/migrations/  # SQL migrations (000001_*.up.sql, *.down.sql)
+```
+
+### Commands
+```bash
+make run           # Run bot locally
+make build         # Build binary
+make migrate-up    # Apply migrations
+make migrate-down  # Rollback migrations
+make seed          # Seed default categories
+make test          # Run tests
+```
+
+### Conventions
+- Repository pattern: one file per table in `internal/repository/`
+- Migrations in `internal/db/migrations/` with format `NNNNNN_name.up.sql`
+- Use `sqlx.DB` for queries, not raw `database/sql`
+- Config via `config.yaml` + environment variables
+- All amounts stored in cents (multiply by 100)
+
+---
+
+## SvelteKit Frontend (`frontend-v2/`)
+
+Modern rewrite of the React dashboard. Replaces `frontend/`.
+
+### Tech Stack
+- **SvelteKit 2** with Svelte 5 runes (`$state`, `$derived`, `$props`)
+- **TypeScript 6**
+- **Auth.js** (`@auth/sveltekit`) — Google OAuth
+- **Supabase** — Database client (anon key client-side, service key server-side)
+- **Tailwind CSS v4** via `@tailwindcss/vite`
+- **PWA** via `@vite-pwa/sveltekit`
+- **Cloudflare Pages** — Deployment target
+
+### Project Structure
+```
+frontend-v2/
+├── src/
+│   ├── routes/           # File-based routing
+│   │   ├── +page.svelte  # Landing page
+│   │   ├── dashboard/    # Protected routes
+│   │   └── login/        # Auth pages
+│   ├── lib/
+│   │   ├── supabase.ts          # Client + types + enums
+│   │   ├── supabase.server.ts   # Admin client (service key)
+│   │   ├── database.types.ts    # Auto-generated from Supabase
+│   │   └── components/          # Reusable components
+│   ├── auth.ts           # Auth.js config
+│   ├── hooks.server.ts   # Request interceptor
+│   └── app.d.ts          # Type augmentations
+└── static/               # Static assets
+```
+
+### Commands
+```bash
+bun run dev        # Start dev server (port 5173)
+bun run build      # Production build
+bun run check      # Type checking with svelte-check
+bun run db:types   # Regenerate Supabase types (after migrations)
+bun run deploy     # Build and deploy to Cloudflare
+```
+
+### Svelte 5 Runes (Key Patterns)
+```svelte
+<script lang="ts">
+  // Props from parent or +page.server.ts
+  let { data, form } = $props();
+  
+  // Reactive state (replaces let x = value)
+  let count = $state(0);
+  
+  // Derived values (replaces $: x = ...)
+  const doubled = $derived(count * 2);
+</script>
+```
+
+### Route Files
+| File | Purpose | Runs On |
+|------|---------|---------|
+| `+page.svelte` | Page UI | Server + Client |
+| `+page.server.ts` | Server-only load & form actions | Server only |
+| `+layout.svelte` | Nested layout | Server + Client |
+| `+server.ts` | API endpoint | Server only |
+
+### Form Actions
+```typescript
+// +page.server.ts
+export const actions = {
+  save: async ({ request, locals }) => {
+    const data = await request.formData();
+    // Process form...
+    return { success: true };
+  }
+};
+```
+
+```svelte
+<!-- +page.svelte -->
+<form method="POST" action="?/save" use:enhance>
+  <input name="field" />
+  <button>Save</button>
+</form>
+```
+
+### Conventions
+- Types in `src/lib/supabase.ts` — re-export from `database.types.ts`
+- Server secrets via `platform.env` (Cloudflare), not `$env/static/private`
+- `$lib` alias resolves to `src/lib/`
+- Run `bun run db:types` after Go migrations
+
+---
+
 ## Project AETHER Governance Rules
 
 **Effective Date:** May 21, 2026  

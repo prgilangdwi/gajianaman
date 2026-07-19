@@ -1,0 +1,57 @@
+name: Deploy Frontend to Cloudflare Pages
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'frontend-v2/**'
+      - '.github/workflows/deploy-frontend.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frontend-v2/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-v2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run check
+        env:
+          PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          PUBLIC_SUPABASE_ANON_KEY: placeholder
+          AUTH_SECRET: placeholder
+          AUTH_GOOGLE_ID: placeholder
+          AUTH_GOOGLE_SECRET: placeholder
+          SUPABASE_SERVICE_KEY: placeholder
+
+      - name: Build
+        run: bun run build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_GOOGLE_ID: ${{ secrets.AUTH_GOOGLE_ID }}
+          AUTH_GOOGLE_SECRET: ${{ secrets.AUTH_GOOGLE_SECRET }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: frontend-v2
+          command: pages deploy .svelte-kit/cloudflare --project-name=gajianaman --branch=${{ github.ref_name }}
